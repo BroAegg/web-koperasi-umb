@@ -1,32 +1,69 @@
-import { Controller, Get, Post, Body, Param, Put, Delete } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  Put,
+  Delete,
+  UseGuards,
+} from '@nestjs/common';
+import { ApiBearerAuth, ApiTags, ApiOperation } from '@nestjs/swagger';
 import { MemberService } from './member.service';
+import { CreateMemberDto } from './dto/create-member.dto';
+import { UpdateMemberDto } from './dto/update-member.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { Role } from '@prisma/client';
 
+@ApiTags('members')
+@ApiBearerAuth()
+@UseGuards(JwtAuthGuard)
 @Controller('members')
 export class MemberController {
-  constructor(private readonly service: MemberService) {}
+  constructor(private readonly memberService: MemberService) {}
 
   @Get()
-  async list() {
-    return this.service.list();
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Get all members' })
+  async findAll() {
+    return this.memberService.findAll();
   }
 
-  @Post()
-  async create(@Body() body: any) {
-    return this.service.create(body);
+  @Get('stats')
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Get member statistics' })
+  async getMemberStats() {
+    return this.memberService.getMemberStats();
   }
 
   @Get(':id')
-  async get(@Param('id') id: string) {
-    return this.service.get(id);
+  @ApiOperation({ summary: 'Get a member by id' })
+  async findOne(@Param('id') id: string) {
+    return this.memberService.findOne(id);
+  }
+
+  @Post()
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Create a new member' })
+  async create(@Body() createMemberDto: CreateMemberDto) {
+    return this.memberService.create(createMemberDto);
   }
 
   @Put(':id')
-  async update(@Param('id') id: string, @Body() body: any) {
-    return this.service.update(id, body);
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Update a member' })
+  async update(
+    @Param('id') id: string,
+    @Body() updateMemberDto: UpdateMemberDto,
+  ) {
+    return this.memberService.update(id, updateMemberDto);
   }
 
   @Delete(':id')
+  @Roles(Role.ADMIN)
+  @ApiOperation({ summary: 'Delete a member' })
   async remove(@Param('id') id: string) {
-    return this.service.remove(id);
+    return this.memberService.remove(id);
   }
 }
