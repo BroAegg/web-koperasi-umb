@@ -25,7 +25,7 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-emerald-50">
+    <div className="min-h-screen bg-gradient-to-br from-white-50 via-white to-emerald-50">
       <div className="min-h-screen grid lg:grid-cols-2">
         {/* Left Side - Logo & Branding */}
         <div className="hidden lg:flex flex-col items-center justify-center bg-gradient-to-br from-blue-600 to-blue-700 text-white relative overflow-hidden">
@@ -48,7 +48,7 @@ export default function LoginPage() {
             </div>
             <div className="flex items-center justify-center space-x-2 text-blue-200">
               <Building2 className="w-5 h-5" />
-              <span className="text-sm">Universitas Mercu Buana</span>
+              <span className="text-sm">Universitas Muhammadiyah Bandung</span>
             </div>
           </div>
           {/* Decorative elements */}
@@ -185,10 +185,10 @@ export default function LoginPage() {
                 </div>
               </CardContent>
             </Card>
-
+                    
             {/* Footer */}
             <div className="text-center text-xs text-gray-500 space-y-1">
-              <p>© 2024 Universitas Mercu Buana</p>
+              <p>© 2024 Universitas Muhammadiyah Bandung</p>
               <div className="space-x-4">
                 <Link href="/privacy" className="hover:text-gray-700">Kebijakan Privasi</Link>
                 <Link href="/terms" className="hover:text-gray-700">Syarat & Ketentuan</Link>
