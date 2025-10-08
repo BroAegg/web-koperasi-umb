@@ -126,22 +126,3 @@ Progress berjalan signifikan dengan kombinasi antara **implementasi teknis, debu
 
 ---
 
-## 📅 Day 6 – Rabu, 8 Oktober 2025  
-### 🕗 Waktu: 09.00 – 16.00 WIB  
-### 📍 Kegiatan:
-- Audit dan refactor halaman `Inventori` agar konsisten dengan design system (komponen `Card`, `Table`, `Button`, `Input`).  
-- Perbaikan UI/UX: standarisasi warna, spacing, dan typografi agar sesuai tema koperasi.  
-- Implementasi table responsif: menyembunyikan kolom sekunder di layar kecil, menambahkan horizontal scroll, dan compact action buttons untuk mobile.  
-- Perbaikan layout navigasi mobile (sidebar/hamburger) agar pengalaman bersih pada perangkat kecil.  
-- Menjalankan server development dan melakukan pengujian manual pada `/koperasi/inventory`, `/koperasi/dashboard`, dan halaman terkait.  
-- Commit & push perubahan: "mengubah ui/ux inventory page supaya konsisten dengan tema utama".
-
-### 🧠 Hasil & Pembelajaran:
-- Halaman Inventori sekarang konsisten dengan tema utama dan responsive di semua device (mobile/tablet/desktop).  
-- Penggunaan pola komponen ulang (reusable components) mempercepat konsistensi UI dan mengurangi duplikasi kode.  
-- Ditemukan beberapa issue TypeScript/JSX saat refactor — langkah debug memperjelas pentingnya test build cepat setelah perubahan besar.  
-- Pelajaran praktis: selalu uji di breakpoint kecil dulu (mobile-first), lalu perlebar ke tablet/desktop; gunakan utilitas Tailwind untuk menjaga konsistensi spacing dan warna.
-
----
-
-> Catatan: Entri ini berfokus pada finalisasi UI/UX halaman Inventori dan stabilisasi tampilan responsive. Pekerjaan berikutnya adalah menyelesaikan testing responsif komprehensif dan memperbaiki sisa layout dashboard jika ditemukan edge-case.
