@@ -5,10 +5,10 @@ import { usePathname } from "next/navigation";
 import { Home, Boxes, Users, Megaphone, Settings, LogOut } from "lucide-react";
 
 const navItems = [
-  { href: "/dashboard", label: "Dashboard", icon: Home },
-  { href: "/inventory", label: "Inventory", icon: Boxes },
-  { href: "/membership", label: "Membership", icon: Users },
-  { href: "/broadcast", label: "Broadcast", icon: Megaphone },
+  { href: "/koperasi/dashboard", label: "Dashboard", icon: Home },
+  { href: "/koperasi/inventory", label: "Inventory", icon: Boxes },
+  { href: "/koperasi/membership", label: "Membership", icon: Users },
+  { href: "/koperasi/broadcast", label: "Broadcast", icon: Megaphone },
 ];
 
 export default function KoperasiLayout({ children }: { children: React.ReactNode }) {

@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "Koperasi UMB",
-  description: "Sistem Koperasi Universitas Mercu Buana",
+  description: "Sistem Koperasi Universitas Muhammadiyah Bandung",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
