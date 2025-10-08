@@ -1,16 +1,34 @@
 "use client";
 
-import { useState, ChangeEvent } from "react";
+import { useState } from "react";
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { formatCurrency } from '@/lib/utils';
+import { 
+  Package, 
+  Plus, 
+  Minus, 
+  TrendingUp, 
+  AlertTriangle, 
+  Search,
+  Download,
+  Eye,
+  BarChart3
+} from 'lucide-react';
 
-/* ======================== TYPES ======================== */
 interface Product {
   id: number;
   name: string;
-  buyPrice: number; // harga pokok
-  sellPrice: number; // harga jual
-  profitPerItem: number;
+  category: string;
+  buyPrice: number;
+  sellPrice: number;
   stock: number;
+  threshold: number;
   soldToday: number;
+  totalSold: number;
+  profit: number;
 }
 
 interface Transaction {
@@ -19,436 +37,361 @@ interface Transaction {
   type: "IN" | "OUT";
   quantity: number;
   date: string;
-  profit: number;
+  note: string;
 }
 
-/* ======================== FORMAT RUPIAH ======================== */
-const rupiah = (n: number) =>
-  new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    minimumFractionDigits: 0,
-  }).format(n);
-
-/* ======================== MAIN PAGE ======================== */
 export default function InventoryPage() {
-  const [products, setProducts] = useState<Product[]>([
-    { id: 1, name: "Gula", buyPrice: 10000, sellPrice: 12000, profitPerItem: 2000, stock: 50, soldToday: 5 },
-    { id: 2, name: "Beras", buyPrice: 9000, sellPrice: 11000, profitPerItem: 2000, stock: 30, soldToday: 2 },
-    { id: 3, name: "Kopi", buyPrice: 8000, sellPrice: 15000, profitPerItem: 7000, stock: 10, soldToday: 0 },
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("semua");
+  const [showAddModal, setShowAddModal] = useState(false);
+  const [showStockModal, setShowStockModal] = useState<{show: boolean, product?: Product, type?: 'IN' | 'OUT'}>({show: false});
+  
+  const [products] = useState<Product[]>([
+    { 
+      id: 1, 
+      name: "Beras Premium 5kg", 
+      category: "Sembako",
+      buyPrice: 45000, 
+      sellPrice: 50000, 
+      stock: 25, 
+      threshold: 10,
+      soldToday: 8,
+      totalSold: 156,
+      profit: 5000
+    },
+    { 
+      id: 2, 
+      name: "Minyak Goreng 2L", 
+      category: "Sembako",
+      buyPrice: 25000, 
+      sellPrice: 28000, 
+      stock: 15, 
+      threshold: 20,
+      soldToday: 12,
+      totalSold: 89,
+      profit: 3000
+    },
+    { 
+      id: 3, 
+      name: "Gula Pasir 1kg", 
+      category: "Sembako",
+      buyPrice: 12000, 
+      sellPrice: 14000, 
+      stock: 8, 
+      threshold: 15,
+      soldToday: 5,
+      totalSold: 234,
+      profit: 2000
+    },
+    { 
+      id: 4, 
+      name: "Kopi Bubuk 200g", 
+      category: "Minuman",
+      buyPrice: 15000, 
+      sellPrice: 18000, 
+      stock: 30, 
+      threshold: 10,
+      soldToday: 3,
+      totalSold: 67,
+      profit: 3000
+    }
   ]);
 
-  const [transactions, setTransactions] = useState<Transaction[]>([
-    { id: 1, productName: "Gula", type: "OUT", quantity: 5, date: "2025-10-08", profit: 10000 },
-    { id: 2, productName: "Beras", type: "IN", quantity: 10, date: "2025-10-07", profit: 0 },
+  const [transactions] = useState<Transaction[]>([
+    { id: 1, productName: "Beras Premium 5kg", type: "OUT", quantity: 5, date: "2025-10-08", note: "Penjualan" },
+    { id: 2, productName: "Minyak Goreng 2L", type: "IN", quantity: 20, date: "2025-10-08", note: "Restock" },
+    { id: 3, productName: "Gula Pasir 1kg", type: "OUT", quantity: 3, date: "2025-10-08", note: "Penjualan" },
   ]);
 
-  const [openModal, setOpenModal] = useState<null | { type: "IN" | "OUT"; productId: number }>(null);
-  const [openAdd, setOpenAdd] = useState(false);
-  const [qty, setQty] = useState<number>(0);
-  const [newProduct, setNewProduct] = useState({
-    name: "",
-    buyPrice: 0,
-    sellPrice: 0,
-    profitPerItem: 0,
-    stock: 0,
+  const filteredProducts = products.filter(product => {
+    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = selectedCategory === "semua" || product.category === selectedCategory;
+    return matchesSearch && matchesCategory;
   });
 
-  /* ======================== FORMAT INPUT RUPIAH ======================== */
-  const handleCurrencyInput = (e: ChangeEvent<HTMLInputElement>, field: keyof typeof newProduct) => {
-    const raw = e.target.value.replace(/[^0-9]/g, "");
-    const num = parseInt(raw || "0");
-    setNewProduct((prev) => ({ ...prev, [field]: num }));
-    e.target.value = rupiah(num);
-  };
+  const lowStockProducts = products.filter(p => p.stock <= p.threshold);
+  const totalProducts = products.length;
+  const totalStockValue = products.reduce((sum, p) => sum + (p.buyPrice * p.stock), 0);
+  const todayProfit = products.reduce((sum, p) => sum + (p.profit * p.soldToday), 0);
 
-  /* ======================== TRANSAKSI BARANG ======================== */
-  const handleTransaction = () => {
-    if (!openModal) return;
-    setProducts((prev) =>
-      prev.map((p) => {
-        if (p.id !== openModal.productId) return p;
-        const updatedStock = openModal.type === "IN" ? p.stock + qty : p.stock - qty;
-        const updatedSold = openModal.type === "OUT" ? p.soldToday + qty : p.soldToday;
+  const categories = ["semua", ...Array.from(new Set(products.map(p => p.category)))];
 
-        // Simpan transaksi
-        setTransactions((prevTx) => [
-          {
-            id: prevTx.length + 1,
-            productName: p.name,
-            type: openModal.type,
-            quantity: qty,
-            date: new Date().toISOString().split("T")[0],
-            profit: openModal.type === "OUT" ? qty * p.profitPerItem : 0,
-          },
-          ...prevTx,
-        ]);
-
-        return { ...p, stock: Math.max(updatedStock, 0), soldToday: updatedSold };
-      })
-    );
-    setQty(0);
-    setOpenModal(null);
-  };
-
-  /* ======================== TAMBAH PRODUK ======================== */
-  const handleAddProduct = () => {
-    if (!newProduct.name.trim()) return alert("Nama produk wajib diisi!");
-    const id = Math.max(...products.map((p) => p.id)) + 1;
-    setProducts([...products, { id, soldToday: 0, ...newProduct }]);
-    setNewProduct({ name: "", buyPrice: 0, sellPrice: 0, profitPerItem: 0, stock: 0 });
-    setOpenAdd(false);
-  };
-
-  /* ======================== HITUNG TOTAL ======================== */
-  const totalKonsinyasi = products.reduce((a, b) => a + b.buyPrice * b.stock, 0);
-  const totalOmzet = products.reduce((a, b) => a + b.sellPrice * b.stock, 0);
-  const totalKeuntungan = products.reduce((a, b) => a + b.profitPerItem * b.stock, 0);
-
-  /* ======================== RENDER ======================== */
   return (
-    <div className="space-y-8">
-      <h1 className="text-3xl font-bold text-gray-800">Manajemen Inventory</h1>
-
-      {/* ===== 3 KOTAK: KONSINYASI, OMZET, KEUNTUNGAN ===== */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-        <StatCard label="Harga Pokok (Konsinyasi)" value={rupiah(totalKonsinyasi)} color="text-indigo-600" icon="💰" />
-        <StatCard label="Omzet Barang Terjual" value={rupiah(totalOmzet)} color="text-orange-500" icon="📦" />
-        <StatCard label="Keuntungan" value={rupiah(totalKeuntungan)} color="text-green-700" icon="📈" />
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Inventori</h1>
+          <p className="text-gray-600 mt-1 text-sm sm:text-base">Kelola stok dan produk koperasi</p>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+          <Button variant="outline" size="sm" className="w-full sm:w-auto">
+            <Download className="w-4 h-4 mr-2" />
+            <span className="hidden sm:inline">Ekspor Data</span>
+            <span className="sm:hidden">Ekspor</span>
+          </Button>
+          <Button size="sm" onClick={() => setShowAddModal(true)} className="w-full sm:w-auto">
+            <Plus className="w-4 h-4 mr-2" />
+            <span className="hidden sm:inline">Tambah Produk</span>
+            <span className="sm:hidden">Tambah</span>
+          </Button>
+        </div>
       </div>
 
-      {/* ===== TABEL PRODUK ===== */}
-      <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6 overflow-x-auto">
-        <div className="flex justify-between items-center mb-4">
-          <h2 className="text-lg font-semibold text-gray-800">Daftar Barang</h2>
-          <button
-            onClick={() => setOpenAdd(true)}
-            className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg shadow-sm"
-          >
-            + Tambah Produk
-          </button>
-        </div>
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-2 sm:p-3 rounded-lg bg-blue-50">
+                <Package className="w-5 h-5 sm:w-6 sm:h-6 text-blue-700" />
+              </div>
+              <div className="text-xs sm:text-sm font-medium px-2 py-1 rounded-full text-blue-700 bg-blue-100">
+                {totalProducts} Items
+              </div>
+            </div>
+            <div>
+              <h3 className="text-xs sm:text-sm font-medium text-gray-600 mb-1">Total Produk</h3>
+              <p className="text-xl sm:text-2xl font-bold text-gray-900">{totalProducts}</p>
+            </div>
+          </CardContent>
+        </Card>
 
-        <table className="min-w-full border border-gray-300 text-sm text-gray-800 rounded-lg overflow-hidden">
-          <thead className="bg-blue-100 border-b border-gray-300 text-gray-700">
-            <tr>
-              <th className="px-4 py-3 text-left font-semibold">Produk</th>
-              <th className="px-4 py-3 text-left font-semibold">Harga Pokok</th>
-              <th className="px-4 py-3 text-left font-semibold">Harga Jual</th>
-              <th className="px-4 py-3 text-left font-semibold">Keuntungan / pcs</th>
-              <th className="px-4 py-3 text-left font-semibold">Stok</th>
-              <th className="px-4 py-3 text-left font-semibold">Terjual Hari Ini</th>
-              <th className="px-4 py-3 text-left font-semibold text-center">Aksi</th>
-            </tr>
-          </thead>
-          <tbody>
-            {products.map((p) => (
-              <tr key={p.id} className="border-b border-gray-300 hover:bg-blue-50 transition-colors">
-                <td className="px-4 py-2 font-medium">{p.name}</td>
-                <td className="px-4 py-2">{rupiah(p.buyPrice)}</td>
-                <td className="px-4 py-2">{rupiah(p.sellPrice)}</td>
-                <td className="px-4 py-2 text-green-700">{rupiah(p.profitPerItem)}</td>
-                <td className={`px-4 py-2 font-semibold ${p.stock <= 5 ? "text-red-600" : "text-gray-800"}`}>
-                  {p.stock}
-                </td>
-                <td className="px-4 py-2">{p.soldToday}</td>
-                <td className="px-4 py-2 text-center space-x-2">
-                  <button
-                    onClick={() => setOpenModal({ type: "IN", productId: p.id })}
-                    className="px-3 py-1 text-sm rounded-lg bg-green-600 text-white hover:bg-green-700 transition"
+        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-2 sm:p-3 rounded-lg bg-emerald-50">
+                <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600" />
+              </div>
+              <div className="text-xs sm:text-sm font-medium px-2 py-1 rounded-full text-emerald-700 bg-emerald-100">
+                +15%
+              </div>
+            </div>
+            <div>
+              <h3 className="text-xs sm:text-sm font-medium text-gray-600 mb-1">Nilai Stok</h3>
+              <p className="text-xl sm:text-2xl font-bold text-gray-900">{formatCurrency(totalStockValue)}</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-2 sm:p-3 rounded-lg bg-amber-50">
+                <AlertTriangle className="w-5 h-5 sm:w-6 sm:h-6 text-amber-600" />
+              </div>
+              <div className="text-xs sm:text-sm font-medium px-2 py-1 rounded-full text-amber-700 bg-amber-100">
+                {lowStockProducts.length} Items
+              </div>
+            </div>
+            <div>
+              <h3 className="text-xs sm:text-sm font-medium text-gray-600 mb-1">Stok Rendah</h3>
+              <p className="text-xl sm:text-2xl font-bold text-gray-900">{lowStockProducts.length}</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-2 sm:p-3 rounded-lg bg-green-50">
+                <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
+              </div>
+              <div className="text-xs sm:text-sm font-medium px-2 py-1 rounded-full text-green-700 bg-green-100">
+                Hari Ini
+              </div>
+            </div>
+            <div>
+              <h3 className="text-xs sm:text-sm font-medium text-gray-600 mb-1">Keuntungan</h3>
+              <p className="text-xl sm:text-2xl font-bold text-gray-900">{formatCurrency(todayProfit)}</p>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-4 gap-4 sm:gap-6">
+        {/* Products Table */}
+        <div className="xl:col-span-3">
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="pb-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                <h2 className="text-lg sm:text-xl font-bold text-gray-900">Daftar Produk</h2>
+                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                    <Input
+                      placeholder="Cari produk..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10 w-full sm:w-64"
+                    />
+                  </div>
+                  <select
+                    value={selectedCategory}
+                    onChange={(e) => setSelectedCategory(e.target.value)}
+                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                   >
-                    + Masuk
-                  </button>
-                  <button
-                    onClick={() => setOpenModal({ type: "OUT", productId: p.id })}
-                    className="px-3 py-1 text-sm rounded-lg bg-red-600 text-white hover:bg-red-700 transition"
-                  >
-                    - Keluar
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* ===== RIWAYAT TRANSAKSI ===== */}
-      <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-6">
-        <h2 className="text-lg font-semibold text-gray-800 mb-4">Riwayat Transaksi</h2>
-        <table className="min-w-full border border-gray-300 text-sm text-gray-800 rounded-lg overflow-hidden">
-          <thead className="bg-blue-100 border-b border-gray-300 text-gray-700">
-            <tr>
-              <th className="px-4 py-3 text-left font-semibold">Tanggal</th>
-              <th className="px-4 py-3 text-left font-semibold">Produk</th>
-              <th className="px-4 py-3 text-left font-semibold">Tipe</th>
-              <th className="px-4 py-3 text-left font-semibold">Jumlah</th>
-              <th className="px-4 py-3 text-left font-semibold">Keuntungan</th>
-            </tr>
-          </thead>
-          <tbody>
-            {transactions.length > 0 ? (
-              transactions.map((t) => (
-                <tr key={t.id} className="border-b border-gray-300 hover:bg-blue-50 transition-colors">
-                  <td className="px-4 py-2">{t.date}</td>
-                  <td className="px-4 py-2 font-medium">{t.productName}</td>
-                  <td className={`px-4 py-2 font-semibold ${t.type === "IN" ? "text-green-600" : "text-red-600"}`}>
-                    {t.type === "IN" ? "Masuk" : "Keluar"}
-                  </td>
-                  <td className="px-4 py-2">{t.quantity}</td>
-                  <td className="px-4 py-2 text-green-700">{rupiah(t.profit)}</td>
-                </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={5} className="text-center py-4 text-gray-500">
-                  Belum ada transaksi
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
-
-      {/* ===== MODALS ===== */}
-      {openModal && (
-        <ModalTransaksi
-          openModal={openModal}
-          setOpenModal={setOpenModal}
-          products={products}
-          qty={qty}
-          setQty={setQty}
-          handleTransaction={handleTransaction}
-        />
-      )}
-      {openAdd && (
-        <ModalTambahProduk
-          openAdd={openAdd}
-          setOpenAdd={setOpenAdd}
-          newProduct={newProduct}
-          setNewProduct={setNewProduct}
-          handleAddProduct={handleAddProduct}
-          handleCurrencyInput={handleCurrencyInput}
-          rupiah={rupiah}
-        />
-      )}
-    </div>
-  );
-}
-
-/* ======================== COMPONENTS ======================== */
-
-// KARTU STATISTIK
-function StatCard({ label, value, color, icon }: { label: string; value: string; color: string; icon?: string }) {
-  return (
-    <div className="bg-white border border-gray-200 rounded-xl shadow-sm hover:shadow-md transition-shadow duration-200 p-5 text-center flex flex-col items-center justify-center">
-      {icon && <div className="text-3xl mb-2">{icon}</div>}
-      <p className="text-sm text-gray-500 mb-1">{label}</p>
-      <p className={`text-2xl font-bold ${color}`}>{value}</p>
-    </div>
-  );
-}
-
-// MODAL TAMBAH PRODUK
-interface ModalTambahProdukProps {
-  setOpenAdd: (open: boolean) => void;
-  newProduct: {
-    name: string;
-    category: string;
-    stock: number;
-    threshold: number;
-    buyingPrice: number;
-  };
-  handleAddProduct: () => void;
-  handleCurrencyInput: (e: React.ChangeEvent<HTMLInputElement>, field: string) => void;
-  rupiah: (amount: number) => string;
-  setNewProduct: React.Dispatch<React.SetStateAction<{
-    name: string;
-    category: string;
-    stock: number;
-    threshold: number;
-    buyingPrice: number;
-  }>>;
-}
-
-function ModalTambahProduk({ setOpenAdd, newProduct, handleAddProduct, handleCurrencyInput, rupiah, setNewProduct }: ModalTambahProdukProps) {
-  return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl p-6 w-full max-w-lg shadow-xl border border-gray-400">
-        <div className="flex items-center justify-between mb-4">
-          <h3 className="text-xl font-semibold text-gray-900">Tambah Produk Baru</h3>
-          <button onClick={() => setOpenAdd(false)} className="text-gray-500 hover:text-gray-700 text-lg font-bold">✕</button>
+                    {categories.map(cat => (
+                      <option key={cat} value={cat}>{cat === "semua" ? "Semua Kategori" : cat}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="p-0">
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="w-[200px]">Produk</TableHead>
+                      <TableHead className="hidden sm:table-cell">Kategori</TableHead>
+                      <TableHead className="hidden md:table-cell">Harga Beli</TableHead>
+                      <TableHead className="hidden md:table-cell">Harga Jual</TableHead>
+                      <TableHead>Stok</TableHead>
+                      <TableHead className="hidden lg:table-cell">Terjual</TableHead>
+                      <TableHead className="text-center">Aksi</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredProducts.map((product) => (
+                      <TableRow key={product.id}>
+                        <TableCell className="font-medium">
+                          <div className="flex flex-col">
+                            <span className="font-medium">{product.name}</span>
+                            <div className="sm:hidden text-xs text-gray-500 mt-1">
+                              {product.category} • {formatCurrency(product.sellPrice)}
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="hidden sm:table-cell text-gray-600">
+                          {product.category}
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">
+                          {formatCurrency(product.buyPrice)}
+                        </TableCell>
+                        <TableCell className="hidden md:table-cell">
+                          {formatCurrency(product.sellPrice)}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <span className={`font-medium ${
+                              product.stock <= product.threshold 
+                                ? 'text-red-600' 
+                                : product.stock <= product.threshold * 1.5 
+                                  ? 'text-amber-600' 
+                                  : 'text-green-600'
+                            }`}>
+                              {product.stock}
+                            </span>
+                            {product.stock <= product.threshold && (
+                              <AlertTriangle className="w-4 h-4 text-red-500" />
+                            )}
+                          </div>
+                        </TableCell>
+                        <TableCell className="hidden lg:table-cell text-gray-600">
+                          {product.soldToday}
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center justify-center gap-1">
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setShowStockModal({show: true, product, type: 'IN'})}
+                              className="p-2"
+                            >
+                              <Plus className="w-3 h-3" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => setShowStockModal({show: true, product, type: 'OUT'})}
+                              className="p-2"
+                            >
+                              <Minus className="w-3 h-3" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="p-2"
+                            >
+                              <Eye className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
         </div>
 
-        <form
-          className="space-y-4"
-          onSubmit={(e) => {
-            e.preventDefault();
-            handleAddProduct();
-          }}
-        >
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* NAMA PRODUK */}
-            <label className="text-sm font-medium text-gray-800">
-              Nama Produk
-              <input
-                type="text"
-                className="mt-1 w-full border border-gray-600 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
-                value={newProduct.name}
-                onChange={(e) => setNewProduct((prev) => ({ ...prev, name: e.target.value }))}
-                required
-              />
-            </label>
+        {/* Sidebar - Recent Transactions & Low Stock Alert */}
+        <div className="space-y-6">
+          {/* Low Stock Alert */}
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="pb-4">
+              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-amber-500" />
+                Stok Rendah
+              </h3>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {lowStockProducts.length === 0 ? (
+                <p className="text-gray-500 text-sm">Semua stok dalam kondisi baik</p>
+              ) : (
+                lowStockProducts.map((product) => (
+                  <div key={product.id} className="p-3 bg-amber-50 rounded-lg border border-amber-200">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium text-gray-900 text-sm">{product.name}</p>
+                        <p className="text-xs text-gray-500">Sisa: {product.stock} unit</p>
+                      </div>
+                      <Button size="sm" variant="outline" className="text-xs">
+                        Restock
+                      </Button>
+                    </div>
+                  </div>
+                ))
+              )}
+            </CardContent>
+          </Card>
 
-            {/* HARGA POKOK */}
-            <label className="text-sm font-medium text-gray-800">
-              Harga Pokok
-              <input
-                type="text"
-                inputMode="numeric"
-                className="mt-1 w-full border border-gray-600 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
-                defaultValue={rupiah(newProduct.buyPrice)}
-                onInput={(e) => handleCurrencyInput(e as any, "buyPrice")}
-                required
-              />
-            </label>
-
-            {/* HARGA JUAL */}
-            <label className="text-sm font-medium text-gray-800">
-              Harga Jual
-              <input
-                type="text"
-                inputMode="numeric"
-                className="mt-1 w-full border border-gray-600 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
-                defaultValue={rupiah(newProduct.sellPrice)}
-                onInput={(e) => handleCurrencyInput(e as any, "sellPrice")}
-                required
-              />
-            </label>
-
-            {/* KEUNTUNGAN / PCS */}
-            <label className="text-sm font-medium text-gray-800">
-              Keuntungan / pcs
-              <input
-                type="text"
-                inputMode="numeric"
-                className="mt-1 w-full border border-gray-600 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
-                defaultValue={rupiah(newProduct.profitPerItem)}
-                onInput={(e) => handleCurrencyInput(e as any, "profitPerItem")}
-                required
-              />
-            </label>
-
-            {/* STOK */}
-            <label className="text-sm font-medium text-gray-800">
-              Stok Awal
-              <input
-                type="number"
-                min={0}
-                className="mt-1 w-full border border-gray-600 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
-                value={newProduct.stock === 0 ? "" : newProduct.stock}
-                onChange={(e) => setNewProduct((prev) => ({ ...prev, stock: Number(e.target.value.replace(/^0+/, "")) }))}
-                required
-              />
-            </label>
-          </div>
-
-          <div className="flex justify-end gap-2 pt-4">
-            <button
-              type="button"
-              onClick={() => setOpenAdd(false)}
-              className="border border-gray-400 text-gray-700 rounded-lg px-4 py-2 hover:bg-gray-100 transition"
-            >
-              Batal
-            </button>
-            <button
-              type="submit"
-              className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg font-medium"
-            >
-              Simpan
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
-
-// MODAL TRANSAKSI
-interface Product {
-  id: string;
-  name: string;
-  category?: string;
-  stock: number;
-  threshold: number;
-  buyingPrice: number;
-  createdAt: Date;
-}
-
-interface ModalTransaksiProps {
-  openModal: { productId: string; type: string } | null;
-  setOpenModal: (modal: { productId: string; type: string } | null) => void;
-  products: Product[];
-  qty: number;
-  setQty: (qty: number) => void;
-  handleTransaction: () => void;
-}
-
-function ModalTransaksi({ openModal, setOpenModal, products, qty, setQty, handleTransaction }: ModalTransaksiProps) {
-  const product = products.find((p) => p.id === openModal?.productId);
-  if (!product || !openModal) return null;
-  const isIn = openModal.type === "IN";
-
-  return (
-    <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-      <div className="bg-white rounded-2xl p-6 w-full max-w-md shadow-xl border border-gray-300">
-        <h3 className={`text-xl font-semibold mb-4 ${isIn ? "text-green-700" : "text-red-700"}`}>
-          {isIn ? "Barang Masuk" : "Barang Keluar"}
-        </h3>
-
-        <div className="space-y-3 text-sm">
-          <p>
-            <span className="font-semibold text-gray-800">Produk:</span> {product.name}
-          </p>
-          <p>
-            <span className="font-semibold text-gray-800">Stok Saat Ini:</span> {product.stock} pcs
-          </p>
-          <p className="text-gray-600 italic">
-            {isIn ? "Masukkan jumlah stok yang masuk." : "Masukkan jumlah barang yang keluar atau terjual."}
-          </p>
-
-          <input
-            type="number"
-            className={`w-full border ${
-              isIn ? "border-green-500 focus:ring-green-400" : "border-red-500 focus:ring-red-400"
-            } rounded-lg px-3 py-2 text-gray-800 focus:outline-none focus:ring-2`}
-            placeholder="Masukkan jumlah"
-            value={qty === 0 ? "" : qty}
-            onChange={(e) => setQty(Number(e.target.value.replace(/^0+/, "")))}
-          />
-
-          <div className="pt-2">
-            <p className="text-gray-700 text-sm">
-              <span className="font-medium">Estimasi Keuntungan: </span>
-              {isIn ? "Tidak ada (barang masuk)" : rupiah(product.profitPerItem * qty || 0)}
-            </p>
-          </div>
-        </div>
-
-        <div className="flex justify-end gap-2 pt-6">
-          <button
-            onClick={() => setOpenModal(null)}
-            className="border border-gray-400 text-gray-700 rounded-lg px-4 py-2 hover:bg-gray-100 transition"
-          >
-            Batal
-          </button>
-          <button
-            onClick={handleTransaction}
-            className={`px-4 py-2 rounded-lg text-white font-medium ${
-              isIn ? "bg-green-600 hover:bg-green-700" : "bg-red-600 hover:bg-red-700"
-            }`}
-          >
-            Simpan
-          </button>
+          {/* Recent Transactions */}
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="pb-4">
+              <h3 className="text-lg font-bold text-gray-900">Transaksi Terbaru</h3>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {transactions.slice(0, 5).map((transaction) => (
+                <div key={transaction.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                  <div className="flex items-center gap-3">
+                    <div className={`p-2 rounded-full ${
+                      transaction.type === 'IN' 
+                        ? 'bg-green-100 text-green-600' 
+                        : 'bg-red-100 text-red-600'
+                    }`}>
+                      {transaction.type === 'IN' ? (
+                        <Plus className="w-3 h-3" />
+                      ) : (
+                        <Minus className="w-3 h-3" />
+                      )}
+                    </div>
+                    <div>
+                      <p className="font-medium text-gray-900 text-sm">{transaction.productName}</p>
+                      <p className="text-xs text-gray-500">
+                        {transaction.type === 'IN' ? 'Masuk' : 'Keluar'} {transaction.quantity} unit
+                      </p>
+                    </div>
+                  </div>
+                  <span className="text-xs text-gray-400">
+                    {new Date(transaction.date).toLocaleDateString('id-ID')}
+                  </span>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

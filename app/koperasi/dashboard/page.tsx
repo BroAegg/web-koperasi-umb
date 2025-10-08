@@ -72,25 +72,27 @@ export default function DashboardPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Dashboard</h1>
-          <p className="text-gray-600 mt-1">Selamat datang di Sistem Koperasi UMB</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Dashboard</h1>
+          <p className="text-gray-600 mt-1 text-sm sm:text-base">Selamat datang di Sistem Koperasi UMB</p>
         </div>
-        <div className="mt-4 md:mt-0 flex gap-3">
-          <Button variant="outline" size="sm">
+        <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+          <Button variant="outline" size="sm" className="w-full sm:w-auto">
             <Calendar className="w-4 h-4 mr-2" />
-            Laporan Bulanan
+            <span className="hidden sm:inline">Laporan Bulanan</span>
+            <span className="sm:hidden">Laporan</span>
           </Button>
-          <Button size="sm">
+          <Button size="sm" className="w-full sm:w-auto">
             <PlusCircle className="w-4 h-4 mr-2" />
-            Transaksi Baru
+            <span className="hidden sm:inline">Transaksi Baru</span>
+            <span className="sm:hidden">Transaksi</span>
           </Button>
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
         {stats.map((stat, index) => {
           const Icon = stat.icon;
           return (
@@ -124,7 +126,7 @@ export default function DashboardPage() {
         })}
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 sm:gap-6">
         {/* Recent Activities */}
         <Card>
           <CardHeader>
@@ -196,7 +198,7 @@ export default function DashboardPage() {
           <h3 className="text-lg font-semibold text-gray-900">Aksi Cepat</h3>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
             <Button variant="outline" className="h-auto py-4 flex-col">
               <Users className="w-6 h-6 mb-2 text-blue-600" />
               <span className="text-sm">Daftar Anggota</span>
