@@ -1,5 +1,6 @@
 'use client';
 
+import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { formatCurrency, formatNumber } from '@/lib/utils';
@@ -14,12 +15,76 @@ import {
   Eye
 } from 'lucide-react';
 
+interface DashboardStats {
+  totalMembers: number;
+  activeMembers: number;
+  totalProducts: number;
+  lowStockProducts: number;
+  todayTransactions: number;
+  todayRevenue: number;
+  monthlyRevenue: number;
+  totalSimpanan: number;
+  lowStockProductsList: any[];
+  recentActivities: any[];
+}
+
 export default function DashboardPage() {
-  // Mock data - nanti akan diganti dengan data dari API
-  const stats = [
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchDashboardStats();
+  }, []);
+
+  const fetchDashboardStats = async () => {
+    try {
+      const response = await fetch('/api/dashboard');
+      const result = await response.json();
+      
+      if (result.success) {
+        setStats(result.data);
+      } else {
+        console.error('Failed to fetch dashboard stats:', result.error);
+      }
+    } catch (error) {
+      console.error('Error fetching dashboard stats:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="animate-pulse">
+          <div className="h-8 bg-gray-200 rounded w-48 mb-2"></div>
+          <div className="h-4 bg-gray-200 rounded w-64"></div>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="animate-pulse">
+              <div className="h-32 bg-gray-200 rounded-lg"></div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (!stats) {
+    return (
+      <div className="space-y-6">
+        <div className="text-center text-red-600">
+          Error loading dashboard data. Please try again.
+        </div>
+      </div>
+    );
+  }
+
+  const dashboardStats = [
     { 
       title: "Total Anggota", 
-      value: 130, 
+      value: stats.totalMembers, 
       icon: Users, 
       color: "text-blue-700",
       bgColor: "bg-blue-50",
@@ -28,7 +93,7 @@ export default function DashboardPage() {
     },
     { 
       title: "Total Produk", 
-      value: 45, 
+      value: stats.totalProducts, 
       icon: Package, 
       color: "text-emerald-600",
       bgColor: "bg-emerald-50",
@@ -37,7 +102,7 @@ export default function DashboardPage() {
     },
     { 
       title: "Stok Rendah", 
-      value: 8, 
+      value: stats.lowStockProducts, 
       icon: AlertTriangle, 
       color: "text-amber-600",
       bgColor: "bg-amber-50",
@@ -46,7 +111,7 @@ export default function DashboardPage() {
     },
     { 
       title: "Penjualan Hari Ini", 
-      value: 2850000, 
+      value: stats.todayRevenue, 
       icon: DollarSign, 
       color: "text-green-600",
       bgColor: "bg-green-50",
@@ -54,19 +119,6 @@ export default function DashboardPage() {
       changeType: "increase",
       format: "currency"
     },
-  ];
-
-  const recentActivities = [
-    { type: "member", action: "Anggota baru terdaftar", name: "Ahmad Surya", time: "5 menit lalu" },
-    { type: "stock", action: "Stok produk ditambahkan", name: "Beras Premium 5kg", time: "15 menit lalu" },
-    { type: "transaction", action: "Transaksi penjualan", name: "Rp 125.000", time: "30 menit lalu" },
-    { type: "member", action: "Pembayaran simpanan", name: "Siti Aminah", time: "1 jam lalu" },
-  ];
-
-  const lowStockProducts = [
-    { name: "Gula Pasir 1kg", stock: 5, threshold: 10, status: "critical" },
-    { name: "Minyak Goreng 2L", stock: 8, threshold: 15, status: "warning" },
-    { name: "Beras Premium 5kg", stock: 12, threshold: 20, status: "warning" },
   ];
 
   return (
@@ -93,7 +145,7 @@ export default function DashboardPage() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        {stats.map((stat, index) => {
+        {dashboardStats.map((stat, index) => {
           const Icon = stat.icon;
           return (
             <Card key={index} className="relative overflow-hidden">
@@ -140,7 +192,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {recentActivities.map((activity, index) => (
+              {stats.recentActivities.map((activity, index) => (
                 <div key={index} className="flex items-start space-x-3">
                   <div className={`w-2 h-2 rounded-full mt-2 ${
                     activity.type === 'member' ? 'bg-blue-500' :
@@ -170,7 +222,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {lowStockProducts.map((product, index) => (
+              {stats.lowStockProductsList.map((product, index) => (
                 <div key={index} className="flex items-center justify-between p-3 rounded-lg bg-gray-50">
                   <div>
                     <p className="text-sm font-medium text-gray-900">{product.name}</p>
@@ -179,11 +231,11 @@ export default function DashboardPage() {
                     </p>
                   </div>
                   <div className={`px-2 py-1 rounded-full text-xs font-medium ${
-                    product.status === 'critical' 
+                    product.stock <= product.threshold / 2
                       ? 'bg-red-100 text-red-700'
                       : 'bg-amber-100 text-amber-700'
                   }`}>
-                    {product.status === 'critical' ? 'Kritis' : 'Rendah'}
+                    {product.stock <= product.threshold / 2 ? 'Kritis' : 'Rendah'}
                   </div>
                 </div>
               ))}

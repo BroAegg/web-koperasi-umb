@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,7 +26,7 @@ interface Member {
   name: string;
   email: string;
   nomorAnggota: string;
-  gender: 'Laki-laki' | 'Perempuan';
+  gender: 'MALE' | 'FEMALE';
   unitKerja: string;
   phone?: string;
   address?: string;
@@ -35,66 +35,37 @@ interface Member {
   simpananSukarela: number;
   totalSimpanan: number;
   joinDate: string;
-  status: 'Aktif' | 'Tidak Aktif';
+  status: 'ACTIVE' | 'INACTIVE';
 }
 
 export default function MembershipPage() {
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
+  const [members, setMembers] = useState<Member[]>([]);
 
-  // Mock data - nanti akan diganti dengan data dari API
-  const [members, setMembers] = useState<Member[]>([
-    {
-      id: '1',
-      name: 'Richard Martin',
-      email: 'richard@mail.com',
-      nomorAnggota: 'UMB001',
-      gender: 'Laki-laki',
-      unitKerja: 'Keuangan',
-      phone: '081234567890',
-      address: 'Jakarta Selatan',
-      simpananPokok: 50000,
-      simpananWajib: 200000,
-      simpananSukarela: 150000,
-      totalSimpanan: 400000,
-      joinDate: '2024-01-15',
-      status: 'Aktif'
-    },
-    {
-      id: '2',
-      name: 'Siti Rahma',
-      email: 'siti@mail.com',
-      nomorAnggota: 'UMB002',
-      gender: 'Perempuan',
-      unitKerja: 'HRD',
-      phone: '081234567891',
-      address: 'Jakarta Timur',
-      simpananPokok: 50000,
-      simpananWajib: 180000,
-      simpananSukarela: 100000,
-      totalSimpanan: 330000,
-      joinDate: '2024-02-20',
-      status: 'Aktif'
-    },
-    {
-      id: '3',
-      name: 'Ahmad Surya',
-      email: 'ahmad@mail.com',
-      nomorAnggota: 'UMB003',
-      gender: 'Laki-laki',
-      unitKerja: 'IT',
-      phone: '081234567892',
-      address: 'Jakarta Barat',
-      simpananPokok: 50000,
-      simpananWajib: 150000,
-      simpananSukarela: 300000,
-      totalSimpanan: 500000,
-      joinDate: '2024-03-10',
-      status: 'Aktif'
+  useEffect(() => {
+    fetchMembers();
+  }, []);
+
+  const fetchMembers = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/members');
+      const result = await response.json();
+      
+      if (result.success) {
+        setMembers(result.data);
+      } else {
+        console.error('Failed to fetch members:', result.error);
+      }
+    } catch (error) {
+      console.error('Error fetching members:', error);
+    } finally {
+      setLoading(false);
     }
-  ]);
+  };
 
   const filteredMembers = members.filter(member =>
     member.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -104,7 +75,7 @@ export default function MembershipPage() {
   );
 
   const totalMembers = members.length;
-  const activeMembers = members.filter(m => m.status === 'Aktif').length;
+  const activeMembers = members.filter(m => m.status === 'ACTIVE').length;
   const totalSimpanan = members.reduce((sum, m) => sum + m.totalSimpanan, 0);
 
   const handleViewMember = (member: Member) => {
@@ -116,9 +87,25 @@ export default function MembershipPage() {
     console.log('Edit member:', member);
   };
 
-  const handleDeleteMember = (memberId: string) => {
+  const handleDeleteMember = async (memberId: string) => {
     if (confirm('Apakah Anda yakin ingin menghapus anggota ini?')) {
-      setMembers(members.filter(m => m.id !== memberId));
+      try {
+        const response = await fetch(`/api/members/${memberId}`, {
+          method: 'DELETE',
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          // Refresh member list
+          fetchMembers();
+        } else {
+          alert('Error: ' + result.error);
+        }
+      } catch (error) {
+        console.error('Error deleting member:', error);
+        alert('Error deleting member');
+      }
     }
   };
 
@@ -237,7 +224,7 @@ export default function MembershipPage() {
                     <TableCell>
                       <div>
                         <p className="font-medium text-gray-900">{member.name}</p>
-                        <p className="text-sm text-gray-500">{member.gender}</p>
+                        <p className="text-sm text-gray-500">{member.gender === 'MALE' ? 'Laki-laki' : 'Perempuan'}</p>
                       </div>
                     </TableCell>
                     <TableCell>{member.unitKerja}</TableCell>
@@ -247,11 +234,11 @@ export default function MembershipPage() {
                     </TableCell>
                     <TableCell>
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                        member.status === 'Aktif' 
+                        member.status === 'ACTIVE' 
                           ? 'bg-green-100 text-green-700' 
                           : 'bg-red-100 text-red-700'
                       }`}>
-                        {member.status}
+                        {member.status === 'ACTIVE' ? 'Aktif' : 'Tidak Aktif'}
                       </span>
                     </TableCell>
                     <TableCell>

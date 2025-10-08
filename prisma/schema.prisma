@@ -1,0 +1,335 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+// =====================================
+// USER & AUTHENTICATION
+// =====================================
+
+model User {
+  id          String   @id @default(cuid())
+  email       String   @unique
+  password    String
+  name        String
+  role        Role     @default(USER)
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  // Relations
+  member      Member?
+  createdBroadcasts Broadcast[]
+  
+  @@map("users")
+}
+
+enum Role {
+  ADMIN
+  STAFF
+  USER
+}
+
+// =====================================
+// MEMBERSHIP
+// =====================================
+
+model Member {
+  id                String   @id @default(cuid())
+  userId            String   @unique
+  nomorAnggota      String   @unique
+  name              String
+  email             String   @unique
+  phone             String?
+  address           String?
+  gender            Gender
+  unitKerja         String
+  joinDate          DateTime @default(now())
+  status            MemberStatus @default(ACTIVE)
+  
+  // Simpanan
+  simpananPokok     Decimal  @default(0)
+  simpananWajib     Decimal  @default(0)
+  simpananSukarela  Decimal  @default(0)
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  // Relations
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  transactions      Transaction[]
+  savings           Saving[]
+  loans             Loan[]
+  
+  @@map("members")
+}
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+enum MemberStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+// =====================================
+// SAVINGS & LOANS
+// =====================================
+
+model Saving {
+  id          String      @id @default(cuid())
+  memberId    String
+  type        SavingType
+  amount      Decimal
+  description String?
+  date        DateTime    @default(now())
+  createdAt   DateTime    @default(now())
+  
+  // Relations
+  member      Member      @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  
+  @@map("savings")
+}
+
+enum SavingType {
+  POKOK
+  WAJIB
+  SUKARELA
+  WITHDRAWAL
+}
+
+model Loan {
+  id            String     @id @default(cuid())
+  memberId      String
+  amount        Decimal
+  interestRate  Decimal
+  tenor         Int        // months
+  monthlyPayment Decimal
+  remainingAmount Decimal
+  status        LoanStatus @default(ACTIVE)
+  startDate     DateTime   @default(now())
+  endDate       DateTime
+  description   String?
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  
+  // Relations
+  member        Member     @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  payments      LoanPayment[]
+  
+  @@map("loans")
+}
+
+enum LoanStatus {
+  ACTIVE
+  COMPLETED
+  OVERDUE
+}
+
+model LoanPayment {
+  id          String   @id @default(cuid())
+  loanId      String
+  amount      Decimal
+  paymentDate DateTime @default(now())
+  description String?
+  createdAt   DateTime @default(now())
+  
+  // Relations
+  loan        Loan     @relation(fields: [loanId], references: [id], onDelete: Cascade)
+  
+  @@map("loan_payments")
+}
+
+// =====================================
+// INVENTORY & PRODUCTS
+// =====================================
+
+model Category {
+  id          String    @id @default(cuid())
+  name        String    @unique
+  description String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  // Relations
+  products    Product[]
+  
+  @@map("categories")
+}
+
+model Product {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  categoryId  String
+  sku         String?   @unique
+  buyPrice    Decimal
+  sellPrice   Decimal
+  stock       Int       @default(0)
+  threshold   Int       @default(5) // minimum stock alert
+  unit        String    @default("pcs")
+  isActive    Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  // Relations
+  category    Category  @relation(fields: [categoryId], references: [id])
+  stockMovements StockMovement[]
+  transactionItems TransactionItem[]
+  
+  @@map("products")
+}
+
+model StockMovement {
+  id          String           @id @default(cuid())
+  productId   String
+  type        StockMovementType
+  quantity    Int
+  note        String?
+  date        DateTime         @default(now())
+  createdAt   DateTime         @default(now())
+  
+  // Relations
+  product     Product          @relation(fields: [productId], references: [id], onDelete: Cascade)
+  
+  @@map("stock_movements")
+}
+
+enum StockMovementType {
+  IN          // Stock masuk
+  OUT         // Stock keluar
+  ADJUSTMENT  // Penyesuaian stock
+}
+
+// =====================================
+// TRANSACTIONS & SALES
+// =====================================
+
+model Transaction {
+  id          String    @id @default(cuid())
+  memberId    String?   // nullable for non-member transactions
+  type        TransactionType
+  totalAmount Decimal
+  paymentMethod PaymentMethod @default(CASH)
+  status      TransactionStatus @default(COMPLETED)
+  note        String?
+  date        DateTime  @default(now())
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  // Relations
+  member      Member?   @relation(fields: [memberId], references: [id])
+  items       TransactionItem[]
+  
+  @@map("transactions")
+}
+
+enum TransactionType {
+  SALE        // Penjualan
+  PURCHASE    // Pembelian
+  RETURN      // Retur
+}
+
+enum PaymentMethod {
+  CASH
+  TRANSFER
+  CREDIT
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+}
+
+model TransactionItem {
+  id            String      @id @default(cuid())
+  transactionId String
+  productId     String
+  quantity      Int
+  unitPrice     Decimal
+  totalPrice    Decimal
+  createdAt     DateTime    @default(now())
+  
+  // Relations
+  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  product       Product     @relation(fields: [productId], references: [id])
+  
+  @@map("transaction_items")
+}
+
+// =====================================
+// BROADCAST & COMMUNICATION
+// =====================================
+
+model Broadcast {
+  id                String           @id @default(cuid())
+  title             String
+  message           String
+  type              BroadcastType
+  targetAudience    TargetAudience
+  unitTarget        String?          // specific unit if target is UNIT_SPECIFIC
+  status            BroadcastStatus  @default(DRAFT)
+  scheduledAt       DateTime?
+  sentAt            DateTime?
+  totalRecipients   Int              @default(0)
+  successfulDeliveries Int           @default(0)
+  failedDeliveries  Int              @default(0)
+  createdById       String
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  
+  // Relations
+  createdBy         User             @relation(fields: [createdById], references: [id])
+  
+  @@map("broadcasts")
+}
+
+enum BroadcastType {
+  ANNOUNCEMENT
+  URGENT
+  INFO
+  REMINDER
+}
+
+enum TargetAudience {
+  ALL
+  ACTIVE_MEMBERS
+  UNIT_SPECIFIC
+}
+
+enum BroadcastStatus {
+  DRAFT
+  SCHEDULED
+  SENT
+  FAILED
+}
+
+// =====================================
+// SYSTEM LOGS & AUDIT
+// =====================================
+
+model AuditLog {
+  id          String    @id @default(cuid())
+  userId      String?
+  action      String
+  entity      String
+  entityId    String?
+  oldData     String?   // JSON string
+  newData     String?   // JSON string
+  ipAddress   String?
+  userAgent   String?
+  createdAt   DateTime  @default(now())
+  
+  @@map("audit_logs")
+}
