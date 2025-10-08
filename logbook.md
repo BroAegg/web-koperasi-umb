@@ -1,7 +1,7 @@
-# 🧾 Logbook Magang – Minggu 1 (2–7 Oktober 2025)
+# 🧾 Logbook Magang – Minggu 1 (2–8 Oktober 2025)
 **Nama:** M Reyvan Purnama  
 **Tempat:** Universitas Muhammadiyah Bandung  
-**Periode:** 2 – 7 Oktober 2025  
+**Periode:** 2 – 8 Oktober 2025  
 
 ---
 
@@ -83,6 +83,23 @@
 - Diskusi menghasilkan roadmap pengembangan sistem koperasi digital jangka panjang.  
 
 ---
+## 📅 Day 6 – Rabu, 8 Oktober 2025  
+### 🕗 Waktu: 09.00 – 16.00 WIB  
+### 📍 Kegiatan:
+- Audit dan refactor halaman `Inventori` agar konsisten dengan design system (komponen `Card`, `Table`, `Button`, `Input`).  
+- Perbaikan UI/UX: standarisasi warna, spacing, dan typografi agar sesuai tema koperasi.  
+- Implementasi table responsif: menyembunyikan kolom sekunder di layar kecil, menambahkan horizontal scroll, dan compact action buttons untuk mobile.  
+- Perbaikan layout navigasi mobile (sidebar/hamburger) agar pengalaman bersih pada perangkat kecil.  
+- Menjalankan server development dan melakukan pengujian manual pada `/koperasi/inventory`, `/koperasi/dashboard`, dan halaman terkait.  
+- Commit & push perubahan: "mengubah ui/ux inventory page supaya konsisten dengan tema utama".
+
+### 🧠 Hasil & Pembelajaran:
+- Halaman Inventori sekarang konsisten dengan tema utama dan responsive di semua device (mobile/tablet/desktop).  
+- Penggunaan pola komponen ulang (reusable components) mempercepat konsistensi UI dan mengurangi duplikasi kode.  
+- Ditemukan beberapa issue TypeScript/JSX saat refactor — langkah debug memperjelas pentingnya test build cepat setelah perubahan besar.  
+- Pelajaran praktis: selalu uji di breakpoint kecil dulu (mobile-first), lalu perlebar ke tablet/desktop; gunakan utilitas Tailwind untuk menjaga konsistensi spacing dan warna.
+
+---
 
 ## 🧭 Rekapitulasi Minggu 1
 | Hari | Tanggal | Fokus Utama | Status |
@@ -103,9 +120,9 @@ Progress berjalan signifikan dengan kombinasi antara **implementasi teknis, debu
 ---
 
 **Status Akhir Minggu 1:**  
-✅ 4 Hari produktif (2–4, 6–7 Okt)  
+✅ 5 Hari produktif (2–4, 6–8 Okt)  
 🧩 Proyek utama aktif: WA Broadcast Manager v2.1 & Sistem Koperasi Kampus  
-📈 Progress Keseluruhan: ±75% dari rencana minggu pertama tercapai.
+📈 Progress Keseluruhan: ±85% dari rencana minggu pertama tercapai.
 
 ---
 
