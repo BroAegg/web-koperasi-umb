@@ -249,7 +249,28 @@ function StatCard({ label, value, color, icon }: { label: string; value: string;
 }
 
 // MODAL TAMBAH PRODUK
-function ModalTambahProduk({ openAdd, setOpenAdd, newProduct, handleAddProduct, handleCurrencyInput, rupiah, setNewProduct }: any) {
+interface ModalTambahProdukProps {
+  setOpenAdd: (open: boolean) => void;
+  newProduct: {
+    name: string;
+    category: string;
+    stock: number;
+    threshold: number;
+    buyingPrice: number;
+  };
+  handleAddProduct: () => void;
+  handleCurrencyInput: (e: React.ChangeEvent<HTMLInputElement>, field: string) => void;
+  rupiah: (amount: number) => string;
+  setNewProduct: React.Dispatch<React.SetStateAction<{
+    name: string;
+    category: string;
+    stock: number;
+    threshold: number;
+    buyingPrice: number;
+  }>>;
+}
+
+function ModalTambahProduk({ setOpenAdd, newProduct, handleAddProduct, handleCurrencyInput, rupiah, setNewProduct }: ModalTambahProdukProps) {
   return (
     <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
       <div className="bg-white rounded-xl p-6 w-full max-w-lg shadow-xl border border-gray-400">
@@ -273,7 +294,7 @@ function ModalTambahProduk({ openAdd, setOpenAdd, newProduct, handleAddProduct, 
                 type="text"
                 className="mt-1 w-full border border-gray-600 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
                 value={newProduct.name}
-                onChange={(e) => setNewProduct((f: any) => ({ ...f, name: e.target.value }))}
+                onChange={(e) => setNewProduct((prev) => ({ ...prev, name: e.target.value }))}
                 required
               />
             </label>
@@ -325,7 +346,7 @@ function ModalTambahProduk({ openAdd, setOpenAdd, newProduct, handleAddProduct, 
                 min={0}
                 className="mt-1 w-full border border-gray-600 rounded-lg px-3 py-2 focus:ring-2 focus:ring-blue-500"
                 value={newProduct.stock === 0 ? "" : newProduct.stock}
-                onChange={(e) => setNewProduct((f: any) => ({ ...f, stock: Number(e.target.value.replace(/^0+/, "")) }))}
+                onChange={(e) => setNewProduct((prev) => ({ ...prev, stock: Number(e.target.value.replace(/^0+/, "")) }))}
                 required
               />
             </label>
@@ -353,9 +374,28 @@ function ModalTambahProduk({ openAdd, setOpenAdd, newProduct, handleAddProduct, 
 }
 
 // MODAL TRANSAKSI
-function ModalTransaksi({ openModal, setOpenModal, products, qty, setQty, handleTransaction }: any) {
-  const product = products.find((p: any) => p.id === openModal.productId);
-  if (!product) return null;
+interface Product {
+  id: string;
+  name: string;
+  category?: string;
+  stock: number;
+  threshold: number;
+  buyingPrice: number;
+  createdAt: Date;
+}
+
+interface ModalTransaksiProps {
+  openModal: { productId: string; type: string } | null;
+  setOpenModal: (modal: { productId: string; type: string } | null) => void;
+  products: Product[];
+  qty: number;
+  setQty: (qty: number) => void;
+  handleTransaction: () => void;
+}
+
+function ModalTransaksi({ openModal, setOpenModal, products, qty, setQty, handleTransaction }: ModalTransaksiProps) {
+  const product = products.find((p) => p.id === openModal?.productId);
+  if (!product || !openModal) return null;
   const isIn = openModal.type === "IN";
 
   return (

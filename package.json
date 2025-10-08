@@ -1,12 +1,14 @@
 {
-  "name": "frontend",
-  "version": "0.1.0",
+  "name": "web-koperasi-umb",
+  "version": "1.0.0",
+  "description": "Sistem Informasi Koperasi UMB - Frontend Next.js",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "next lint",
+    "lint:fix": "next lint --fix"
   },
   "dependencies": {
     "autoprefixer": "^10.4.21",
@@ -26,5 +28,22 @@
     "eslint-config-next": "^15.5.4",
     "tailwindcss": "^4.1.14",
     "typescript": "^5"
+  },
+  "keywords": [
+    "koperasi",
+    "nextjs",
+    "react",
+    "typescript",
+    "frontend"
+  ],
+  "author": "UMB Team",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/BroAegg/web-koperasi-umb.git"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
   }
 }
