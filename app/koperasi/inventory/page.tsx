@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -19,9 +19,12 @@ import {
 } from 'lucide-react';
 
 interface Product {
-  id: number;
+  id: string;
   name: string;
-  category: string;
+  category: {
+    id: string;
+    name: string;
+  };
   buyPrice: number;
   sellPrice: number;
   stock: number;
@@ -29,6 +32,12 @@ interface Product {
   soldToday: number;
   totalSold: number;
   profit: number;
+}
+
+interface Category {
+  id: string;
+  name: string;
+  description?: string;
 }
 
 interface Transaction {
@@ -45,67 +54,119 @@ export default function InventoryPage() {
   const [selectedCategory, setSelectedCategory] = useState("semua");
   const [showAddModal, setShowAddModal] = useState(false);
   const [showStockModal, setShowStockModal] = useState<{show: boolean, product?: Product, type?: 'IN' | 'OUT'}>({show: false});
+  const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
-  const [products] = useState<Product[]>([
-    { 
-      id: 1, 
-      name: "Beras Premium 5kg", 
-      category: "Sembako",
-      buyPrice: 45000, 
-      sellPrice: 50000, 
-      stock: 25, 
-      threshold: 10,
-      soldToday: 8,
-      totalSold: 156,
-      profit: 5000
-    },
-    { 
-      id: 2, 
-      name: "Minyak Goreng 2L", 
-      category: "Sembako",
-      buyPrice: 25000, 
-      sellPrice: 28000, 
-      stock: 15, 
-      threshold: 20,
-      soldToday: 12,
-      totalSold: 89,
-      profit: 3000
-    },
-    { 
-      id: 3, 
-      name: "Gula Pasir 1kg", 
-      category: "Sembako",
-      buyPrice: 12000, 
-      sellPrice: 14000, 
-      stock: 8, 
-      threshold: 15,
-      soldToday: 5,
-      totalSold: 234,
-      profit: 2000
-    },
-    { 
-      id: 4, 
-      name: "Kopi Bubuk 200g", 
-      category: "Minuman",
-      buyPrice: 15000, 
-      sellPrice: 18000, 
-      stock: 30, 
-      threshold: 10,
-      soldToday: 3,
-      totalSold: 67,
-      profit: 3000
-    }
-  ]);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [transactions] = useState<Transaction[]>([]); // Will be implemented later
 
-  const [transactions] = useState<Transaction[]>([
-    { id: 1, productName: "Beras Premium 5kg", type: "OUT", quantity: 5, date: "2025-10-08", note: "Penjualan" },
-    { id: 2, productName: "Minyak Goreng 2L", type: "IN", quantity: 20, date: "2025-10-08", note: "Restock" },
-    { id: 3, productName: "Gula Pasir 1kg", type: "OUT", quantity: 3, date: "2025-10-08", note: "Penjualan" },
-  ]);
+  // Form state for new product
+  const [newProduct, setNewProduct] = useState({
+    name: '',
+    description: '',
+    categoryId: '',
+    sku: '',
+    buyPrice: '',
+    sellPrice: '',
+    stock: '0',
+    threshold: '5',
+    unit: 'pcs',
+  });
+
+  useEffect(() => {
+    fetchProducts();
+    fetchCategories();
+  }, []);
+
+  const fetchProducts = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/products');
+      const result = await response.json();
+      
+      if (result.success) {
+        setProducts(result.data);
+      } else {
+        console.error('Failed to fetch products:', result.error);
+      }
+    } catch (error) {
+      console.error('Error fetching products:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const response = await fetch('/api/categories');
+      const result = await response.json();
+      
+      if (result.success) {
+        setCategories(result.data);
+      } else {
+        console.error('Failed to fetch categories:', result.error);
+      }
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
+  };
+
+  const handleAddProduct = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!newProduct.name || !newProduct.categoryId || !newProduct.buyPrice || !newProduct.sellPrice) {
+      alert('Nama, kategori, harga beli, dan harga jual wajib diisi');
+      return;
+    }
+
+    setIsSubmitting(true);
+    
+    try {
+      const response = await fetch('/api/products', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newProduct),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        // Reset form
+        resetProductForm();
+        setShowAddModal(false);
+        fetchProducts(); // Refresh list
+        alert('Produk berhasil ditambahkan!');
+      } else {
+        alert('Error: ' + result.error);
+      }
+    } catch (error) {
+      console.error('Error adding product:', error);
+      alert('Error adding product');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const resetProductForm = () => {
+    setNewProduct({
+      name: '',
+      description: '',
+      categoryId: '',
+      sku: '',
+      buyPrice: '',
+      sellPrice: '',
+      stock: '0',
+      threshold: '5',
+      unit: 'pcs',
+    });
+  };
 
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === "semua" || product.category === selectedCategory;
+    const matchesCategory = selectedCategory === "semua" || product.category.name === selectedCategory;
     return matchesSearch && matchesCategory;
   });
 
@@ -114,7 +175,7 @@ export default function InventoryPage() {
   const totalStockValue = products.reduce((sum, p) => sum + (p.buyPrice * p.stock), 0);
   const todayProfit = products.reduce((sum, p) => sum + (p.profit * p.soldToday), 0);
 
-  const categories = ["semua", ...Array.from(new Set(products.map(p => p.category)))];
+  const categoryOptions = ["semua", ...categories.map(c => c.name)];
 
   return (
     <div className="space-y-6">
@@ -231,7 +292,7 @@ export default function InventoryPage() {
                     onChange={(e) => setSelectedCategory(e.target.value)}
                     className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
                   >
-                    {categories.map(cat => (
+                    {categoryOptions.map(cat => (
                       <option key={cat} value={cat}>{cat === "semua" ? "Semua Kategori" : cat}</option>
                     ))}
                   </select>
@@ -259,12 +320,12 @@ export default function InventoryPage() {
                           <div className="flex flex-col">
                             <span className="font-medium">{product.name}</span>
                             <div className="sm:hidden text-xs text-gray-500 mt-1">
-                              {product.category} • {formatCurrency(product.sellPrice)}
+                              {product.category.name} • {formatCurrency(product.sellPrice)}
                             </div>
                           </div>
                         </TableCell>
                         <TableCell className="hidden sm:table-cell text-gray-600">
-                          {product.category}
+                          {product.category.name}
                         </TableCell>
                         <TableCell className="hidden md:table-cell">
                           {formatCurrency(product.buyPrice)}

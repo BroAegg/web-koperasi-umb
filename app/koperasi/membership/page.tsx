@@ -44,6 +44,20 @@ export default function MembershipPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Form state for new member
+  const [newMember, setNewMember] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    address: '',
+    gender: 'MALE' as 'MALE' | 'FEMALE',
+    unitKerja: '',
+    simpananPokok: '50000',
+    simpananWajib: '200000',
+    simpananSukarela: '0',
+  });
 
   useEffect(() => {
     fetchMembers();
@@ -107,6 +121,69 @@ export default function MembershipPage() {
         alert('Error deleting member');
       }
     }
+  };
+
+  const handleAddMember = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!newMember.name || !newMember.email || !newMember.unitKerja) {
+      alert('Nama, email, dan unit kerja wajib diisi');
+      return;
+    }
+
+    setIsSubmitting(true);
+    
+    try {
+      const response = await fetch('/api/members', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(newMember),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        // Reset form
+        setNewMember({
+          name: '',
+          email: '',
+          phone: '',
+          address: '',
+          gender: 'MALE',
+          unitKerja: '',
+          simpananPokok: '50000',
+          simpananWajib: '200000',
+          simpananSukarela: '0',
+        });
+        
+        setShowAddModal(false);
+        fetchMembers(); // Refresh list
+        alert('Anggota berhasil ditambahkan!');
+      } else {
+        alert('Error: ' + result.error);
+      }
+    } catch (error) {
+      console.error('Error adding member:', error);
+      alert('Error adding member');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const resetForm = () => {
+    setNewMember({
+      name: '',
+      email: '',
+      phone: '',
+      address: '',
+      gender: 'MALE',
+      unitKerja: '',
+      simpananPokok: '50000',
+      simpananWajib: '200000',
+      simpananSukarela: '0',
+    });
   };
 
   return (
@@ -360,6 +437,185 @@ export default function MembershipPage() {
                 </p>
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Add Member Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-semibold text-gray-900">Tambah Anggota Baru</h3>
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setShowAddModal(false);
+                  resetForm();
+                }}
+              >
+                ✕
+              </Button>
+            </div>
+
+            <form onSubmit={handleAddMember}>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <h4 className="font-semibold text-gray-900">Informasi Pribadi</h4>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Nama Lengkap <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      type="text"
+                      value={newMember.name}
+                      onChange={(e) => setNewMember(prev => ({ ...prev, name: e.target.value }))}
+                      placeholder="Masukkan nama lengkap"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Email <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      type="email"
+                      value={newMember.email}
+                      onChange={(e) => setNewMember(prev => ({ ...prev, email: e.target.value }))}
+                      placeholder="contoh@email.com"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Nomor Telepon
+                    </label>
+                    <Input
+                      type="tel"
+                      value={newMember.phone}
+                      onChange={(e) => setNewMember(prev => ({ ...prev, phone: e.target.value }))}
+                      placeholder="081234567890"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Alamat
+                    </label>
+                    <Input
+                      type="text"
+                      value={newMember.address}
+                      onChange={(e) => setNewMember(prev => ({ ...prev, address: e.target.value }))}
+                      placeholder="Alamat lengkap"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <h4 className="font-semibold text-gray-900">Informasi Kerja</h4>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Jenis Kelamin <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={newMember.gender}
+                      onChange={(e) => setNewMember(prev => ({ ...prev, gender: e.target.value as 'MALE' | 'FEMALE' }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      required
+                    >
+                      <option value="MALE">Laki-laki</option>
+                      <option value="FEMALE">Perempuan</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Unit Kerja <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={newMember.unitKerja}
+                      onChange={(e) => setNewMember(prev => ({ ...prev, unitKerja: e.target.value }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      required
+                    >
+                      <option value="">Pilih Unit Kerja</option>
+                      <option value="Keuangan">Keuangan</option>
+                      <option value="HRD">HRD</option>
+                      <option value="IT">IT</option>
+                      <option value="Marketing">Marketing</option>
+                      <option value="Operasional">Operasional</option>
+                      <option value="Akademik">Akademik</option>
+                      <option value="Kemahasiswaan">Kemahasiswaan</option>
+                    </select>
+                  </div>
+
+                  <h4 className="font-semibold text-gray-900 mt-6">Simpanan Awal</h4>
+                  
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Simpanan Pokok
+                    </label>
+                    <Input
+                      type="number"
+                      value={newMember.simpananPokok}
+                      onChange={(e) => setNewMember(prev => ({ ...prev, simpananPokok: e.target.value }))}
+                      placeholder="50000"
+                      min="0"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Simpanan Wajib
+                    </label>
+                    <Input
+                      type="number"
+                      value={newMember.simpananWajib}
+                      onChange={(e) => setNewMember(prev => ({ ...prev, simpananWajib: e.target.value }))}
+                      placeholder="200000"
+                      min="0"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Simpanan Sukarela
+                    </label>
+                    <Input
+                      type="number"
+                      value={newMember.simpananSukarela}
+                      onChange={(e) => setNewMember(prev => ({ ...prev, simpananSukarela: e.target.value }))}
+                      placeholder="0"
+                      min="0"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex items-center justify-end gap-3 mt-6 pt-6 border-t">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setShowAddModal(false);
+                    resetForm();
+                  }}
+                  disabled={isSubmitting}
+                >
+                  Batal
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? 'Menyimpan...' : 'Simpan Anggota'}
+                </Button>
+              </div>
+            </form>
           </div>
         </div>
       )}
