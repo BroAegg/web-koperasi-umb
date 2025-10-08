@@ -98,15 +98,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if SKU already exists
-    if (sku) {
+    // Validate that sell price is not lower than buy price
+    const buyPriceNum = parseFloat(buyPrice);
+    const sellPriceNum = parseFloat(sellPrice);
+    
+    if (sellPriceNum < buyPriceNum) {
+      return NextResponse.json(
+        { success: false, error: 'Harga jual tidak boleh lebih rendah dari harga beli' },
+        { status: 400 }
+      );
+    }
+
+    // Check if SKU already exists (only if SKU is provided)
+    if (sku && sku.trim() !== '') {
       const existingProduct = await prisma.product.findUnique({
-        where: { sku },
+        where: { sku: sku.trim() },
       });
 
       if (existingProduct) {
         return NextResponse.json(
-          { success: false, error: 'SKU sudah digunakan' },
+          { success: false, error: 'SKU sudah digunakan oleh produk lain' },
           { status: 409 }
         );
       }
@@ -117,7 +128,7 @@ export async function POST(request: NextRequest) {
         name,
         description,
         categoryId,
-        sku,
+        sku: sku && sku.trim() !== '' ? sku.trim() : null,
         buyPrice: new Decimal(buyPrice),
         sellPrice: new Decimal(sellPrice),
         stock: parseInt(stock.toString()),

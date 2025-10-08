@@ -56,6 +56,7 @@ export default function InventoryPage() {
   const [showStockModal, setShowStockModal] = useState<{show: boolean, product?: Product, type?: 'IN' | 'OUT'}>({show: false});
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [priceError, setPriceError] = useState('');
   
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
@@ -112,11 +113,30 @@ export default function InventoryPage() {
     }
   };
 
+  // Validate prices
+  const validatePrices = (buyPrice: string, sellPrice: string) => {
+    const buyPriceNum = parseFloat(buyPrice) || 0;
+    const sellPriceNum = parseFloat(sellPrice) || 0;
+    
+    if (buyPrice && sellPrice && sellPriceNum < buyPriceNum) {
+      setPriceError('Harga jual tidak boleh lebih rendah dari harga beli');
+      return false;
+    } else {
+      setPriceError('');
+      return true;
+    }
+  };
+
   const handleAddProduct = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!newProduct.name || !newProduct.categoryId || !newProduct.buyPrice || !newProduct.sellPrice) {
       alert('Nama, kategori, harga beli, dan harga jual wajib diisi');
+      return;
+    }
+
+    // Validate price comparison
+    if (!validatePrices(newProduct.buyPrice, newProduct.sellPrice)) {
       return;
     }
 
@@ -162,6 +182,7 @@ export default function InventoryPage() {
       threshold: '5',
       unit: 'pcs',
     });
+    setPriceError('');
   };
 
   const filteredProducts = products.filter(product => {
@@ -542,7 +563,11 @@ export default function InventoryPage() {
                     <input
                       type="number"
                       value={newProduct.buyPrice}
-                      onChange={(e) => setNewProduct({...newProduct, buyPrice: e.target.value})}
+                      onChange={(e) => {
+                        const newBuyPrice = e.target.value;
+                        setNewProduct({...newProduct, buyPrice: newBuyPrice});
+                        validatePrices(newBuyPrice, newProduct.sellPrice);
+                      }}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                       placeholder="0"
                       required
@@ -555,11 +580,22 @@ export default function InventoryPage() {
                     <input
                       type="number"
                       value={newProduct.sellPrice}
-                      onChange={(e) => setNewProduct({...newProduct, sellPrice: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      onChange={(e) => {
+                        const newSellPrice = e.target.value;
+                        setNewProduct({...newProduct, sellPrice: newSellPrice});
+                        validatePrices(newProduct.buyPrice, newSellPrice);
+                      }}
+                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
+                        priceError 
+                          ? 'border-red-300 focus:ring-red-500' 
+                          : 'border-gray-300 focus:ring-blue-500'
+                      }`}
                       placeholder="0"
                       required
                     />
+                    {priceError && (
+                      <p className="text-red-500 text-xs mt-1">{priceError}</p>
+                    )}
                   </div>
                 </div>
 
@@ -620,7 +656,7 @@ export default function InventoryPage() {
                   </Button>
                   <Button
                     type="submit"
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || !!priceError}
                     className="flex-1"
                   >
                     {isSubmitting ? 'Menyimpan...' : 'Simpan'}
