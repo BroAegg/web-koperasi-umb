@@ -50,7 +50,7 @@ export async function GET(request: NextRequest) {
     // Calculate total savings for each member
     const membersWithTotals = members.map(member => ({
       ...member,
-      totalSimpanan: member.simpananPokok.add(member.simpananWajib).add(member.simpananSukarela),
+      totalSimpanan: Number(member.simpananPokok.add(member.simpananWajib).add(member.simpananSukarela)),
       // Convert Decimal to number for JSON serialization
       simpananPokok: Number(member.simpananPokok),
       simpananWajib: Number(member.simpananWajib),
@@ -107,14 +107,15 @@ export async function POST(request: NextRequest) {
       memberNumber = `UMB${String(lastNumber + 1).padStart(3, '0')}`;
     }
 
-    // Check if email already exists
-    const existingMember = await prisma.member.findUnique({
-      where: { email },
-    });
+    // Check if email is already registered (both user and member tables)
+    const [existingUser, existingMember] = await Promise.all([
+      prisma.user.findUnique({ where: { email } }),
+      prisma.member.findUnique({ where: { email } })
+    ]);
 
-    if (existingMember) {
+    if (existingUser || existingMember) {
       return NextResponse.json(
-        { success: false, error: 'Email sudah terdaftar' },
+        { success: false, error: 'Email sudah terdaftar sebagai anggota atau user lain' },
         { status: 409 }
       );
     }
@@ -129,6 +130,11 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Validate and set default values for savings
+    const simpananPokokNum = parseFloat(simpananPokok) || 50000;
+    const simpananWajibNum = parseFloat(simpananWajib) || 200000;
+    const simpananSukarelaNum = parseFloat(simpananSukarela) || 0;
+
     // Create member
     const member = await prisma.member.create({
       data: {
@@ -140,9 +146,9 @@ export async function POST(request: NextRequest) {
         address,
         gender,
         unitKerja,
-        simpananPokok: new Decimal(simpananPokok),
-        simpananWajib: new Decimal(simpananWajib),
-        simpananSukarela: new Decimal(simpananSukarela),
+        simpananPokok: new Decimal(simpananPokokNum),
+        simpananWajib: new Decimal(simpananWajibNum),
+        simpananSukarela: new Decimal(simpananSukarelaNum),
         status,
         joinDate: joinDate ? new Date(joinDate) : new Date(),
       },

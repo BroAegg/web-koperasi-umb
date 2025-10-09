@@ -19,13 +19,13 @@ export default function KoperasiLayout({ children }: { children: React.ReactNode
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const SidebarContent = () => (
-    <>
+    <div className="h-full flex flex-col">
       <div className="flex items-center gap-3 mb-8 px-6 pt-6">
         <Image src="/logo-umb.png" width={40} height={40} alt="UMB" className="rounded-full" />
         <div className="text-lg font-bold text-blue-700 leading-tight">KOPERASI<br />UMB</div>
       </div>
 
-      <nav className="space-y-1 px-6">
+      <nav className="space-y-1 px-6 flex-1">
         {navItems.map(({ href, label, icon: Icon }) => {
           const active = pathname.startsWith(href);
           return (
@@ -44,7 +44,7 @@ export default function KoperasiLayout({ children }: { children: React.ReactNode
         })}
       </nav>
 
-      <div className="mt-auto pt-6 border-t border-gray-200 space-y-1 px-6 pb-6">
+      <div className="border-t border-gray-200 space-y-1 px-6 py-6 mt-auto">
         <Link
           href="/settings"
           onClick={() => setSidebarOpen(false)}
@@ -61,7 +61,7 @@ export default function KoperasiLayout({ children }: { children: React.ReactNode
           <span>Logout</span>
         </button>
       </div>
-    </>
+    </div>
   );
 
   return (
@@ -119,12 +119,12 @@ export default function KoperasiLayout({ children }: { children: React.ReactNode
 
       <div className="lg:flex">
         {/* Desktop Sidebar */}
-        <aside className="hidden lg:flex w-72 bg-white border-r border-gray-200 flex-col min-h-screen shadow-sm">
+        <aside className="hidden lg:block w-72 fixed left-0 top-0 h-screen bg-white border-r border-gray-200 shadow-sm z-20 overflow-y-auto">
           <SidebarContent />
         </aside>
 
         {/* Main Content */}
-        <main className="flex-1 min-h-screen">
+        <main className="lg:ml-72 flex-1 min-h-screen">
           {/* Desktop Header */}
           <header className="hidden lg:flex bg-white border-b border-gray-200 px-6 py-4 items-center justify-between sticky top-0 z-30">
             <div className="flex-1">

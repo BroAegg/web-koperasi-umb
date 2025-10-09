@@ -94,7 +94,7 @@ export default function MembershipPage() {
 
   const totalMembers = members.length;
   const activeMembers = members.filter(m => m.status === 'ACTIVE').length;
-  const totalSimpanan = members.reduce((sum, m) => sum + m.totalSimpanan, 0);
+  const totalSimpanan = members.reduce((sum, m) => sum + Number(m.totalSimpanan || 0), 0);
 
   const handleViewMember = (member: Member) => {
     setSelectedMember(member);
@@ -144,6 +144,31 @@ export default function MembershipPage() {
       return;
     }
 
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(newMember.email)) {
+      warning('Email Tidak Valid', 'Masukkan format email yang benar (contoh: user@example.com)');
+      return;
+    }
+
+    // Validate savings values
+    const simpananPokok = parseFloat(newMember.simpananPokok) || 50000;
+    const simpananWajib = parseFloat(newMember.simpananWajib) || 200000;
+    const simpananSukarela = parseFloat(newMember.simpananSukarela) || 0;
+
+    if (simpananPokok < 0 || simpananWajib < 0 || simpananSukarela < 0) {
+      warning('Nilai Simpanan Tidak Valid', 'Nilai simpanan tidak boleh negatif');
+      return;
+    }
+
+    // Prepare data with validated values
+    const memberData = {
+      ...newMember,
+      simpananPokok: simpananPokok.toString(),
+      simpananWajib: simpananWajib.toString(),
+      simpananSukarela: simpananSukarela.toString(),
+    };
+
     setIsSubmitting(true);
     
     try {
@@ -152,7 +177,7 @@ export default function MembershipPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(newMember),
+        body: JSON.stringify(memberData),
       });
 
       const result = await response.json();
