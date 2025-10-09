@@ -48,7 +48,7 @@ export default function MembershipPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Global notifications
-  const { success, error, warning } = useNotification();
+  const { success, error, warning, confirm } = useNotification();
 
   // Form state for new member
   const [newMember, setNewMember] = useState({
@@ -106,7 +106,15 @@ export default function MembershipPage() {
   };
 
   const handleDeleteMember = async (memberId: string) => {
-    if (confirm('Apakah Anda yakin ingin menghapus anggota ini?')) {
+    const confirmed = await confirm({
+      title: 'Hapus Anggota',
+      message: 'Apakah Anda yakin ingin menghapus anggota ini? Tindakan ini tidak dapat dibatalkan.',
+      type: 'danger',
+      confirmText: 'Ya, Hapus',
+      cancelText: 'Batal'
+    });
+
+    if (confirmed) {
       try {
         const response = await fetch(`/api/members/${memberId}`, {
           method: 'DELETE',
