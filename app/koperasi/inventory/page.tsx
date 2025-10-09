@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { ToastContainer } from '@/components/ui/toast';
+import { useToast } from '@/lib/use-toast';
 import { formatCurrency } from '@/lib/utils';
 import { 
   Package, 
@@ -61,6 +63,9 @@ export default function InventoryPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [transactions] = useState<Transaction[]>([]); // Will be implemented later
+
+  // Toast notifications
+  const { toasts, removeToast, success, error, warning } = useToast();
 
   // Form state for new product
   const [newProduct, setNewProduct] = useState({
@@ -119,7 +124,7 @@ export default function InventoryPage() {
     const sellPriceNum = parseFloat(sellPrice) || 0;
     
     if (buyPrice && sellPrice && sellPriceNum < buyPriceNum) {
-      setPriceError('Harga jual tidak boleh lebih rendah dari harga beli');
+      setPriceError('Harga jual harus lebih tinggi atau sama dengan harga beli');
       return false;
     } else {
       setPriceError('');
@@ -131,7 +136,7 @@ export default function InventoryPage() {
     e.preventDefault();
     
     if (!newProduct.name || !newProduct.categoryId || !newProduct.buyPrice || !newProduct.sellPrice) {
-      alert('Nama, kategori, harga beli, dan harga jual wajib diisi');
+      warning('Form Tidak Lengkap', 'Nama, kategori, harga beli, dan harga jual wajib diisi');
       return;
     }
 
@@ -158,13 +163,13 @@ export default function InventoryPage() {
         resetProductForm();
         setShowAddModal(false);
         fetchProducts(); // Refresh list
-        alert('Produk berhasil ditambahkan!');
+        success('Produk Berhasil Ditambahkan', `${newProduct.name} telah ditambahkan ke inventori`);
       } else {
-        alert('Error: ' + result.error);
+        error('Gagal Menambahkan Produk', result.error || 'Terjadi kesalahan saat menambahkan produk');
       }
-    } catch (error) {
-      console.error('Error adding product:', error);
-      alert('Error adding product');
+    } catch (err) {
+      console.error('Error adding product:', err);
+      error('Kesalahan Server', 'Terjadi kesalahan pada server, silakan coba lagi');
     } finally {
       setIsSubmitting(false);
     }
@@ -667,6 +672,9 @@ export default function InventoryPage() {
           </div>
         </div>
       )}
+      
+      {/* Toast Notifications */}
+      <ToastContainer toasts={toasts} onClose={removeToast} />
     </div>
   );
 }

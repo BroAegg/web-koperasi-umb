@@ -104,7 +104,7 @@ export async function POST(request: NextRequest) {
     
     if (sellPriceNum < buyPriceNum) {
       return NextResponse.json(
-        { success: false, error: 'Harga jual tidak boleh lebih rendah dari harga beli' },
+        { success: false, error: 'Harga jual harus lebih tinggi atau sama dengan harga beli' },
         { status: 400 }
       );
     }
@@ -147,7 +147,7 @@ export async function POST(request: NextRequest) {
         data: {
           productId: product.id,
           type: 'IN',
-          quantity: stock,
+          quantity: parseInt(stock.toString()),
           note: 'Initial stock',
         },
       });
