@@ -1,12 +1,13 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Loading, CardSkeleton } from '@/components/ui/loading';
 import { formatDate } from '@/lib/utils';
+import { useNotification } from '@/lib/notification-context';
 import { 
   Megaphone, 
   Plus, 
@@ -20,77 +21,81 @@ import {
   Trash2,
   Search,
   Filter,
-  Calendar
+  Calendar,
+  X
 } from 'lucide-react';
 
 interface Broadcast {
   id: string;
   title: string;
   message: string;
-  type: 'announcement' | 'urgent' | 'info' | 'reminder';
-  targetAudience: 'all' | 'active_members' | 'unit_specific';
+  type: 'ANNOUNCEMENT' | 'URGENT' | 'INFO' | 'REMINDER';
+  targetAudience: 'ALL' | 'ACTIVE_MEMBERS' | 'UNIT_SPECIFIC';
   unitTarget?: string;
-  status: 'draft' | 'scheduled' | 'sent' | 'failed';
+  status: 'DRAFT' | 'SCHEDULED' | 'SENT' | 'FAILED';
   createdAt: string;
   sentAt?: string;
   scheduledAt?: string;
   totalRecipients: number;
   successfulDeliveries: number;
   failedDeliveries: number;
-  createdBy: string;
+  createdBy: {
+    id: string;
+    name: string;
+    email: string;
+  };
+}
+
+interface NewBroadcast {
+  title: string;
+  message: string;
+  type: string;
+  targetAudience: string;
+  unitTarget: string;
+  scheduledAt: string;
 }
 
 export default function BroadcastPage() {
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedBroadcast, setSelectedBroadcast] = useState<Broadcast | null>(null);
+  const [broadcasts, setBroadcasts] = useState<Broadcast[]>([]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const { success, error, warning, confirm } = useNotification();
 
-  // Mock data - nanti akan diganti dengan data dari API
-  const [broadcasts, setBroadcasts] = useState<Broadcast[]>([
-    {
-      id: '1',
-      title: 'Pengumuman Rapat Anggota Tahunan',
-      message: 'Kepada seluruh anggota koperasi, diinformasikan bahwa Rapat Anggota Tahunan akan dilaksanakan pada tanggal 15 November 2024. Mohon kehadiran semua anggota.',
-      type: 'announcement',
-      targetAudience: 'all',
-      status: 'sent',
-      createdAt: '2024-10-01T10:00:00Z',
-      sentAt: '2024-10-01T10:30:00Z',
-      totalRecipients: 130,
-      successfulDeliveries: 125,
-      failedDeliveries: 5,
-      createdBy: 'Admin Koperasi'
-    },
-    {
-      id: '2',
-      title: 'Reminder Pembayaran Simpanan Wajib',
-      message: 'Pengingat untuk semua anggota bahwa pembayaran simpanan wajib bulan Oktober akan berakhir pada tanggal 25 Oktober 2024.',
-      type: 'reminder',
-      targetAudience: 'active_members',
-      status: 'sent',
-      createdAt: '2024-10-05T09:00:00Z',
-      sentAt: '2024-10-05T09:15:00Z',
-      totalRecipients: 120,
-      successfulDeliveries: 118,
-      failedDeliveries: 2,
-      createdBy: 'Admin Koperasi'
-    },
-    {
-      id: '3',
-      title: 'Info Produk Baru di Toko Koperasi',
-      message: 'Toko koperasi telah menambah produk baru: Beras Premium, Minyak Goreng, dan Gula Pasir dengan harga khusus untuk anggota.',
-      type: 'info',
-      targetAudience: 'all',
-      status: 'scheduled',
-      createdAt: '2024-10-07T14:00:00Z',
-      scheduledAt: '2024-10-08T08:00:00Z',
-      totalRecipients: 130,
-      successfulDeliveries: 0,
-      failedDeliveries: 0,
-      createdBy: 'Admin Toko'
+  const [newBroadcast, setNewBroadcast] = useState<NewBroadcast>({
+    title: '',
+    message: '',
+    type: 'INFO',
+    targetAudience: 'ALL',
+    unitTarget: '',
+    scheduledAt: '',
+  });
+
+  // Fetch broadcasts from API
+  const fetchBroadcasts = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/broadcasts');
+      const result = await response.json();
+      
+      if (result.success) {
+        setBroadcasts(result.data);
+      } else {
+        error('Gagal Memuat Data', result.error || 'Terjadi kesalahan saat memuat data broadcast');
+      }
+    } catch (err) {
+      console.error('Error fetching broadcasts:', err);
+      error('Kesalahan Server', 'Terjadi kesalahan pada server, silakan coba lagi');
+    } finally {
+      setLoading(false);
     }
-  ]);
+  };
+
+  useEffect(() => {
+    fetchBroadcasts();
+  }, []);
 
   const filteredBroadcasts = broadcasts.filter(broadcast =>
     broadcast.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -99,7 +104,7 @@ export default function BroadcastPage() {
   );
 
   const totalBroadcasts = broadcasts.length;
-  const sentBroadcasts = broadcasts.filter(b => b.status === 'sent').length;
+  const sentBroadcasts = broadcasts.filter(b => b.status === 'SENT').length;
   const totalRecipients = broadcasts.reduce((sum, b) => sum + b.totalRecipients, 0);
   const averageSuccessRate = broadcasts.length > 0 
     ? Math.round((broadcasts.reduce((sum, b) => sum + b.successfulDeliveries, 0) / 
@@ -108,29 +113,29 @@ export default function BroadcastPage() {
 
   const getTypeColor = (type: string) => {
     switch (type) {
-      case 'urgent': return 'bg-red-100 text-red-700';
-      case 'announcement': return 'bg-blue-100 text-blue-700';
-      case 'reminder': return 'bg-amber-100 text-amber-700';
-      case 'info': return 'bg-emerald-100 text-emerald-700';
+      case 'URGENT': return 'bg-red-100 text-red-700';
+      case 'ANNOUNCEMENT': return 'bg-blue-100 text-blue-700';
+      case 'REMINDER': return 'bg-amber-100 text-amber-700';
+      case 'INFO': return 'bg-emerald-100 text-emerald-700';
       default: return 'bg-gray-100 text-gray-700';
     }
   };
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'sent': return 'bg-green-100 text-green-700';
-      case 'scheduled': return 'bg-blue-100 text-blue-700';
-      case 'draft': return 'bg-gray-100 text-gray-700';
-      case 'failed': return 'bg-red-100 text-red-700';
+      case 'SENT': return 'bg-green-100 text-green-700';
+      case 'SCHEDULED': return 'bg-blue-100 text-blue-700';
+      case 'DRAFT': return 'bg-gray-100 text-gray-700';
+      case 'FAILED': return 'bg-red-100 text-red-700';
       default: return 'bg-gray-100 text-gray-700';
     }
   };
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case 'sent': return <CheckCircle className="w-4 h-4" />;
-      case 'scheduled': return <Clock className="w-4 h-4" />;
-      case 'failed': return <AlertCircle className="w-4 h-4" />;
+      case 'SENT': return <CheckCircle className="w-4 h-4" />;
+      case 'SCHEDULED': return <Clock className="w-4 h-4" />;
+      case 'FAILED': return <AlertCircle className="w-4 h-4" />;
       default: return <Clock className="w-4 h-4" />;
     }
   };
@@ -143,9 +148,84 @@ export default function BroadcastPage() {
     console.log('Edit broadcast:', broadcast);
   };
 
-  const handleDeleteBroadcast = (broadcastId: string) => {
-    if (confirm('Apakah Anda yakin ingin menghapus broadcast ini?')) {
-      setBroadcasts(broadcasts.filter(b => b.id !== broadcastId));
+  const handleDeleteBroadcast = async (broadcastId: string) => {
+    const confirmed = await confirm({
+      title: 'Hapus Broadcast',
+      message: 'Apakah Anda yakin ingin menghapus broadcast ini? Tindakan ini tidak dapat dibatalkan.',
+      type: 'danger'
+    });
+    
+    if (confirmed) {
+      try {
+        const response = await fetch(`/api/broadcasts/${broadcastId}`, {
+          method: 'DELETE',
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+          success('Broadcast Dihapus', 'Broadcast berhasil dihapus');
+          fetchBroadcasts(); // Refresh data
+        } else {
+          error('Gagal Menghapus Broadcast', result.error || 'Terjadi kesalahan saat menghapus broadcast');
+        }
+      } catch (err) {
+        console.error('Error deleting broadcast:', err);
+        error('Kesalahan Server', 'Terjadi kesalahan pada server, silakan coba lagi');
+      }
+    }
+  };
+
+  const handleAddBroadcast = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!newBroadcast.title || !newBroadcast.message) {
+      warning('Form Tidak Lengkap', 'Judul dan pesan wajib diisi');
+      return;
+    }
+
+    if (newBroadcast.targetAudience === 'UNIT_SPECIFIC' && !newBroadcast.unitTarget) {
+      warning('Unit Target Belum Dipilih', 'Pilih unit target untuk broadcast ini');
+      return;
+    }
+
+    setIsSubmitting(true);
+    
+    try {
+      const response = await fetch('/api/broadcasts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          ...newBroadcast,
+          createdById: 'cm52aqx5v0001uk9m8n3zdyuu', // Use first admin user ID from seed
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        // Reset form
+        setNewBroadcast({
+          title: '',
+          message: '',
+          type: 'INFO',
+          targetAudience: 'ALL',
+          unitTarget: '',
+          scheduledAt: '',
+        });
+        setShowCreateModal(false);
+        fetchBroadcasts(); // Refresh data
+        success('Broadcast Berhasil', result.message || 'Broadcast berhasil dibuat');
+      } else {
+        error('Gagal Membuat Broadcast', result.error || 'Terjadi kesalahan saat membuat broadcast');
+      }
+    } catch (err) {
+      console.error('Error creating broadcast:', err);
+      error('Kesalahan Server', 'Terjadi kesalahan pada server, silakan coba lagi');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -288,8 +368,8 @@ export default function BroadcastPage() {
                     <TableCell>
                       <div>
                         <p className="text-sm text-gray-900">
-                          {broadcast.targetAudience === 'all' ? 'Semua Anggota' :
-                           broadcast.targetAudience === 'active_members' ? 'Anggota Aktif' :
+                          {broadcast.targetAudience === 'ALL' ? 'Semua Anggota' :
+                           broadcast.targetAudience === 'ACTIVE_MEMBERS' ? 'Anggota Aktif' :
                            `Unit ${broadcast.unitTarget}`}
                         </p>
                         <p className="text-xs text-gray-500">{broadcast.totalRecipients} penerima</p>
@@ -299,9 +379,9 @@ export default function BroadcastPage() {
                       <div className="flex items-center gap-2">
                         {getStatusIcon(broadcast.status)}
                         <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(broadcast.status)}`}>
-                          {broadcast.status === 'sent' ? 'Terkirim' :
-                           broadcast.status === 'scheduled' ? 'Terjadwal' :
-                           broadcast.status === 'draft' ? 'Draft' : 'Gagal'}
+                          {broadcast.status === 'SENT' ? 'Terkirim' :
+                           broadcast.status === 'SCHEDULED' ? 'Terjadwal' :
+                           broadcast.status === 'DRAFT' ? 'Draft' : 'Gagal'}
                         </span>
                       </div>
                     </TableCell>
@@ -358,6 +438,136 @@ export default function BroadcastPage() {
         </CardContent>
       </Card>
 
+      {/* Create Broadcast Modal */}
+      {showCreateModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-semibold text-gray-900">Buat Broadcast Baru</h3>
+              <Button variant="outline" onClick={() => setShowCreateModal(false)}>
+                <X className="w-4 h-4" />
+              </Button>
+            </div>
+
+            <form onSubmit={handleAddBroadcast} className="space-y-6">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Judul Broadcast *
+                </label>
+                <Input
+                  type="text"
+                  value={newBroadcast.title}
+                  onChange={(e) => setNewBroadcast({ ...newBroadcast, title: e.target.value })}
+                  placeholder="Masukkan judul broadcast"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Pesan *
+                </label>
+                <textarea
+                  value={newBroadcast.message}
+                  onChange={(e) => setNewBroadcast({ ...newBroadcast, message: e.target.value })}
+                  placeholder="Tulis pesan broadcast..."
+                  rows={4}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  required
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Tipe Broadcast
+                  </label>
+                  <select
+                    value={newBroadcast.type}
+                    onChange={(e) => setNewBroadcast({ ...newBroadcast, type: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="INFO">Info</option>
+                    <option value="ANNOUNCEMENT">Pengumuman</option>
+                    <option value="REMINDER">Pengingat</option>
+                    <option value="URGENT">Urgent</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Target Penerima
+                  </label>
+                  <select
+                    value={newBroadcast.targetAudience}
+                    onChange={(e) => setNewBroadcast({ ...newBroadcast, targetAudience: e.target.value })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  >
+                    <option value="ALL">Semua Anggota</option>
+                    <option value="ACTIVE_MEMBERS">Anggota Aktif</option>
+                    <option value="UNIT_SPECIFIC">Unit Tertentu</option>
+                  </select>
+                </div>
+              </div>
+
+              {newBroadcast.targetAudience === 'UNIT_SPECIFIC' && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Unit Target
+                  </label>
+                  <Input
+                    type="text"
+                    value={newBroadcast.unitTarget}
+                    onChange={(e) => setNewBroadcast({ ...newBroadcast, unitTarget: e.target.value })}
+                    placeholder="Masukkan nama unit"
+                    required={newBroadcast.targetAudience === 'UNIT_SPECIFIC'}
+                  />
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Jadwal Kirim (Opsional)
+                </label>
+                <Input
+                  type="datetime-local"
+                  value={newBroadcast.scheduledAt}
+                  onChange={(e) => setNewBroadcast({ ...newBroadcast, scheduledAt: e.target.value })}
+                  min={new Date().toISOString().slice(0, 16)}
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Kosongkan untuk mengirim sekarang
+                </p>
+              </div>
+
+              <div className="flex justify-end gap-3 pt-4 border-t">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setShowCreateModal(false)}
+                  disabled={isSubmitting}
+                >
+                  Batal
+                </Button>
+                <Button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? (
+                    <>
+                      <Loading className="w-4 h-4 mr-2" />
+                      {newBroadcast.scheduledAt ? 'Menjadwalkan...' : 'Mengirim...'}
+                    </>
+                  ) : (
+                    <>
+                      <Send className="w-4 h-4 mr-2" />
+                      {newBroadcast.scheduledAt ? 'Jadwalkan' : 'Kirim Sekarang'}
+                    </>
+                  )}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
       {/* Broadcast Detail Modal */}
       {selectedBroadcast && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
@@ -386,8 +596,8 @@ export default function BroadcastPage() {
                   <div>
                     <label className="text-sm text-gray-600">Target Audience</label>
                     <p className="font-medium">
-                      {selectedBroadcast.targetAudience === 'all' ? 'Semua Anggota' :
-                       selectedBroadcast.targetAudience === 'active_members' ? 'Anggota Aktif' :
+                      {selectedBroadcast.targetAudience === 'ALL' ? 'Semua Anggota' :
+                       selectedBroadcast.targetAudience === 'ACTIVE_MEMBERS' ? 'Anggota Aktif' :
                        `Unit ${selectedBroadcast.unitTarget}`}
                     </p>
                   </div>
@@ -396,9 +606,9 @@ export default function BroadcastPage() {
                     <div className="flex items-center gap-2">
                       {getStatusIcon(selectedBroadcast.status)}
                       <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(selectedBroadcast.status)}`}>
-                        {selectedBroadcast.status === 'sent' ? 'Terkirim' :
-                         selectedBroadcast.status === 'scheduled' ? 'Terjadwal' :
-                         selectedBroadcast.status === 'draft' ? 'Draft' : 'Gagal'}
+                        {selectedBroadcast.status === 'SENT' ? 'Terkirim' :
+                         selectedBroadcast.status === 'SCHEDULED' ? 'Terjadwal' :
+                         selectedBroadcast.status === 'DRAFT' ? 'Draft' : 'Gagal'}
                       </span>
                     </div>
                   </div>
@@ -433,7 +643,7 @@ export default function BroadcastPage() {
               <div>
                 <h4 className="font-semibold text-gray-900 mb-3">Timeline</h4>
                 <div className="space-y-2 text-sm">
-                  <p><span className="text-gray-600">Dibuat:</span> {formatDate(new Date(selectedBroadcast.createdAt))} oleh {selectedBroadcast.createdBy}</p>
+                  <p><span className="text-gray-600">Dibuat:</span> {formatDate(new Date(selectedBroadcast.createdAt))} oleh {selectedBroadcast.createdBy.name}</p>
                   {selectedBroadcast.scheduledAt && (
                     <p><span className="text-gray-600">Dijadwalkan:</span> {formatDate(new Date(selectedBroadcast.scheduledAt))}</p>
                   )}
