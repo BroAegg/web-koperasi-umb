@@ -3,7 +3,7 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
-import { Home, Boxes, Users, Megaphone, Settings, LogOut, Menu, X, Bell, User } from "lucide-react";
+import { Home, Boxes, Users, Megaphone, DollarSign, Settings, LogOut, Menu, X, Bell, User } from "lucide-react";
 import { Button } from '@/components/ui/button';
 import { NotificationProvider } from '@/lib/notification-context';
 
@@ -11,6 +11,7 @@ const navItems = [
   { href: "/koperasi/dashboard", label: "Dashboard", icon: Home },
   { href: "/koperasi/inventory", label: "Inventory", icon: Boxes },
   { href: "/koperasi/membership", label: "Membership", icon: Users },
+  { href: "/koperasi/financial", label: "Keuangan", icon: DollarSign },
   { href: "/koperasi/broadcast", label: "Broadcast", icon: Megaphone },
 ];
 

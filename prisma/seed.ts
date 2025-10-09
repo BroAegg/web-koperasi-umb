@@ -195,6 +195,73 @@ async function main() {
 
   console.log('✅ Transactions created');
 
+  // Create additional stock movements (IN)
+  for (let i = 0; i < 5; i++) {
+    const randomProduct = products[Math.floor(Math.random() * products.length)];
+    const quantity = Math.floor(Math.random() * 20) + 10; // 10-30 quantity
+
+    await prisma.stockMovement.create({
+      data: {
+        productId: randomProduct.id,
+        type: 'IN',
+        quantity,
+        note: `Restock ${randomProduct.name}`,
+      },
+    });
+
+    // Update product stock
+    await prisma.product.update({
+      where: { id: randomProduct.id },
+      data: {
+        stock: {
+          increment: quantity,
+        },
+      },
+    });
+  }
+
+  console.log('✅ Additional stock movements created');
+
+  // Create additional financial transactions
+  const financialTransactions = [
+    {
+      type: 'SALE' as const,
+      totalAmount: 150000,
+      note: 'Pendapatan dari jasa simpan pinjam',
+      paymentMethod: 'CASH' as const,
+    },
+    {
+      type: 'PURCHASE' as const,
+      totalAmount: 75000,
+      note: 'Pembelian alat tulis kantor',
+      paymentMethod: 'CASH' as const,
+    },
+    {
+      type: 'PURCHASE' as const,
+      totalAmount: 200000,
+      note: 'Biaya listrik dan air',
+      paymentMethod: 'TRANSFER' as const,
+    },
+    {
+      type: 'SALE' as const,
+      totalAmount: 300000,
+      note: 'Pendapatan dari iuran anggota',
+      paymentMethod: 'TRANSFER' as const,
+    },
+  ];
+
+  for (const txData of financialTransactions) {
+    await prisma.transaction.create({
+      data: {
+        ...txData,
+        status: 'COMPLETED',
+        date: new Date(),
+      },
+    });
+  }
+
+  console.log('✅ Financial transactions created');
+
   // Create sample broadcasts
   const adminUser = users[0]; // Use first user as admin
   await prisma.user.update({

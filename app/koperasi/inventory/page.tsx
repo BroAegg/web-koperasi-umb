@@ -30,6 +30,7 @@ interface Product {
   sellPrice: number;
   stock: number;
   threshold: number;
+  unit: string;
   soldToday: number;
   totalSold: number;
   profit: number;
@@ -42,12 +43,28 @@ interface Category {
 }
 
 interface Transaction {
-  id: number;
+  id: string;
+  productId: string;
   productName: string;
   type: "IN" | "OUT";
   quantity: number;
   date: string;
   note: string;
+}
+
+interface StockMovement {
+  id: string;
+  productId: string;
+  type: "IN" | "OUT" | "ADJUSTMENT";
+  quantity: number;
+  note: string;
+  date: string;
+  createdAt: string;
+  product: {
+    id: string;
+    name: string;
+    unit: string;
+  };
 }
 
 export default function InventoryPage() {
@@ -61,7 +78,11 @@ export default function InventoryPage() {
   
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
-  const [transactions] = useState<Transaction[]>([]); // Will be implemented later
+  const [stockMovements, setStockMovements] = useState<StockMovement[]>([]);
+  const [stockFormData, setStockFormData] = useState({
+    quantity: '',
+    note: '',
+  });
 
   // Global notifications
   const { success, error, warning } = useNotification();
@@ -82,7 +103,23 @@ export default function InventoryPage() {
   useEffect(() => {
     fetchProducts();
     fetchCategories();
+    fetchStockMovements();
   }, []);
+
+  const fetchStockMovements = async () => {
+    try {
+      const response = await fetch('/api/stock-movements?limit=20');
+      const result = await response.json();
+      
+      if (result.success) {
+        setStockMovements(result.data);
+      } else {
+        console.error('Failed to fetch stock movements:', result.error);
+      }
+    } catch (error) {
+      console.error('Error fetching stock movements:', error);
+    }
+  };
 
   const fetchProducts = async () => {
     try {
@@ -128,6 +165,65 @@ export default function InventoryPage() {
     } else {
       setPriceError('');
       return true;
+    }
+  };
+
+  const handleStockMovement = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!stockFormData.quantity || !showStockModal.product || !showStockModal.type) {
+      warning('Form Tidak Lengkap', 'Jumlah wajib diisi');
+      return;
+    }
+
+    const quantity = parseInt(stockFormData.quantity);
+    if (quantity <= 0) {
+      warning('Jumlah Tidak Valid', 'Jumlah harus lebih dari 0');
+      return;
+    }
+
+    // Check stock for OUT movements
+    if (showStockModal.type === 'OUT' && quantity > showStockModal.product.stock) {
+      warning('Stok Tidak Cukup', `Stok tersedia: ${showStockModal.product.stock} ${showStockModal.product.unit || 'pcs'}`);
+      return;
+    }
+
+    setIsSubmitting(true);
+    
+    try {
+      const response = await fetch('/api/stock-movements', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          productId: showStockModal.product.id,
+          type: showStockModal.type,
+          quantity,
+          note: stockFormData.note,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        // Reset form
+        setStockFormData({ quantity: '', note: '' });
+        setShowStockModal({ show: false });
+        
+        // Refresh data
+        fetchProducts();
+        fetchStockMovements();
+        
+        success('Stock Movement Berhasil', result.message);
+      } else {
+        error('Gagal Menyimpan', result.error || 'Terjadi kesalahan saat menyimpan stock movement');
+      }
+    } catch (err) {
+      console.error('Error creating stock movement:', err);
+      error('Kesalahan Server', 'Terjadi kesalahan pada server, silakan coba lagi');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -444,38 +540,54 @@ export default function InventoryPage() {
             </CardContent>
           </Card>
 
-          {/* Recent Transactions */}
+          {/* Recent Stock Movements */}
           <Card className="border-0 shadow-sm">
             <CardHeader className="pb-4">
-              <h3 className="text-lg font-bold text-gray-900">Transaksi Terbaru</h3>
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-bold text-gray-900">Stock Movement Terbaru</h3>
+                <Button variant="outline" size="sm">
+                  <BarChart3 className="w-4 h-4 mr-2" />
+                  Lihat Semua
+                </Button>
+              </div>
             </CardHeader>
             <CardContent className="space-y-3">
-              {transactions.slice(0, 5).map((transaction) => (
-                <div key={transaction.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                  <div className="flex items-center gap-3">
-                    <div className={`p-2 rounded-full ${
-                      transaction.type === 'IN' 
-                        ? 'bg-green-100 text-green-600' 
-                        : 'bg-red-100 text-red-600'
-                    }`}>
-                      {transaction.type === 'IN' ? (
-                        <Plus className="w-3 h-3" />
-                      ) : (
-                        <Minus className="w-3 h-3" />
-                      )}
+              {stockMovements.length > 0 ? (
+                stockMovements.slice(0, 5).map((movement) => (
+                  <div key={movement.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-center gap-3">
+                      <div className={`p-2 rounded-full ${
+                        movement.type === 'IN' 
+                          ? 'bg-green-100 text-green-600' 
+                          : 'bg-red-100 text-red-600'
+                      }`}>
+                        {movement.type === 'IN' ? (
+                          <Plus className="w-3 h-3" />
+                        ) : (
+                          <Minus className="w-3 h-3" />
+                        )}
+                      </div>
+                      <div>
+                        <p className="font-medium text-gray-900 text-sm">{movement.product.name}</p>
+                        <p className="text-xs text-gray-500">
+                          {movement.type === 'IN' ? 'Masuk' : 'Keluar'} {movement.quantity} {movement.product.unit}
+                        </p>
+                        {movement.note && (
+                          <p className="text-xs text-gray-400 mt-1">{movement.note}</p>
+                        )}
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-medium text-gray-900 text-sm">{transaction.productName}</p>
-                      <p className="text-xs text-gray-500">
-                        {transaction.type === 'IN' ? 'Masuk' : 'Keluar'} {transaction.quantity} unit
-                      </p>
-                    </div>
+                    <span className="text-xs text-gray-400">
+                      {new Date(movement.createdAt).toLocaleDateString('id-ID')}
+                    </span>
                   </div>
-                  <span className="text-xs text-gray-400">
-                    {new Date(transaction.date).toLocaleDateString('id-ID')}
-                  </span>
+                ))
+              ) : (
+                <div className="text-center py-8 text-gray-500">
+                  <Package className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                  <p className="text-sm">Belum ada stock movement</p>
                 </div>
-              ))}
+              )}
             </CardContent>
           </Card>
         </div>
@@ -668,6 +780,126 @@ export default function InventoryPage() {
                 </div>
               </form>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Stock Movement Modal */}
+      {showStockModal.show && showStockModal.product && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
+          <div className="bg-white rounded-xl p-6 w-full max-w-md">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-semibold text-gray-900">
+                {showStockModal.type === 'IN' ? 'Stock Masuk' : 'Stock Keluar'}
+              </h3>
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setShowStockModal({ show: false });
+                  setStockFormData({ quantity: '', note: '' });
+                }}
+                className="p-2"
+              >
+                ✕
+              </Button>
+            </div>
+
+            <div className="mb-6">
+              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                <div className={`p-2 rounded-full ${
+                  showStockModal.type === 'IN' ? 'bg-green-100' : 'bg-red-100'
+                }`}>
+                  {showStockModal.type === 'IN' ? (
+                    <Plus className="w-4 h-4 text-green-600" />
+                  ) : (
+                    <Minus className="w-4 h-4 text-red-600" />
+                  )}
+                </div>
+                <div>
+                  <p className="font-medium text-gray-900">{showStockModal.product.name}</p>
+                  <p className="text-sm text-gray-500">
+                    Stok saat ini: {showStockModal.product.stock} {showStockModal.product.unit}
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <form onSubmit={handleStockMovement} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Jumlah {showStockModal.type === 'IN' ? 'Masuk' : 'Keluar'} *
+                </label>
+                <div className="relative">
+                  <Input
+                    type="number"
+                    value={stockFormData.quantity}
+                    onChange={(e) => setStockFormData({ ...stockFormData, quantity: e.target.value })}
+                    placeholder="0"
+                    min="1"
+                    required
+                    className="pr-16"
+                  />
+                  <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">
+                    {showStockModal.product.unit}
+                  </span>
+                </div>
+                {showStockModal.type === 'OUT' && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    Maksimal: {showStockModal.product.stock} {showStockModal.product.unit}
+                  </p>
+                )}
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Catatan (Opsional)
+                </label>
+                <textarea
+                  value={stockFormData.note}
+                  onChange={(e) => setStockFormData({ ...stockFormData, note: e.target.value })}
+                  placeholder="Tambahkan catatan..."
+                  rows={3}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                />
+              </div>
+
+              <div className="flex gap-3 pt-4 border-t">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    setShowStockModal({ show: false });
+                    setStockFormData({ quantity: '', note: '' });
+                  }}
+                  className="flex-1"
+                  disabled={isSubmitting}
+                >
+                  Batal
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className={`flex-1 ${
+                    showStockModal.type === 'IN' 
+                      ? 'bg-green-600 hover:bg-green-700' 
+                      : 'bg-red-600 hover:bg-red-700'
+                  }`}
+                >
+                  {isSubmitting ? (
+                    'Menyimpan...'
+                  ) : (
+                    <>
+                      {showStockModal.type === 'IN' ? (
+                        <Plus className="w-4 h-4 mr-2" />
+                      ) : (
+                        <Minus className="w-4 h-4 mr-2" />
+                      )}
+                      {showStockModal.type === 'IN' ? 'Tambah Stock' : 'Kurangi Stock'}
+                    </>
+                  )}
+                </Button>
+              </div>
+            </form>
           </div>
         </div>
       )}
