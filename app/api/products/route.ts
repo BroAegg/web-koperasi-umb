@@ -98,13 +98,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Validate that sell price is not lower than buy price
+    // Validate that sell price is higher than buy price
     const buyPriceNum = parseFloat(buyPrice);
     const sellPriceNum = parseFloat(sellPrice);
     
-    if (sellPriceNum < buyPriceNum) {
+    if (sellPriceNum <= buyPriceNum) {
       return NextResponse.json(
-        { success: false, error: 'Harga jual harus lebih tinggi atau sama dengan harga beli' },
+        { success: false, error: 'Harga jual harus lebih tinggi dari harga beli' },
         { status: 400 }
       );
     }

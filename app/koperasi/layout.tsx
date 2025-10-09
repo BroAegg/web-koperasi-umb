@@ -5,6 +5,7 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Home, Boxes, Users, Megaphone, Settings, LogOut, Menu, X, Bell, User } from "lucide-react";
 import { Button } from '@/components/ui/button';
+import { NotificationProvider } from '@/lib/notification-context';
 
 const navItems = [
   { href: "/koperasi/dashboard", label: "Dashboard", icon: Home },
@@ -150,7 +151,9 @@ export default function KoperasiLayout({ children }: { children: React.ReactNode
 
           {/* Page Content */}
           <div className="p-4 sm:p-6 lg:p-8">
-            {children}
+            <NotificationProvider>
+              {children}
+            </NotificationProvider>
           </div>
         </main>
       </div>

@@ -5,8 +5,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ToastContainer } from '@/components/ui/toast';
-import { useToast } from '@/lib/use-toast';
+import { useNotification } from '@/lib/notification-context';
 import { formatCurrency } from '@/lib/utils';
 import { 
   Package, 
@@ -64,8 +63,8 @@ export default function InventoryPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [transactions] = useState<Transaction[]>([]); // Will be implemented later
 
-  // Toast notifications
-  const { notifications, removeNotification, success, error, warning } = useToast();
+  // Global notifications
+  const { success, error, warning } = useNotification();
 
   // Form state for new product
   const [newProduct, setNewProduct] = useState({
@@ -123,8 +122,8 @@ export default function InventoryPage() {
     const buyPriceNum = parseFloat(buyPrice) || 0;
     const sellPriceNum = parseFloat(sellPrice) || 0;
     
-    if (buyPrice && sellPrice && sellPriceNum < buyPriceNum) {
-      setPriceError('Harga jual harus lebih tinggi atau sama dengan harga beli');
+    if (buyPrice && sellPrice && sellPriceNum <= buyPriceNum) {
+      setPriceError('Harga jual harus lebih tinggi dari harga beli');
       return false;
     } else {
       setPriceError('');
@@ -672,9 +671,6 @@ export default function InventoryPage() {
           </div>
         </div>
       )}
-      
-      {/* Toast Notifications */}
-      <ToastContainer notifications={notifications} onClose={removeNotification} />
     </div>
   );
 }

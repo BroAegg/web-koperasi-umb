@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Loading, TableSkeleton } from '@/components/ui/loading';
 import { formatCurrency } from '@/lib/utils';
+import { useNotification } from '@/lib/notification-context';
 import { 
   Users, 
   UserPlus, 
@@ -45,6 +46,9 @@ export default function MembershipPage() {
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Global notifications
+  const { success, error, warning } = useNotification();
 
   // Form state for new member
   const [newMember, setNewMember] = useState({
@@ -113,12 +117,13 @@ export default function MembershipPage() {
         if (result.success) {
           // Refresh member list
           fetchMembers();
+          success('Anggota Berhasil Dihapus', 'Data anggota telah dihapus dari sistem');
         } else {
-          alert('Error: ' + result.error);
+          error('Gagal Menghapus Anggota', result.error || 'Terjadi kesalahan saat menghapus anggota');
         }
-      } catch (error) {
-        console.error('Error deleting member:', error);
-        alert('Error deleting member');
+      } catch (err) {
+        console.error('Error deleting member:', err);
+        error('Kesalahan Server', 'Terjadi kesalahan pada server, silakan coba lagi');
       }
     }
   };
@@ -127,7 +132,7 @@ export default function MembershipPage() {
     e.preventDefault();
     
     if (!newMember.name || !newMember.email || !newMember.unitKerja) {
-      alert('Nama, email, dan unit kerja wajib diisi');
+      warning('Form Tidak Lengkap', 'Nama, email, dan unit kerja wajib diisi');
       return;
     }
 
@@ -160,13 +165,13 @@ export default function MembershipPage() {
         
         setShowAddModal(false);
         fetchMembers(); // Refresh list
-        alert('Anggota berhasil ditambahkan!');
+        success('Anggota Berhasil Ditambahkan', `${newMember.name} telah ditambahkan sebagai anggota koperasi`);
       } else {
-        alert('Error: ' + result.error);
+        error('Gagal Menambahkan Anggota', result.error || 'Terjadi kesalahan saat menambahkan anggota');
       }
-    } catch (error) {
-      console.error('Error adding member:', error);
-      alert('Error adding member');
+    } catch (err) {
+      console.error('Error adding member:', err);
+      error('Kesalahan Server', 'Terjadi kesalahan pada server, silakan coba lagi');
     } finally {
       setIsSubmitting(false);
     }
