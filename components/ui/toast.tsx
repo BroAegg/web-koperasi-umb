@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { CheckCircle, XCircle, AlertCircle, X } from 'lucide-react';
 
-export interface ToastProps {
+export interface NotificationProps {
   id: string;
   type: 'success' | 'error' | 'warning';
   title: string;
@@ -12,7 +12,7 @@ export interface ToastProps {
   onClose: (id: string) => void;
 }
 
-export const Toast = ({ id, type, title, message, duration = 5000, onClose }: ToastProps) => {
+export const Notification = ({ id, type, title, message, duration = 3000, onClose }: NotificationProps) => {
   useEffect(() => {
     const timer = setTimeout(() => {
       onClose(id);
@@ -24,11 +24,11 @@ export const Toast = ({ id, type, title, message, duration = 5000, onClose }: To
   const getIcon = () => {
     switch (type) {
       case 'success':
-        return <CheckCircle className="w-5 h-5 text-green-500" />;
+        return <CheckCircle className="w-6 h-6 text-green-500" />;
       case 'error':
-        return <XCircle className="w-5 h-5 text-red-500" />;
+        return <XCircle className="w-6 h-6 text-red-500" />;
       case 'warning':
-        return <AlertCircle className="w-5 h-5 text-yellow-500" />;
+        return <AlertCircle className="w-6 h-6 text-yellow-500" />;
     }
   };
 
@@ -44,25 +44,24 @@ export const Toast = ({ id, type, title, message, duration = 5000, onClose }: To
   };
 
   return (
-    <div className={`max-w-sm w-full ${getBgColor()} border rounded-lg shadow-lg p-4 mb-3 animate-in slide-in-from-right duration-300`}>
-      <div className="flex items-start">
-        <div className="flex-shrink-0">
-          {getIcon()}
-        </div>
-        <div className="ml-3 w-0 flex-1">
-          <p className="text-sm font-medium text-gray-900">
-            {title}
-          </p>
-          <p className="mt-1 text-sm text-gray-500">
-            {message}
-          </p>
-        </div>
-        <div className="ml-4 flex-shrink-0 flex">
+    <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-50 animate-in fade-in duration-200">
+      <div className={`${getBgColor()} border rounded-xl shadow-2xl p-6 max-w-sm w-full mx-4 animate-in zoom-in-95 duration-200`}>
+        <div className="flex items-start space-x-4">
+          <div className="flex-shrink-0">
+            {getIcon()}
+          </div>
+          <div className="flex-1 min-w-0">
+            <h4 className="text-sm font-semibold text-gray-900 mb-1">
+              {title}
+            </h4>
+            <p className="text-sm text-gray-600">
+              {message}
+            </p>
+          </div>
           <button
-            className="bg-white rounded-md inline-flex text-gray-400 hover:text-gray-500 focus:outline-none"
             onClick={() => onClose(id)}
+            className="flex-shrink-0 text-gray-400 hover:text-gray-600 transition-colors"
           >
-            <span className="sr-only">Close</span>
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -71,12 +70,19 @@ export const Toast = ({ id, type, title, message, duration = 5000, onClose }: To
   );
 };
 
-export const ToastContainer = ({ toasts, onClose }: { toasts: ToastProps[], onClose: (id: string) => void }) => {
-  return (
-    <div className="fixed top-4 right-4 z-50 space-y-2">
-      {toasts.map((toast) => (
-        <Toast key={toast.id} {...toast} onClose={onClose} />
-      ))}
-    </div>
-  );
+export const NotificationContainer = ({ notifications, onClose }: { 
+  notifications: NotificationProps[], 
+  onClose: (id: string) => void 
+}) => {
+  // Only show the latest notification
+  const latestNotification = notifications[notifications.length - 1];
+  
+  if (!latestNotification) return null;
+
+  return <Notification {...latestNotification} onClose={onClose} />;
 };
+
+// Keep the old exports for backward compatibility
+export const Toast = Notification;
+export const ToastContainer = NotificationContainer;
+export type ToastProps = NotificationProps;

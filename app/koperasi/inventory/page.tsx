@@ -65,7 +65,7 @@ export default function InventoryPage() {
   const [transactions] = useState<Transaction[]>([]); // Will be implemented later
 
   // Toast notifications
-  const { toasts, removeToast, success, error, warning } = useToast();
+  const { notifications, removeNotification, success, error, warning } = useToast();
 
   // Form state for new product
   const [newProduct, setNewProduct] = useState({
@@ -674,7 +674,7 @@ export default function InventoryPage() {
       )}
       
       {/* Toast Notifications */}
-      <ToastContainer toasts={toasts} onClose={removeToast} />
+      <ToastContainer notifications={notifications} onClose={removeNotification} />
     </div>
   );
 }

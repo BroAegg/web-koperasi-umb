@@ -1,40 +1,43 @@
 import { useState, useCallback } from 'react';
-import { ToastProps } from '@/components/ui/toast';
+import { NotificationProps } from '@/components/ui/toast';
 
 export const useToast = () => {
-  const [toasts, setToasts] = useState<ToastProps[]>([]);
+  const [notifications, setNotifications] = useState<NotificationProps[]>([]);
 
-  const addToast = useCallback((toast: Omit<ToastProps, 'id' | 'onClose'>) => {
+  const addNotification = useCallback((notification: Omit<NotificationProps, 'id' | 'onClose'>) => {
     const id = Math.random().toString(36).substr(2, 9);
-    const newToast: ToastProps = {
-      ...toast,
+    const newNotification: NotificationProps = {
+      ...notification,
       id,
       onClose: () => {},
     };
     
-    setToasts(prev => [...prev, newToast]);
+    // Clear existing notifications and show new one
+    setNotifications([newNotification]);
   }, []);
 
-  const removeToast = useCallback((id: string) => {
-    setToasts(prev => prev.filter(toast => toast.id !== id));
+  const removeNotification = useCallback((id: string) => {
+    setNotifications(prev => prev.filter(notification => notification.id !== id));
   }, []);
 
   const success = useCallback((title: string, message: string) => {
-    addToast({ type: 'success', title, message });
-  }, [addToast]);
+    addNotification({ type: 'success', title, message, duration: 2500 });
+  }, [addNotification]);
 
   const error = useCallback((title: string, message: string) => {
-    addToast({ type: 'error', title, message });
-  }, [addToast]);
+    addNotification({ type: 'error', title, message, duration: 4000 });
+  }, [addNotification]);
 
   const warning = useCallback((title: string, message: string) => {
-    addToast({ type: 'warning', title, message });
-  }, [addToast]);
+    addNotification({ type: 'warning', title, message, duration: 3500 });
+  }, [addNotification]);
 
   return {
-    toasts,
-    addToast,
-    removeToast,
+    notifications,
+    toasts: notifications, // Keep for backward compatibility
+    addNotification,
+    removeNotification,
+    removeToast: removeNotification, // Keep for backward compatibility
     success,
     error,
     warning,
