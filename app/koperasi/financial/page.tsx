@@ -18,7 +18,6 @@ import {
   Search,
   Filter,
   Download,
-  Eye,
   Edit,
   Trash2,
   ShoppingCart,
@@ -27,7 +26,8 @@ import {
   X,
   FileText,
   Tag,
-  Hash
+  Hash,
+  Banknote
 } from 'lucide-react';
 
 interface Transaction {
@@ -230,11 +230,6 @@ export default function FinancialPage() {
         error('Kesalahan Server', 'Terjadi kesalahan pada server, silakan coba lagi');
       }
     }
-  };
-
-  const handleViewTransaction = (transaction: Transaction) => {
-    // You can implement a detailed transaction view modal here
-    success('Detail Transaksi', `Transaksi: ${transaction.description || 'Tanpa catatan'}\nJumlah: ${formatCurrency(transaction.amount)}\nTanggal: ${formatDate(new Date(transaction.date))}`);
   };
 
   const handleEditTransaction = (transaction: Transaction) => {
@@ -518,15 +513,6 @@ export default function FinancialPage() {
                         <Button 
                           variant="outline" 
                           size="sm"
-                          onClick={() => handleViewTransaction(transaction)}
-                          className="text-blue-600 hover:bg-blue-50"
-                          title="Lihat Detail"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
                           onClick={() => handleEditTransaction(transaction)}
                           className="text-amber-600 hover:bg-amber-50"
                           title="Edit Transaksi"
@@ -623,7 +609,7 @@ export default function FinancialPage() {
                     placeholder="0"
                     min="0"
                     step="0.01"
-                    leftIcon={<DollarSign className="w-4 h-4 text-gray-400" />}
+                    leftIcon={<Banknote className="w-4 h-4 text-gray-400" />}
                     required
                   />
                 </div>
@@ -646,13 +632,13 @@ export default function FinancialPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Kategori
+                    Kategori <span className="text-gray-500 font-normal">(Opsional)</span>
                   </label>
                   <Input
                     type="text"
                     value={newTransaction.category}
                     onChange={(e) => setNewTransaction({ ...newTransaction, category: e.target.value })}
-                    placeholder="Kategori transaksi"
+                    placeholder="Contoh: Alat Tulis, Makanan, ATK..."
                     leftIcon={<Tag className="w-4 h-4 text-gray-400" />}
                   />
                 </div>
@@ -676,13 +662,13 @@ export default function FinancialPage() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Referensi
+                    Referensi <span className="text-gray-500 font-normal">(Opsional)</span>
                   </label>
                   <Input
                     type="text"
                     value={newTransaction.reference}
                     onChange={(e) => setNewTransaction({ ...newTransaction, reference: e.target.value })}
-                    placeholder="No. invoice, kode, dll"
+                    placeholder="No. invoice, struk, kode transaksi..."
                     leftIcon={<Hash className="w-4 h-4 text-gray-400" />}
                   />
                 </div>
