@@ -16,6 +16,8 @@ import {
   Search,
   Download,
   Eye,
+  Edit,
+  Trash2,
   BarChart3
 } from 'lucide-react';
 
@@ -285,6 +287,50 @@ export default function InventoryPage() {
     setPriceError('');
   };
 
+  // Product Actions Handlers
+  const handleViewProduct = (product: Product) => {
+    // You can implement a detailed product view modal here
+    success('Detail Produk', `Melihat detail produk: ${product.name}`);
+  };
+
+  const handleEditProduct = (product: Product) => {
+    // You can implement edit product functionality here
+    // For now, populate the form with existing data
+    setNewProduct({
+      name: product.name,
+      description: '', // Product interface doesn't have description, set empty
+      categoryId: product.category.id, // Use category.id instead of categoryId
+      sku: '', // Product interface doesn't have sku, set empty
+      buyPrice: product.buyPrice.toString(),
+      sellPrice: product.sellPrice.toString(),
+      stock: product.stock.toString(),
+      threshold: product.threshold.toString(),
+      unit: product.unit,
+    });
+    setShowAddModal(true);
+    success('Edit Mode', `Edit mode untuk produk: ${product.name}`);
+  };
+
+  const handleDeleteProduct = async (productId: string) => {
+    try {
+      const response = await fetch(`/api/products/${productId}`, {
+        method: 'DELETE',
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        success('Produk Dihapus', 'Produk berhasil dihapus');
+        fetchProducts(); // Refresh the product list
+      } else {
+        error('Gagal Menghapus', data.error || 'Gagal menghapus produk');
+      }
+    } catch (err) {
+      console.error('Error deleting product:', err);
+      error('Kesalahan Server', 'Terjadi kesalahan saat menghapus produk');
+    }
+  };
+
   const filteredProducts = products.filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === "semua" || product.category.name === selectedCategory;
@@ -475,11 +521,13 @@ export default function InventoryPage() {
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center justify-center gap-1">
+                            {/* Stock Movement Buttons */}
                             <Button
                               size="sm"
                               variant="outline"
                               onClick={() => setShowStockModal({show: true, product, type: 'IN'})}
-                              className="p-2"
+                              className="p-2 text-green-600 hover:bg-green-50"
+                              title="Stock Masuk"
                             >
                               <Plus className="w-3 h-3" />
                             </Button>
@@ -487,16 +535,39 @@ export default function InventoryPage() {
                               size="sm"
                               variant="outline"
                               onClick={() => setShowStockModal({show: true, product, type: 'OUT'})}
-                              className="p-2"
+                              className="p-2 text-red-600 hover:bg-red-50"
+                              title="Stock Keluar"
                             >
                               <Minus className="w-3 h-3" />
+                            </Button>
+                            
+                            {/* Action Buttons */}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleViewProduct(product)}
+                              className="p-2 text-blue-600 hover:bg-blue-50"
+                              title="Lihat Detail"
+                            >
+                              <Eye className="w-3 h-3" />
                             </Button>
                             <Button
                               size="sm"
                               variant="outline"
-                              className="p-2"
+                              onClick={() => handleEditProduct(product)}
+                              className="p-2 text-amber-600 hover:bg-amber-50"
+                              title="Edit Produk"
                             >
-                              <Eye className="w-3 h-3" />
+                              <Edit className="w-3 h-3" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="danger"
+                              onClick={() => handleDeleteProduct(product.id)}
+                              className="p-2"
+                              title="Hapus Produk"
+                            >
+                              <Trash2 className="w-3 h-3" />
                             </Button>
                           </div>
                         </TableCell>

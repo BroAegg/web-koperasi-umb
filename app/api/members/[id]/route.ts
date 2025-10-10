@@ -5,10 +5,10 @@ import { Decimal } from '@prisma/client/runtime/library';
 // GET /api/members/[id] - Get member by ID
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     const member = await prisma.member.findUnique({
       where: { id },
@@ -72,10 +72,10 @@ export async function GET(
 // PUT /api/members/[id] - Update member
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
     const body = await request.json();
 
     const member = await prisma.member.findUnique({
@@ -152,10 +152,10 @@ export async function PUT(
 // DELETE /api/members/[id] - Delete member
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     const member = await prisma.member.findUnique({
       where: { id },

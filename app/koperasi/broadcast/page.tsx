@@ -411,6 +411,8 @@ export default function BroadcastPage() {
                           variant="outline" 
                           size="sm"
                           onClick={() => handleViewBroadcast(broadcast)}
+                          className="text-blue-600 hover:bg-blue-50"
+                          title="Lihat Detail"
                         >
                           <Eye className="w-4 h-4" />
                         </Button>
@@ -418,6 +420,8 @@ export default function BroadcastPage() {
                           variant="outline" 
                           size="sm"
                           onClick={() => handleEditBroadcast(broadcast)}
+                          className="text-amber-600 hover:bg-amber-50"
+                          title="Edit Broadcast"
                         >
                           <Edit className="w-4 h-4" />
                         </Button>
@@ -425,6 +429,7 @@ export default function BroadcastPage() {
                           variant="danger" 
                           size="sm"
                           onClick={() => handleDeleteBroadcast(broadcast.id)}
+                          title="Hapus Broadcast"
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>

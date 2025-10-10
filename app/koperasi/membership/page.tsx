@@ -362,6 +362,8 @@ export default function MembershipPage() {
                           variant="outline" 
                           size="sm"
                           onClick={() => handleViewMember(member)}
+                          className="text-blue-600 hover:bg-blue-50"
+                          title="Lihat Detail"
                         >
                           <Eye className="w-4 h-4" />
                         </Button>
@@ -369,6 +371,8 @@ export default function MembershipPage() {
                           variant="outline" 
                           size="sm"
                           onClick={() => handleEditMember(member)}
+                          className="text-amber-600 hover:bg-amber-50"
+                          title="Edit Anggota"
                         >
                           <Edit className="w-4 h-4" />
                         </Button>
@@ -376,6 +380,7 @@ export default function MembershipPage() {
                           variant="danger" 
                           size="sm"
                           onClick={() => handleDeleteMember(member.id)}
+                          title="Hapus Anggota"
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>

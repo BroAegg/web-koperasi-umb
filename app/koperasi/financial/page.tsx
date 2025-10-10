@@ -78,6 +78,7 @@ export default function FinancialPage() {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editingTransaction, setEditingTransaction] = useState<string | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [dailySummary, setDailySummary] = useState<DailySummary | null>(null);
   
@@ -147,8 +148,14 @@ export default function FinancialPage() {
     setIsSubmitting(true);
     
     try {
-      const response = await fetch('/api/financial/transactions', {
-        method: 'POST',
+      const url = editingTransaction 
+        ? `/api/financial/transactions/${editingTransaction}`
+        : '/api/financial/transactions';
+      
+      const method = editingTransaction ? 'PUT' : 'POST';
+      
+      const response = await fetch(url, {
+        method,
         headers: {
           'Content-Type': 'application/json',
         },
@@ -171,13 +178,17 @@ export default function FinancialPage() {
           reference: '',
           date: new Date().toISOString().split('T')[0],
         });
+        setEditingTransaction(null);
         setShowAddModal(false);
         
         // Refresh data
         fetchTransactions();
         fetchDailySummary();
         
-        success('Transaksi Berhasil', result.message || 'Transaksi berhasil dicatat');
+        const successMessage = editingTransaction 
+          ? 'Transaksi berhasil diupdate'
+          : 'Transaksi berhasil dicatat';
+        success(editingTransaction ? 'Update Berhasil' : 'Transaksi Berhasil', result.message || successMessage);
       } else {
         error('Gagal Menyimpan', result.error || 'Terjadi kesalahan saat menyimpan transaksi');
       }
@@ -215,6 +226,36 @@ export default function FinancialPage() {
         console.error('Error deleting transaction:', err);
         error('Kesalahan Server', 'Terjadi kesalahan pada server, silakan coba lagi');
       }
+    }
+  };
+
+  const handleViewTransaction = (transaction: Transaction) => {
+    // You can implement a detailed transaction view modal here
+    success('Detail Transaksi', `Transaksi: ${transaction.description || 'Tanpa catatan'}\nJumlah: ${formatCurrency(transaction.amount)}\nTanggal: ${formatDate(new Date(transaction.date))}`);
+  };
+
+  const handleEditTransaction = (transaction: Transaction) => {
+    // Populate the form with existing transaction data for editing
+    setNewTransaction({
+      type: transaction.type,
+      amount: transaction.amount.toString(),
+      description: transaction.description || '',
+      category: getCategoryFromType(transaction.type),
+      paymentMethod: transaction.paymentMethod,
+      reference: transaction.reference || '',
+      date: new Date(transaction.date).toISOString().split('T')[0],
+    });
+    setEditingTransaction(transaction.id);
+    setShowAddModal(true);
+  };
+
+  const getCategoryFromType = (type: string) => {
+    switch (type) {
+      case 'SALE': return 'Penjualan';
+      case 'PURCHASE': return 'Pembelian';
+      case 'INCOME': return 'Pemasukan';
+      case 'EXPENSE': return 'Pengeluaran';
+      default: return 'Lainnya';
     }
   };
 
@@ -470,16 +511,29 @@ export default function FinancialPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <Button variant="outline" size="sm">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleViewTransaction(transaction)}
+                          className="text-blue-600 hover:bg-blue-50"
+                          title="Lihat Detail"
+                        >
                           <Eye className="w-4 h-4" />
                         </Button>
-                        <Button variant="outline" size="sm">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleEditTransaction(transaction)}
+                          className="text-amber-600 hover:bg-amber-50"
+                          title="Edit Transaksi"
+                        >
                           <Edit className="w-4 h-4" />
                         </Button>
                         <Button 
                           variant="danger" 
                           size="sm"
                           onClick={() => handleDeleteTransaction(transaction.id)}
+                          title="Hapus Transaksi"
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>
@@ -493,13 +547,28 @@ export default function FinancialPage() {
         </CardContent>
       </Card>
 
-      {/* Add Transaction Modal */}
+      {/* Add/Edit Transaction Modal */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-semibold text-gray-900">Tambah Transaksi Baru</h3>
-              <Button variant="outline" onClick={() => setShowAddModal(false)}>
+              <h3 className="text-xl font-semibold text-gray-900">
+                {editingTransaction ? 'Update Transaksi' : 'Tambah Transaksi Baru'}
+              </h3>
+              <Button variant="outline" onClick={() => {
+                setShowAddModal(false);
+                setEditingTransaction(null);
+                // Reset form
+                setNewTransaction({
+                  type: 'SALE',
+                  amount: '',
+                  description: '',
+                  category: '',
+                  paymentMethod: 'CASH',
+                  reference: '',
+                  date: new Date().toISOString().split('T')[0],
+                });
+              }}>
                 <X className="w-4 h-4" />
               </Button>
             </div>
@@ -608,10 +677,23 @@ export default function FinancialPage() {
               </div>
 
               <div className="flex justify-end gap-3 pt-4 border-t">
-                <Button
+                <Button 
                   type="button"
                   variant="outline"
-                  onClick={() => setShowAddModal(false)}
+                  onClick={() => {
+                    setShowAddModal(false);
+                    setEditingTransaction(null);
+                    // Reset form
+                    setNewTransaction({
+                      type: 'SALE',
+                      amount: '',
+                      description: '',
+                      category: '',
+                      paymentMethod: 'CASH',
+                      reference: '',
+                      date: new Date().toISOString().split('T')[0],
+                    });
+                  }}
                   disabled={isSubmitting}
                 >
                   Batal
@@ -620,12 +702,21 @@ export default function FinancialPage() {
                   {isSubmitting ? (
                     <>
                       <Loading className="w-4 h-4 mr-2" />
-                      Menyimpan...
+                      {editingTransaction ? 'Mengupdate...' : 'Menyimpan...'}
                     </>
                   ) : (
                     <>
-                      <Plus className="w-4 h-4 mr-2" />
-                      Simpan Transaksi
+                      {editingTransaction ? (
+                        <>
+                          <Edit className="w-4 h-4 mr-2" />
+                          Update Transaksi
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="w-4 h-4 mr-2" />
+                          Simpan Transaksi
+                        </>
+                      )}
                     </>
                   )}
                 </Button>
