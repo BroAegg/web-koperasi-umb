@@ -25,10 +25,8 @@ import {
   Receipt,
   CreditCard,
   X,
-  DollarSign,
   FileText,
   Tag,
-  Calendar,
   Hash
 } from 'lucide-react';
 
