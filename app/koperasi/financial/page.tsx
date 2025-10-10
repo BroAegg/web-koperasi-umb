@@ -27,7 +27,9 @@ import {
   X,
   FileText,
   Tag,
-  Hash
+  Hash,
+  Wallet,
+  Building2
 } from 'lucide-react';
 
 interface Transaction {
@@ -315,13 +317,13 @@ export default function FinancialPage() {
   const getPaymentMethodIcon = (method: string) => {
     switch (method) {
       case 'CASH':
-        return '💵';
+        return <Wallet className="w-4 h-4 text-green-500" />;
       case 'TRANSFER':
-        return '🏦';
+        return <Building2 className="w-4 h-4 text-blue-500" />;
       case 'CREDIT':
-        return '💳';
+        return <CreditCard className="w-4 h-4 text-purple-500" />;
       default:
-        return '💰';
+        return <Wallet className="w-4 h-4 text-gray-500" />;
     }
   };
 
@@ -523,7 +525,7 @@ export default function FinancialPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <span className="text-lg">{getPaymentMethodIcon(transaction.paymentMethod)}</span>
+                        {getPaymentMethodIcon(transaction.paymentMethod)}
                         <span className="text-gray-600">
                           {transaction.paymentMethod === 'CASH' ? 'Tunai' :
                            transaction.paymentMethod === 'TRANSFER' ? 'Transfer' : 'Kredit'}
@@ -642,7 +644,7 @@ export default function FinancialPage() {
                     type="text"
                     value={formattedAmount}
                     onChange={handleAmountChange}
-                    placeholder="Rp 0"
+                    placeholder="Masukkan nominal"
                     leftIcon={<span className="text-sm font-medium text-gray-500">Rp</span>}
                     required
                   />
