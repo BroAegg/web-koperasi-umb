@@ -38,9 +38,9 @@ export async function GET(request: NextRequest) {
     transactions.forEach(transaction => {
       const amount = Number(transaction.totalAmount);
       
-      if (transaction.type === 'SALE') {
+      if (transaction.type === 'SALE' || transaction.type === 'INCOME') {
         totalIncome += amount;
-      } else if (transaction.type === 'PURCHASE') {
+      } else if (transaction.type === 'PURCHASE' || transaction.type === 'EXPENSE') {
         totalExpense += amount;
       }
     });
@@ -68,9 +68,9 @@ export async function GET(request: NextRequest) {
     weeklyTransactions.forEach(transaction => {
       const amount = Number(transaction.totalAmount);
       
-      if (transaction.type === 'SALE') {
+      if (transaction.type === 'SALE' || transaction.type === 'INCOME') {
         weeklyIncome += amount;
-      } else if (transaction.type === 'PURCHASE') {
+      } else if (transaction.type === 'PURCHASE' || transaction.type === 'EXPENSE') {
         weeklyExpense += amount;
       }
     });
@@ -95,9 +95,9 @@ export async function GET(request: NextRequest) {
     monthlyTransactions.forEach(transaction => {
       const amount = Number(transaction.totalAmount);
       
-      if (transaction.type === 'SALE') {
+      if (transaction.type === 'SALE' || transaction.type === 'INCOME') {
         monthlyIncome += amount;
-      } else if (transaction.type === 'PURCHASE') {
+      } else if (transaction.type === 'PURCHASE' || transaction.type === 'EXPENSE') {
         monthlyExpense += amount;
       }
     });
