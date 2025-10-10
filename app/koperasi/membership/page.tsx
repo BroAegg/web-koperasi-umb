@@ -19,7 +19,12 @@ import {
   Download,
   Mail,
   Phone,
-  MapPin
+  MapPin,
+  X,
+  User,
+  Building2,
+  CreditCard,
+  Calendar
 } from 'lucide-react';
 
 interface Member {
@@ -511,23 +516,36 @@ export default function MembershipPage() {
 
       {/* Add/Edit Member Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-semibold text-gray-900">
-                {editingMember ? 'Update Anggota' : 'Tambah Anggota Baru'}
-              </h3>
-              <Button 
-                variant="outline" 
-                onClick={() => {
-                  setShowAddModal(false);
-                  setEditingMember(null);
-                  resetForm();
-                }}
-              >
-                ✕
-              </Button>
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 text-white">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-bold">
+                    {editingMember ? 'Update Anggota' : 'Tambah Anggota Baru'}
+                  </h3>
+                  <p className="text-blue-100 text-sm mt-1">
+                    {editingMember ? 'Perbarui data anggota koperasi' : 'Daftarkan anggota baru untuk bergabung dengan koperasi'}
+                  </p>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => {
+                    setShowAddModal(false);
+                    setEditingMember(null);
+                    resetForm();
+                  }}
+                  className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
+
+            {/* Modal Content */}
+            <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
 
             <form onSubmit={handleAddMember}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -543,6 +561,7 @@ export default function MembershipPage() {
                       value={newMember.name}
                       onChange={(e) => setNewMember(prev => ({ ...prev, name: e.target.value }))}
                       placeholder="Masukkan nama lengkap"
+                      leftIcon={<User className="w-4 h-4 text-gray-400" />}
                       required
                     />
                   </div>
@@ -556,6 +575,7 @@ export default function MembershipPage() {
                       value={newMember.email}
                       onChange={(e) => setNewMember(prev => ({ ...prev, email: e.target.value }))}
                       placeholder="contoh@email.com"
+                      leftIcon={<Mail className="w-4 h-4 text-gray-400" />}
                       required
                     />
                   </div>
@@ -569,6 +589,7 @@ export default function MembershipPage() {
                       value={newMember.phone}
                       onChange={(e) => setNewMember(prev => ({ ...prev, phone: e.target.value }))}
                       placeholder="081234567890"
+                      leftIcon={<Phone className="w-4 h-4 text-gray-400" />}
                     />
                   </div>
 
@@ -581,6 +602,7 @@ export default function MembershipPage() {
                       value={newMember.address}
                       onChange={(e) => setNewMember(prev => ({ ...prev, address: e.target.value }))}
                       placeholder="Alamat lengkap"
+                      leftIcon={<MapPin className="w-4 h-4 text-gray-400" />}
                     />
                   </div>
                 </div>
@@ -636,6 +658,7 @@ export default function MembershipPage() {
                       onChange={(e) => setNewMember(prev => ({ ...prev, simpananPokok: e.target.value }))}
                       placeholder="50000"
                       min="0"
+                      leftIcon={<CreditCard className="w-4 h-4 text-gray-400" />}
                     />
                   </div>
 
@@ -649,6 +672,7 @@ export default function MembershipPage() {
                       onChange={(e) => setNewMember(prev => ({ ...prev, simpananWajib: e.target.value }))}
                       placeholder="200000"
                       min="0"
+                      leftIcon={<CreditCard className="w-4 h-4 text-gray-400" />}
                     />
                   </div>
 
@@ -662,6 +686,7 @@ export default function MembershipPage() {
                       onChange={(e) => setNewMember(prev => ({ ...prev, simpananSukarela: e.target.value }))}
                       placeholder="0"
                       min="0"
+                      leftIcon={<CreditCard className="w-4 h-4 text-gray-400" />}
                     />
                   </div>
                 </div>
@@ -692,6 +717,7 @@ export default function MembershipPage() {
                 </Button>
               </div>
             </form>
+            </div>
           </div>
         </div>
       )}
