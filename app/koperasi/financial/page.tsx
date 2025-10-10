@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Loading, CardSkeleton } from '@/components/ui/loading';
-import { formatCurrency, formatDate } from '@/lib/utils';
+import { formatCurrency, formatDate, formatTime, formatCurrencyInput, parseCurrencyInput } from '@/lib/utils';
 import { useNotification } from '@/lib/notification-context';
 import { 
   DollarSign, 
@@ -18,6 +18,7 @@ import {
   Search,
   Filter,
   Download,
+  Eye,
   Edit,
   Trash2,
   ShoppingCart,
@@ -26,8 +27,7 @@ import {
   X,
   FileText,
   Tag,
-  Hash,
-  Banknote
+  Hash
 } from 'lucide-react';
 
 interface Transaction {
@@ -97,10 +97,32 @@ export default function FinancialPage() {
     date: new Date().toISOString().split('T')[0],
   });
 
+  // State untuk formatted amount display
+  const [formattedAmount, setFormattedAmount] = useState('');
+
+  // Handler untuk amount input dengan formatting
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    const formatted = formatCurrencyInput(value);
+    const numericValue = parseCurrencyInput(value);
+    
+    setFormattedAmount(formatted);
+    setNewTransaction(prev => ({ ...prev, amount: numericValue }));
+  };
+
   useEffect(() => {
     fetchTransactions();
     fetchDailySummary();
   }, [selectedDate]);
+
+  // Effect untuk menginisialisasi formatted amount ketika editing
+  useEffect(() => {
+    if (newTransaction.amount) {
+      setFormattedAmount(formatCurrencyInput(newTransaction.amount));
+    } else {
+      setFormattedAmount('');
+    }
+  }, [newTransaction.amount]);
 
   const fetchTransactions = async () => {
     try {
@@ -230,6 +252,11 @@ export default function FinancialPage() {
         error('Kesalahan Server', 'Terjadi kesalahan pada server, silakan coba lagi');
       }
     }
+  };
+
+  const handleViewTransaction = (transaction: Transaction) => {
+    // Future enhancement: Show detailed view with connections to inventory/member
+    success('Detail Transaksi', `Transaksi: ${transaction.description || 'Tanpa catatan'}\nJumlah: ${formatCurrency(transaction.amount)}\nTanggal: ${formatDate(new Date(transaction.date))}`);
   };
 
   const handleEditTransaction = (transaction: Transaction) => {
@@ -505,11 +532,20 @@ export default function FinancialPage() {
                     </TableCell>
                     <TableCell>
                       <span className="text-gray-600 text-sm">
-                        {new Date(transaction.createdAt).toLocaleTimeString('id-ID')}
+                        {formatTime(transaction.createdAt)}
                       </span>
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleViewTransaction(transaction)}
+                          className="text-blue-600 hover:bg-blue-50"
+                          title="Lihat Detail"
+                        >
+                          <Eye className="w-4 h-4" />
+                        </Button>
                         <Button 
                           variant="outline" 
                           size="sm"
@@ -603,13 +639,11 @@ export default function FinancialPage() {
                     Jumlah *
                   </label>
                   <Input
-                    type="number"
-                    value={newTransaction.amount}
-                    onChange={(e) => setNewTransaction({ ...newTransaction, amount: e.target.value })}
-                    placeholder="0"
-                    min="0"
-                    step="0.01"
-                    leftIcon={<Banknote className="w-4 h-4 text-gray-400" />}
+                    type="text"
+                    value={formattedAmount}
+                    onChange={handleAmountChange}
+                    placeholder="Rp 0"
+                    leftIcon={<span className="text-sm font-medium text-gray-500">Rp</span>}
                     required
                   />
                 </div>
