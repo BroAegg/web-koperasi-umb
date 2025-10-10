@@ -218,6 +218,36 @@ export default function FinancialPage() {
     }
   };
 
+  const handleViewTransaction = (transaction: Transaction) => {
+    // You can implement a detailed transaction view modal here
+    success('Detail Transaksi', `Transaksi: ${transaction.description || 'Tanpa catatan'}\nJumlah: ${formatCurrency(transaction.amount)}\nTanggal: ${formatDate(new Date(transaction.date))}`);
+  };
+
+  const handleEditTransaction = (transaction: Transaction) => {
+    // Populate the form with existing transaction data for editing
+    setNewTransaction({
+      type: transaction.type,
+      amount: transaction.amount.toString(),
+      description: transaction.description || '',
+      category: getCategoryFromType(transaction.type),
+      paymentMethod: transaction.paymentMethod,
+      reference: transaction.reference || '',
+      date: new Date(transaction.date).toISOString().split('T')[0],
+    });
+    setShowAddModal(true);
+    success('Edit Mode', `Mengedit transaksi: ${transaction.description || 'Tanpa catatan'}`);
+  };
+
+  const getCategoryFromType = (type: string) => {
+    switch (type) {
+      case 'SALE': return 'Penjualan';
+      case 'PURCHASE': return 'Pembelian';
+      case 'INCOME': return 'Pemasukan';
+      case 'EXPENSE': return 'Pengeluaran';
+      default: return 'Lainnya';
+    }
+  };
+
   const getTransactionTypeColor = (type: string) => {
     switch (type) {
       case 'SALE':
@@ -470,16 +500,30 @@ export default function FinancialPage() {
                     </TableCell>
                     <TableCell>
                       <div className="flex items-center gap-2">
-                        <Button variant="outline" size="sm">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleViewTransaction(transaction)}
+                          className="text-blue-600 hover:bg-blue-50"
+                          title="Lihat Detail"
+                        >
                           <Eye className="w-4 h-4" />
                         </Button>
-                        <Button variant="outline" size="sm">
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => handleEditTransaction(transaction)}
+                          className="text-amber-600 hover:bg-amber-50"
+                          title="Edit Transaksi"
+                        >
                           <Edit className="w-4 h-4" />
                         </Button>
                         <Button 
                           variant="danger" 
                           size="sm"
                           onClick={() => handleDeleteTransaction(transaction.id)}
+                          className="text-red-600 hover:bg-red-50"
+                          title="Hapus Transaksi"
                         >
                           <Trash2 className="w-4 h-4" />
                         </Button>

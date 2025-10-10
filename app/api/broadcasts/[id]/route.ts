@@ -6,11 +6,12 @@ const prisma = new PrismaClient();
 // GET /api/broadcasts/[id] - Get single broadcast
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const broadcast = await prisma.broadcast.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         createdBy: {
           select: {
@@ -45,9 +46,10 @@ export async function GET(
 // PUT /api/broadcasts/[id] - Update broadcast
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
     const {
       title,
@@ -60,7 +62,7 @@ export async function PUT(
 
     // Check if broadcast exists
     const existingBroadcast = await prisma.broadcast.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!existingBroadcast) {
@@ -101,7 +103,7 @@ export async function PUT(
     }
 
     const broadcast = await prisma.broadcast.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         title: title || existingBroadcast.title,
         message: message || existingBroadcast.message,
@@ -139,12 +141,13 @@ export async function PUT(
 // DELETE /api/broadcasts/[id] - Delete broadcast
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     // Check if broadcast exists
     const existingBroadcast = await prisma.broadcast.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!existingBroadcast) {
@@ -163,7 +166,7 @@ export async function DELETE(
     }
 
     await prisma.broadcast.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     return NextResponse.json({

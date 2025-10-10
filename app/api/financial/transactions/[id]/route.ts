@@ -6,11 +6,12 @@ const prisma = new PrismaClient();
 // GET /api/financial/transactions/[id] - Get single transaction
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const transaction = await prisma.transaction.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: {
         member: {
           select: {
@@ -60,9 +61,10 @@ export async function GET(
 // PUT /api/financial/transactions/[id] - Update transaction
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     const body = await request.json();
     const {
       type,
@@ -76,7 +78,7 @@ export async function PUT(
 
     // Check if transaction exists
     const existingTransaction = await prisma.transaction.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!existingTransaction) {
@@ -87,7 +89,7 @@ export async function PUT(
     }
 
     const transaction = await prisma.transaction.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         type: type ? type.toUpperCase() : existingTransaction.type,
         totalAmount: amount || existingTransaction.totalAmount,
@@ -129,12 +131,13 @@ export async function PUT(
 // DELETE /api/financial/transactions/[id] - Delete transaction
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params;
     // Check if transaction exists
     const existingTransaction = await prisma.transaction.findUnique({
-      where: { id: params.id },
+      where: { id },
     });
 
     if (!existingTransaction) {
@@ -145,7 +148,7 @@ export async function DELETE(
     }
 
     await prisma.transaction.delete({
-      where: { id: params.id },
+      where: { id },
     });
 
     return NextResponse.json({

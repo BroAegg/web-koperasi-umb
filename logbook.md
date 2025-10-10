@@ -101,7 +101,7 @@
 
 ---
 
-## 📅 Day 7 – Rabu, 9 Oktober 2025  
+## 📅 Day 7 – Kamis, 9 Oktober 2025  
 ### 🕗 Waktu: 09.00 – 16.00 WIB  
 ### 📍 Kegiatan:
 - **Implementasi Complete Backend System** untuk sistem koperasi dengan Next.js full-stack dan Prisma ORM
@@ -158,7 +158,7 @@
 | Senin | 6 Okt 2025 | Debugging Command Help | ⚙️ Dalam Perbaikan |
 | Selasa | 7 Okt 2025 | Backend Modularisasi + Diskusi Fitur | ✅ Selesai |
 | Rabu | 8 Okt 2025 | Audit & Refactor Inventori (UI/UX & responsive) | ✅ Selesai |
-| Rabu | 9 Okt 2025 | Complete Backend System + Financial Management | ✅ Selesai |
+| Kamis | 9 Okt 2025 | Complete Backend System + Financial Management | ✅ Selesai |
 
 ---
 
