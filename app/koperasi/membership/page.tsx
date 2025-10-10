@@ -380,7 +380,6 @@ export default function MembershipPage() {
                           variant="danger" 
                           size="sm"
                           onClick={() => handleDeleteMember(member.id)}
-                          className="text-red-600 hover:bg-red-50"
                           title="Hapus Anggota"
                         >
                           <Trash2 className="w-4 h-4" />

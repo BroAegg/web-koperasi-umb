@@ -429,7 +429,6 @@ export default function BroadcastPage() {
                           variant="danger" 
                           size="sm"
                           onClick={() => handleDeleteBroadcast(broadcast.id)}
-                          className="text-red-600 hover:bg-red-50"
                           title="Hapus Broadcast"
                         >
                           <Trash2 className="w-4 h-4" />
