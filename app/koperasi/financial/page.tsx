@@ -24,7 +24,12 @@ import {
   ShoppingCart,
   Receipt,
   CreditCard,
-  X
+  X,
+  DollarSign,
+  FileText,
+  Tag,
+  Calendar,
+  Hash
 } from 'lucide-react';
 
 interface Transaction {
@@ -549,29 +554,45 @@ export default function FinancialPage() {
 
       {/* Add/Edit Transaction Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-semibold text-gray-900">
-                {editingTransaction ? 'Update Transaksi' : 'Tambah Transaksi Baru'}
-              </h3>
-              <Button variant="outline" onClick={() => {
-                setShowAddModal(false);
-                setEditingTransaction(null);
-                // Reset form
-                setNewTransaction({
-                  type: 'SALE',
-                  amount: '',
-                  description: '',
-                  category: '',
-                  paymentMethod: 'CASH',
-                  reference: '',
-                  date: new Date().toISOString().split('T')[0],
-                });
-              }}>
-                <X className="w-4 h-4" />
-              </Button>
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-3xl max-h-[90vh] overflow-hidden">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 text-white">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-bold">
+                    {editingTransaction ? 'Update Transaksi' : 'Tambah Transaksi Baru'}
+                  </h3>
+                  <p className="text-blue-100 text-sm mt-1">
+                    {editingTransaction ? 'Perbarui data transaksi keuangan' : 'Catat transaksi keuangan baru untuk pencatatan yang akurat'}
+                  </p>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => {
+                    setShowAddModal(false);
+                    setEditingTransaction(null);
+                    // Reset form
+                    setNewTransaction({
+                      type: 'SALE',
+                      amount: '',
+                      description: '',
+                      category: '',
+                      paymentMethod: 'CASH',
+                      reference: '',
+                      date: new Date().toISOString().split('T')[0],
+                    });
+                  }}
+                  className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
             </div>
+
+            {/* Modal Content */}
+            <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
 
             <form onSubmit={handleAddTransaction} className="space-y-6">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -603,6 +624,7 @@ export default function FinancialPage() {
                     placeholder="0"
                     min="0"
                     step="0.01"
+                    leftIcon={<DollarSign className="w-4 h-4 text-gray-400" />}
                     required
                   />
                 </div>
@@ -617,6 +639,7 @@ export default function FinancialPage() {
                   value={newTransaction.description}
                   onChange={(e) => setNewTransaction({ ...newTransaction, description: e.target.value })}
                   placeholder="Deskripsi transaksi"
+                  leftIcon={<FileText className="w-4 h-4 text-gray-400" />}
                   required
                 />
               </div>
@@ -631,6 +654,7 @@ export default function FinancialPage() {
                     value={newTransaction.category}
                     onChange={(e) => setNewTransaction({ ...newTransaction, category: e.target.value })}
                     placeholder="Kategori transaksi"
+                    leftIcon={<Tag className="w-4 h-4 text-gray-400" />}
                   />
                 </div>
 
@@ -660,6 +684,7 @@ export default function FinancialPage() {
                     value={newTransaction.reference}
                     onChange={(e) => setNewTransaction({ ...newTransaction, reference: e.target.value })}
                     placeholder="No. invoice, kode, dll"
+                    leftIcon={<Hash className="w-4 h-4 text-gray-400" />}
                   />
                 </div>
 
@@ -671,6 +696,7 @@ export default function FinancialPage() {
                     type="date"
                     value={newTransaction.date}
                     onChange={(e) => setNewTransaction({ ...newTransaction, date: e.target.value })}
+                    leftIcon={<Calendar className="w-4 h-4 text-gray-400" />}
                     required
                   />
                 </div>
@@ -722,6 +748,7 @@ export default function FinancialPage() {
                 </Button>
               </div>
             </form>
+            </div>
           </div>
         </div>
       )}
