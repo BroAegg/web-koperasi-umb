@@ -32,7 +32,7 @@ import {
 
 interface Transaction {
   id: string;
-  type: 'SALE' | 'PURCHASE' | 'EXPENSE' | 'INCOME';
+  type: 'SALE' | 'PURCHASE' | 'RETURN';
   amount: number;
   description: string;
   category: string;
@@ -479,8 +479,7 @@ export default function FinancialPage() {
                           <p className="font-medium text-gray-900">{transaction.description}</p>
                           <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium mt-1 ${getTransactionTypeColor(transaction.type)}`}>
                             {transaction.type === 'SALE' ? 'Penjualan' :
-                             transaction.type === 'INCOME' ? 'Pemasukan' :
-                             transaction.type === 'PURCHASE' ? 'Pembelian' : 'Pengeluaran'}
+                             transaction.type === 'PURCHASE' ? 'Pembelian' : 'Retur'}
                           </span>
                         </div>
                       </div>
@@ -490,11 +489,11 @@ export default function FinancialPage() {
                     </TableCell>
                     <TableCell>
                       <span className={`font-bold ${
-                        transaction.type === 'SALE' || transaction.type === 'INCOME' 
+                        transaction.type === 'SALE' 
                           ? 'text-green-600' 
                           : 'text-red-600'
                       }`}>
-                        {transaction.type === 'SALE' || transaction.type === 'INCOME' ? '+' : '-'}
+                        {transaction.type === 'SALE' ? '+' : '-'}
                         {formatCurrency(transaction.amount)}
                       </span>
                     </TableCell>
@@ -605,9 +604,9 @@ export default function FinancialPage() {
                     required
                   >
                     <option value="SALE">Penjualan</option>
-                    <option value="INCOME">Pemasukan Lain</option>
+                    <option value="SALE">Pemasukan Lain</option>
                     <option value="PURCHASE">Pembelian</option>
-                    <option value="EXPENSE">Pengeluaran</option>
+                    <option value="PURCHASE">Pengeluaran</option>
                   </select>
                 </div>
 
