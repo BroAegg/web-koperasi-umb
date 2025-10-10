@@ -238,6 +238,8 @@ enum TransactionType {
   SALE        // Penjualan
   PURCHASE    // Pembelian
   RETURN      // Retur
+  INCOME      // Pemasukan lain
+  EXPENSE     // Pengeluaran
 }
 
 enum PaymentMethod {
