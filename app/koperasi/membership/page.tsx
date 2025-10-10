@@ -46,6 +46,7 @@ export default function MembershipPage() {
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [members, setMembers] = useState<Member[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editingMember, setEditingMember] = useState<string | null>(null);
 
   // Global notifications
   const { success, error, warning, confirm } = useNotification();
@@ -101,8 +102,20 @@ export default function MembershipPage() {
   };
 
   const handleEditMember = (member: Member) => {
-    // Implementasi edit member
-    console.log('Edit member:', member);
+    // Populate form with existing member data for editing
+    setNewMember({
+      name: member.name,
+      email: member.email,
+      phone: member.phone || '',
+      address: member.address || '',
+      gender: member.gender,
+      unitKerja: member.unitKerja,
+      simpananPokok: member.simpananPokok.toString(),
+      simpananWajib: member.simpananWajib.toString(),
+      simpananSukarela: member.simpananSukarela.toString(),
+    });
+    setEditingMember(member.id);
+    setShowAddModal(true);
   };
 
   const handleDeleteMember = async (memberId: string) => {
@@ -172,8 +185,14 @@ export default function MembershipPage() {
     setIsSubmitting(true);
     
     try {
-      const response = await fetch('/api/members', {
-        method: 'POST',
+      const url = editingMember 
+        ? `/api/members/${editingMember}`
+        : '/api/members';
+      
+      const method = editingMember ? 'PUT' : 'POST';
+      
+      const response = await fetch(url, {
+        method,
         headers: {
           'Content-Type': 'application/json',
         },
@@ -196,14 +215,19 @@ export default function MembershipPage() {
           simpananSukarela: '0',
         });
         
+        setEditingMember(null);
         setShowAddModal(false);
         fetchMembers(); // Refresh list
-        success('Anggota Berhasil Ditambahkan', `${newMember.name} telah ditambahkan sebagai anggota koperasi`);
+        
+        const successMessage = editingMember 
+          ? `${newMember.name} berhasil diupdate`
+          : `${newMember.name} telah ditambahkan sebagai anggota koperasi`;
+        success(editingMember ? 'Update Berhasil' : 'Anggota Berhasil Ditambahkan', successMessage);
       } else {
-        error('Gagal Menambahkan Anggota', result.error || 'Terjadi kesalahan saat menambahkan anggota');
+        error(editingMember ? 'Gagal Update Anggota' : 'Gagal Menambahkan Anggota', result.error || 'Terjadi kesalahan saat menyimpan data anggota');
       }
     } catch (err) {
-      console.error('Error adding member:', err);
+      console.error('Error saving member:', err);
       error('Kesalahan Server', 'Terjadi kesalahan pada server, silakan coba lagi');
     } finally {
       setIsSubmitting(false);
@@ -222,6 +246,7 @@ export default function MembershipPage() {
       simpananWajib: '200000',
       simpananSukarela: '0',
     });
+    setEditingMember(null);
   };
 
   return (
@@ -484,16 +509,19 @@ export default function MembershipPage() {
         </div>
       )}
 
-      {/* Add Member Modal */}
+      {/* Add/Edit Member Modal */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
           <div className="bg-white rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-semibold text-gray-900">Tambah Anggota Baru</h3>
+              <h3 className="text-xl font-semibold text-gray-900">
+                {editingMember ? 'Update Anggota' : 'Tambah Anggota Baru'}
+              </h3>
               <Button 
                 variant="outline" 
                 onClick={() => {
                   setShowAddModal(false);
+                  setEditingMember(null);
                   resetForm();
                 }}
               >
@@ -645,6 +673,7 @@ export default function MembershipPage() {
                   variant="outline"
                   onClick={() => {
                     setShowAddModal(false);
+                    setEditingMember(null);
                     resetForm();
                   }}
                   disabled={isSubmitting}
@@ -655,7 +684,11 @@ export default function MembershipPage() {
                   type="submit"
                   disabled={isSubmitting}
                 >
-                  {isSubmitting ? 'Menyimpan...' : 'Simpan Anggota'}
+                  {isSubmitting ? (
+                    editingMember ? 'Mengupdate...' : 'Menyimpan...'
+                  ) : (
+                    editingMember ? 'Update Anggota' : 'Simpan Anggota'
+                  )}
                 </Button>
               </div>
             </form>
