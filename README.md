@@ -225,5 +225,3 @@ This project is licensed under the MIT License.
 - **Repository Owner**: BroAegg
 
 ---
-
-*Dibuat dengan ❤️ untuk Universitas Mercu Buana*
