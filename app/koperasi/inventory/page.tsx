@@ -520,13 +520,13 @@ export default function InventoryPage() {
                           {product.soldToday}
                         </TableCell>
                         <TableCell>
-                          <div className="flex items-center justify-center gap-1">
+                          <div className="flex items-center justify-center gap-1 flex-wrap">
                             {/* Stock Movement Buttons */}
                             <Button
                               size="sm"
                               variant="outline"
                               onClick={() => setShowStockModal({show: true, product, type: 'IN'})}
-                              className="p-2 text-green-600 hover:bg-green-50"
+                              className="p-1.5 text-green-600 hover:bg-green-50 shrink-0"
                               title="Stock Masuk"
                             >
                               <Plus className="w-3 h-3" />
@@ -535,40 +535,63 @@ export default function InventoryPage() {
                               size="sm"
                               variant="outline"
                               onClick={() => setShowStockModal({show: true, product, type: 'OUT'})}
-                              className="p-2 text-red-600 hover:bg-red-50"
+                              className="p-1.5 text-red-600 hover:bg-red-50 shrink-0"
                               title="Stock Keluar"
                             >
                               <Minus className="w-3 h-3" />
                             </Button>
                             
-                            {/* Action Buttons */}
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleViewProduct(product)}
-                              className="p-2 text-blue-600 hover:bg-blue-50"
-                              title="Lihat Detail"
-                            >
-                              <Eye className="w-3 h-3" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleEditProduct(product)}
-                              className="p-2 text-amber-600 hover:bg-amber-50"
-                              title="Edit Produk"
-                            >
-                              <Edit className="w-3 h-3" />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="danger"
-                              onClick={() => handleDeleteProduct(product.id)}
-                              className="p-2"
-                              title="Hapus Produk"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </Button>
+                            {/* Action Buttons - Hidden on small screens */}
+                            <div className="hidden sm:flex gap-1">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleViewProduct(product)}
+                                className="p-1.5 text-blue-600 hover:bg-blue-50"
+                                title="Lihat Detail"
+                              >
+                                <Eye className="w-3 h-3" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleEditProduct(product)}
+                                className="p-1.5 text-amber-600 hover:bg-amber-50"
+                                title="Edit Produk"
+                              >
+                                <Edit className="w-3 h-3" />
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="danger"
+                                onClick={() => handleDeleteProduct(product.id)}
+                                className="p-1.5"
+                                title="Hapus Produk"
+                              >
+                                <Trash2 className="w-3 h-3" />
+                              </Button>
+                            </div>
+                            
+                            {/* Mobile dropdown menu for additional actions */}
+                            <div className="sm:hidden">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                className="p-1.5 text-gray-600 hover:bg-gray-50"
+                                title="Aksi Lainnya"
+                                onClick={() => {
+                                  // For now, show a simple alert. You can implement a dropdown menu here
+                                  const action = window.confirm('Pilih aksi:\nOK = Edit\nCancel = Detail');
+                                  if (action) {
+                                    handleEditProduct(product);
+                                  } else {
+                                    handleViewProduct(product);
+                                  }
+                                }}
+                              >
+                                <Eye className="w-3 h-3" />
+                              </Button>
+                            </div>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -587,7 +610,7 @@ export default function InventoryPage() {
             <CardHeader className="pb-4">
               <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
                 <AlertTriangle className="w-5 h-5 text-amber-500" />
-                Stok Rendah
+                <span className="truncate">Stok Rendah</span>
               </h3>
             </CardHeader>
             <CardContent className="space-y-3">
@@ -596,12 +619,18 @@ export default function InventoryPage() {
               ) : (
                 lowStockProducts.map((product) => (
                   <div key={product.id} className="p-3 bg-amber-50 rounded-lg border border-amber-200">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium text-gray-900 text-sm">{product.name}</p>
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-gray-900 text-sm truncate" title={product.name}>
+                          {product.name}
+                        </p>
                         <p className="text-xs text-gray-500">Sisa: {product.stock} unit</p>
                       </div>
-                      <Button size="sm" variant="outline" className="text-xs">
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="text-xs shrink-0 px-2 py-1 h-auto"
+                      >
                         Restock
                       </Button>
                     </div>
@@ -614,20 +643,21 @@ export default function InventoryPage() {
           {/* Recent Stock Movements */}
           <Card className="border-0 shadow-sm">
             <CardHeader className="pb-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-lg font-bold text-gray-900">Stock Movement Terbaru</h3>
-                <Button variant="outline" size="sm">
-                  <BarChart3 className="w-4 h-4 mr-2" />
-                  Lihat Semua
+              <div className="flex items-center justify-between gap-2">
+                <h3 className="text-lg font-bold text-gray-900 truncate">Stock Movement Terbaru</h3>
+                <Button variant="outline" size="sm" className="shrink-0 text-xs px-2 py-1 h-auto">
+                  <BarChart3 className="w-3 h-3 mr-1" />
+                  <span className="hidden sm:inline">Lihat Semua</span>
+                  <span className="sm:hidden">Semua</span>
                 </Button>
               </div>
             </CardHeader>
             <CardContent className="space-y-3">
               {stockMovements.length > 0 ? (
                 stockMovements.slice(0, 5).map((movement) => (
-                  <div key={movement.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <div className={`p-2 rounded-full ${
+                  <div key={movement.id} className="flex items-start justify-between gap-2 p-3 bg-gray-50 rounded-lg">
+                    <div className="flex items-start gap-3 flex-1 min-w-0">
+                      <div className={`p-2 rounded-full shrink-0 ${
                         movement.type === 'IN' 
                           ? 'bg-green-100 text-green-600' 
                           : 'bg-red-100 text-red-600'
@@ -638,18 +668,25 @@ export default function InventoryPage() {
                           <Minus className="w-3 h-3" />
                         )}
                       </div>
-                      <div>
-                        <p className="font-medium text-gray-900 text-sm">{movement.product.name}</p>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-gray-900 text-sm truncate" title={movement.product.name}>
+                          {movement.product.name}
+                        </p>
                         <p className="text-xs text-gray-500">
                           {movement.type === 'IN' ? 'Masuk' : 'Keluar'} {movement.quantity} {movement.product.unit}
                         </p>
                         {movement.note && (
-                          <p className="text-xs text-gray-400 mt-1">{movement.note}</p>
+                          <p className="text-xs text-gray-400 mt-1 truncate" title={movement.note}>
+                            {movement.note}
+                          </p>
                         )}
                       </div>
                     </div>
-                    <span className="text-xs text-gray-400">
-                      {new Date(movement.createdAt).toLocaleDateString('id-ID')}
+                    <span className="text-xs text-gray-400 shrink-0">
+                      {new Date(movement.createdAt).toLocaleDateString('id-ID', {
+                        day: '2-digit',
+                        month: '2-digit'
+                      })}
                     </span>
                   </div>
                 ))
