@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { DateSelector } from '@/components/ui/date-selector';
+import { DateSelector, DateRange } from '@/components/ui/date-selector';
 import { useNotification } from '@/lib/notification-context';
 import { formatCurrency } from '@/lib/utils';
 import { 
@@ -69,6 +69,7 @@ export default function InventoryPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("semua");
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedRange, setSelectedRange] = useState<DateRange | null>(null);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showStockModal, setShowStockModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -412,6 +413,8 @@ export default function InventoryPage() {
       <DateSelector
         selectedDate={selectedDate}
         onDateChange={setSelectedDate}
+        onRangeChange={setSelectedRange}
+        activeRange={selectedRange}
         showControls={true}
       />
 
