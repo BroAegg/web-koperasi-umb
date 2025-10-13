@@ -80,7 +80,7 @@ export default function KoperasiLayout({ children }: { children: React.ReactNode
           </Button>
           <div className="flex items-center gap-2">
             <Image src="/logo-umb.png" width={32} height={32} alt="UMB" className="rounded-full" />
-            <span className="font-bold text-blue-700 text-sm">KOPERASI UMB</span>
+            <span className="font-bold text-blue-700 text-sm">KOPERASI UM BANDUNG</span>
           </div>
         </div>
         

@@ -1,4 +1,4 @@
-# Sistem Koperasi UMB - Web Application
+# Sistem Koperasi UM BANDUNG - Web Application
 
 Aplikasi web lengkap untuk mengelola sistem informasi koperasi Universitas Mercu Buana. Dibangun dengan Next.js 15, TypeScript, Prisma ORM, dan Tailwind CSS sebagai full-stack solution.
 

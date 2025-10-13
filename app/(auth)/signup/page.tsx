@@ -103,7 +103,7 @@ export default function SignupPage() {
                 height={80} 
                 className="mx-auto rounded-full shadow-lg"
               />
-              <h1 className="text-2xl font-bold text-gray-900 mt-4">Sistem Koperasi UMB</h1>
+              <h1 className="text-2xl font-bold text-gray-900 mt-4">Sistem Koperasi UM BANDUNG</h1>
             </div>
 
             <Card className="shadow-lg border-0">

@@ -1,7 +1,7 @@
 {
   "name": "web-koperasi-umb",
   "version": "1.0.0",
-  "description": "Sistem Informasi Koperasi UMB - Frontend Next.js",
+  "description": "Sistem Informasi Koperasi UM BANDUNG - Frontend Next.js",
   "private": true,
   "scripts": {
     "dev": "next dev",

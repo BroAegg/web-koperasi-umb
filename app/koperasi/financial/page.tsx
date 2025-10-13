@@ -366,47 +366,6 @@ export default function FinancialPage() {
         showControls={true}
       />
 
-      {/* Search Controls */}
-      <Card>
-        <CardContent className="p-6">
-          <div className="flex flex-col sm:flex-row gap-4 items-center">
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <Input
-                  placeholder="Cari transaksi..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 w-full sm:w-64"
-                />
-              </div>
-              <select
-                value={filterType}
-                onChange={(e) => setFilterType(e.target.value)}
-                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-              >
-                <option value="">Semua Tipe</option>
-                <option value="SALE">Penjualan</option>
-                <option value="PURCHASE">Pembelian</option>
-                <option value="RETURN">Retur</option>
-                <option value="INCOME">Pemasukan</option>
-                <option value="EXPENSE">Pengeluaran</option>
-              </select>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm">
-                <Filter className="w-4 h-4 mr-2" />
-                Filter
-              </Button>
-              <Button variant="outline" size="sm">
-                <Download className="w-4 h-4 mr-2" />
-                Export
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
       {/* Daily Summary Cards */}
       {dailySummary && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
@@ -485,9 +444,34 @@ export default function FinancialPage() {
       {/* Transactions Table */}
       <Card>
         <CardHeader>
-          <h3 className="text-lg font-semibold text-gray-900">
-            Transaksi {formatDate(new Date(selectedDate))} ({filteredTransactions.length})
-          </h3>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <h2 className="text-lg sm:text-xl font-bold text-gray-900">
+              Transaksi {formatDate(new Date(selectedDate))} ({filteredTransactions.length})
+            </h2>
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Input
+                  placeholder="Cari transaksi..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 w-full sm:w-64"
+                />
+              </div>
+              <select
+                value={filterType}
+                onChange={(e) => setFilterType(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+              >
+                <option value="">Semua Tipe</option>
+                <option value="SALE">Penjualan</option>
+                <option value="PURCHASE">Pembelian</option>
+                <option value="RETURN">Retur</option>
+                <option value="INCOME">Pemasukan</option>
+                <option value="EXPENSE">Pengeluaran</option>
+              </select>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
           {loading ? (

@@ -41,7 +41,7 @@ export default function LoginPage() {
               />
             </div>
             <div className="space-y-4">
-              <h1 className="text-4xl font-bold">Sistem Koperasi UMB</h1>
+              <h1 className="text-4xl font-bold">Sistem Koperasi UM BANDUNG</h1>
               <p className="text-blue-100 text-lg max-w-md">
                 Platform digital untuk mengelola aktivitas koperasi dengan mudah dan efisien
               </p>
@@ -68,7 +68,7 @@ export default function LoginPage() {
                 height={80} 
                 className="mx-auto rounded-full shadow-lg"
               />
-              <h1 className="text-2xl font-bold text-gray-900 mt-4">Sistem Koperasi UMB</h1>
+              <h1 className="text-2xl font-bold text-gray-900 mt-4">Sistem Koperasi UM BANDUNG</h1>
             </div>
 
             <Card className="shadow-lg border-0">
