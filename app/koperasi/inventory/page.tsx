@@ -444,27 +444,25 @@ export default function InventoryPage() {
                     <option value="1year">1 Tahun</option>
                   </select>
                   
-                  {/* Hidden Date Input */}
-                  <input
-                    type="date"
-                    value={selectedDate}
-                    onChange={(e) => {
-                      setSelectedDate(e.target.value);
-                      setFinancialPeriod('today'); // Reset to today when manual date is selected
-                      setSelectedRange(null); // Clear any range selection
-                    }}
-                    className="absolute opacity-0 pointer-events-none"
-                    id="calendar-input"
-                  />
-                  
-                  {/* Calendar Button */}
-                  <button 
-                    type="button"
-                    onClick={() => document.getElementById('calendar-input')?.click()}
-                    className="px-2.5 py-1.5 border-l border-blue-100 text-gray-600 hover:bg-blue-50 transition-colors"
-                  >
-                    <Calendar className="h-3.5 w-3.5" />
-                  </button>
+                  {/* Calendar Date Input - Hidden behind icon */}
+                  <div className="relative">
+                    <input
+                      type="date"
+                      value={selectedDate}
+                      onChange={(e) => {
+                        setSelectedDate(e.target.value);
+                        setFinancialPeriod('today'); // Reset to today when manual date is selected
+                        setSelectedRange(null); // Clear any range selection
+                      }}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    />
+                    <button 
+                      type="button"
+                      className="px-2.5 py-1.5 border-l border-blue-100 text-gray-600 hover:bg-blue-50 transition-colors pointer-events-none"
+                    >
+                      <Calendar className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
