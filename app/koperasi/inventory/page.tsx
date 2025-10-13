@@ -18,7 +18,9 @@ import {
   Eye,
   Edit,
   Trash2,
-  BarChart3
+  BarChart3,
+  X,
+  Hash
 } from 'lucide-react';
 
 interface Product {
@@ -44,16 +46,6 @@ interface Category {
   description?: string;
 }
 
-interface Transaction {
-  id: string;
-  productId: string;
-  productName: string;
-  type: "IN" | "OUT";
-  quantity: number;
-  date: string;
-  note: string;
-}
-
 interface StockMovement {
   id: string;
   productId: string;
@@ -73,7 +65,9 @@ export default function InventoryPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("semua");
   const [showAddModal, setShowAddModal] = useState(false);
-  const [showStockModal, setShowStockModal] = useState<{show: boolean, product?: Product, type?: 'IN' | 'OUT'}>({show: false});
+  const [showStockModal, setShowStockModal] = useState(false);
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [priceError, setPriceError] = useState('');
@@ -82,6 +76,7 @@ export default function InventoryPage() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [stockMovements, setStockMovements] = useState<StockMovement[]>([]);
   const [stockFormData, setStockFormData] = useState({
+    type: 'IN' as 'IN' | 'OUT',
     quantity: '',
     note: '',
   });
@@ -89,7 +84,7 @@ export default function InventoryPage() {
   // Global notifications
   const { success, error, warning } = useNotification();
 
-  // Form state for new product
+  // Form state for new/edit product
   const [newProduct, setNewProduct] = useState({
     name: '',
     description: '',
@@ -173,7 +168,7 @@ export default function InventoryPage() {
   const handleStockMovement = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!stockFormData.quantity || !showStockModal.product || !showStockModal.type) {
+    if (!stockFormData.quantity || !selectedProduct) {
       warning('Form Tidak Lengkap', 'Jumlah wajib diisi');
       return;
     }
@@ -185,8 +180,8 @@ export default function InventoryPage() {
     }
 
     // Check stock for OUT movements
-    if (showStockModal.type === 'OUT' && quantity > showStockModal.product.stock) {
-      warning('Stok Tidak Cukup', `Stok tersedia: ${showStockModal.product.stock} ${showStockModal.product.unit || 'pcs'}`);
+    if (stockFormData.type === 'OUT' && quantity > selectedProduct.stock) {
+      warning('Stok Tidak Cukup', `Stok tersedia: ${selectedProduct.stock} ${selectedProduct.unit || 'pcs'}`);
       return;
     }
 
@@ -199,8 +194,8 @@ export default function InventoryPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          productId: showStockModal.product.id,
-          type: showStockModal.type,
+          productId: selectedProduct.id,
+          type: stockFormData.type,
           quantity,
           note: stockFormData.note,
         }),
@@ -210,8 +205,9 @@ export default function InventoryPage() {
 
       if (result.success) {
         // Reset form
-        setStockFormData({ quantity: '', note: '' });
-        setShowStockModal({ show: false });
+        setStockFormData({ type: 'IN', quantity: '', note: '' });
+        setShowStockModal(false);
+        setSelectedProduct(null);
         
         // Refresh data
         fetchProducts();
@@ -245,8 +241,11 @@ export default function InventoryPage() {
     setIsSubmitting(true);
     
     try {
-      const response = await fetch('/api/products', {
-        method: 'POST',
+      const url = editingProduct ? `/api/products/${editingProduct.id}` : '/api/products';
+      const method = editingProduct ? 'PUT' : 'POST';
+      
+      const response = await fetch(url, {
+        method,
         headers: {
           'Content-Type': 'application/json',
         },
@@ -259,13 +258,19 @@ export default function InventoryPage() {
         // Reset form
         resetProductForm();
         setShowAddModal(false);
+        setEditingProduct(null);
         fetchProducts(); // Refresh list
-        success('Produk Berhasil Ditambahkan', `${newProduct.name} telah ditambahkan ke inventori`);
+        
+        const action = editingProduct ? 'diperbarui' : 'ditambahkan';
+        success(`Produk Berhasil ${action.charAt(0).toUpperCase() + action.slice(1)}`, 
+               `${newProduct.name} telah ${action}`);
       } else {
-        error('Gagal Menambahkan Produk', result.error || 'Terjadi kesalahan saat menambahkan produk');
+        const action = editingProduct ? 'memperbarui' : 'menambahkan';
+        error(`Gagal ${action.charAt(0).toUpperCase() + action.slice(1)} Produk`, 
+              result.error || `Terjadi kesalahan saat ${action} produk`);
       }
     } catch (err) {
-      console.error('Error adding product:', err);
+      console.error('Error saving product:', err);
       error('Kesalahan Server', 'Terjadi kesalahan pada server, silakan coba lagi');
     } finally {
       setIsSubmitting(false);
@@ -289,17 +294,15 @@ export default function InventoryPage() {
 
   // Product Actions Handlers
   const handleViewProduct = (product: Product) => {
-    // You can implement a detailed product view modal here
-    success('Detail Produk', `Melihat detail produk: ${product.name}`);
+    setSelectedProduct(product);
   };
 
   const handleEditProduct = (product: Product) => {
-    // You can implement edit product functionality here
-    // For now, populate the form with existing data
+    setEditingProduct(product);
     setNewProduct({
       name: product.name,
       description: '', // Product interface doesn't have description, set empty
-      categoryId: product.category.id, // Use category.id instead of categoryId
+      categoryId: product.category.id,
       sku: '', // Product interface doesn't have sku, set empty
       buyPrice: product.buyPrice.toString(),
       sellPrice: product.sellPrice.toString(),
@@ -308,7 +311,12 @@ export default function InventoryPage() {
       unit: product.unit,
     });
     setShowAddModal(true);
-    success('Edit Mode', `Edit mode untuk produk: ${product.name}`);
+  };
+
+  const handleStockUpdate = (product: Product) => {
+    setSelectedProduct(product);
+    setStockFormData({ type: 'IN', quantity: '', note: '' });
+    setShowStockModal(true);
   };
 
   const handleDeleteProduct = async (productId: string) => {
@@ -520,78 +528,50 @@ export default function InventoryPage() {
                           {product.soldToday}
                         </TableCell>
                         <TableCell>
-                          <div className="flex items-center justify-center gap-1 flex-wrap">
-                            {/* Stock Movement Buttons */}
+                          <div className="flex items-center justify-center gap-1">
+                            {/* View Button */}
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => setShowStockModal({show: true, product, type: 'IN'})}
-                              className="p-1.5 text-green-600 hover:bg-green-50 shrink-0"
-                              title="Stock Masuk"
+                              onClick={() => handleViewProduct(product)}
+                              className="p-1.5 text-blue-600 hover:bg-blue-50"
+                              title="Lihat Detail"
                             >
-                              <Plus className="w-3 h-3" />
+                              <Eye className="w-3 h-3" />
                             </Button>
+                            
+                            {/* Edit Button */}
                             <Button
                               size="sm"
                               variant="outline"
-                              onClick={() => setShowStockModal({show: true, product, type: 'OUT'})}
-                              className="p-1.5 text-red-600 hover:bg-red-50 shrink-0"
-                              title="Stock Keluar"
+                              onClick={() => handleEditProduct(product)}
+                              className="p-1.5 text-amber-600 hover:bg-amber-50"
+                              title="Edit Produk"
                             >
-                              <Minus className="w-3 h-3" />
+                              <Edit className="w-3 h-3" />
                             </Button>
                             
-                            {/* Action Buttons - Hidden on small screens */}
-                            <div className="hidden sm:flex gap-1">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleViewProduct(product)}
-                                className="p-1.5 text-blue-600 hover:bg-blue-50"
-                                title="Lihat Detail"
-                              >
-                                <Eye className="w-3 h-3" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => handleEditProduct(product)}
-                                className="p-1.5 text-amber-600 hover:bg-amber-50"
-                                title="Edit Produk"
-                              >
-                                <Edit className="w-3 h-3" />
-                              </Button>
-                              <Button
-                                size="sm"
-                                variant="danger"
-                                onClick={() => handleDeleteProduct(product.id)}
-                                className="p-1.5"
-                                title="Hapus Produk"
-                              >
-                                <Trash2 className="w-3 h-3" />
-                              </Button>
-                            </div>
+                            {/* Stock Update Button */}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={() => handleStockUpdate(product)}
+                              className="p-1.5 text-green-600 hover:bg-green-50"
+                              title="Update Stok"
+                            >
+                              <Package className="w-3 h-3" />
+                            </Button>
                             
-                            {/* Mobile dropdown menu for additional actions */}
-                            <div className="sm:hidden">
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                className="p-1.5 text-gray-600 hover:bg-gray-50"
-                                title="Aksi Lainnya"
-                                onClick={() => {
-                                  // For now, show a simple alert. You can implement a dropdown menu here
-                                  const action = window.confirm('Pilih aksi:\nOK = Edit\nCancel = Detail');
-                                  if (action) {
-                                    handleEditProduct(product);
-                                  } else {
-                                    handleViewProduct(product);
-                                  }
-                                }}
-                              >
-                                <Eye className="w-3 h-3" />
-                              </Button>
-                            </div>
+                            {/* Delete Button */}
+                            <Button
+                              size="sm"
+                              variant="danger"
+                              onClick={() => handleDeleteProduct(product.id)}
+                              className="p-1.5"
+                              title="Hapus Produk"
+                            >
+                              <Trash2 className="w-3 h-3" />
+                            </Button>
                           </div>
                         </TableCell>
                       </TableRow>
@@ -701,161 +681,109 @@ export default function InventoryPage() {
         </div>
       </div>
 
-      {/* Add Product Modal */}
+      {/* Add/Edit Product Modal */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto">
-            <div className="p-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-bold text-gray-900">Tambah Produk Baru</h3>
-                <Button
-                  variant="outline"
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 text-white">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-bold">
+                    {editingProduct ? 'Update Produk' : 'Tambah Produk Baru'}
+                  </h3>
+                  <p className="text-blue-100 text-sm mt-1">
+                    {editingProduct ? 'Perbarui informasi produk inventori' : 'Tambahkan produk baru ke inventori koperasi'}
+                  </p>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm"
                   onClick={() => {
                     setShowAddModal(false);
+                    setEditingProduct(null);
                     resetProductForm();
                   }}
+                  className="bg-white/10 border-white/20 text-white hover:bg-white/20"
                 >
-                  ✕
+                  <X className="w-4 h-4" />
                 </Button>
               </div>
+            </div>
 
-              <form onSubmit={handleAddProduct} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Nama Produk
-                  </label>
-                  <input
-                    type="text"
-                    value={newProduct.name}
-                    onChange={(e) => setNewProduct({...newProduct, name: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Masukkan nama produk"
-                    required
-                  />
+            {/* Modal Content */}
+            <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+              <form onSubmit={handleAddProduct} className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Nama Produk *
+                    </label>
+                    <Input
+                      type="text"
+                      value={newProduct.name}
+                      onChange={(e) => setNewProduct({...newProduct, name: e.target.value})}
+                      placeholder="Masukkan nama produk"
+                      leftIcon={<Package className="w-4 h-4 text-gray-400" />}
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Kategori *
+                    </label>
+                    <select
+                      value={newProduct.categoryId}
+                      onChange={(e) => setNewProduct({...newProduct, categoryId: e.target.value})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      required
+                    >
+                      <option value="">Pilih kategori</option>
+                      {categories.map((category) => (
+                        <option key={category.id} value={category.id}>
+                          {category.name}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Deskripsi
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Deskripsi <span className="text-gray-500 font-normal">(Opsional)</span>
                   </label>
                   <textarea
                     value={newProduct.description}
                     onChange={(e) => setNewProduct({...newProduct, description: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="Deskripsi produk (opsional)"
+                    placeholder="Deskripsi produk..."
                     rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   />
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Kategori
-                  </label>
-                  <select
-                    value={newProduct.categoryId}
-                    onChange={(e) => setNewProduct({...newProduct, categoryId: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    required
-                  >
-                    <option value="">Pilih kategori</option>
-                    {categories.map((category) => (
-                      <option key={category.id} value={category.id}>
-                        {category.name}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      SKU <span className="text-gray-500 font-normal">(Opsional)</span>
+                    </label>
+                    <Input
+                      type="text"
+                      value={newProduct.sku}
+                      onChange={(e) => setNewProduct({...newProduct, sku: e.target.value})}
+                      placeholder="SKU produk"
+                      leftIcon={<Hash className="w-4 h-4 text-gray-400" />}
+                    />
+                  </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    SKU
-                  </label>
-                  <input
-                    type="text"
-                    value={newProduct.sku}
-                    onChange={(e) => setNewProduct({...newProduct, sku: e.target.value})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                    placeholder="SKU produk (opsional)"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Harga Beli
-                    </label>
-                    <input
-                      type="number"
-                      value={newProduct.buyPrice}
-                      onChange={(e) => {
-                        const newBuyPrice = e.target.value;
-                        setNewProduct({...newProduct, buyPrice: newBuyPrice});
-                        validatePrices(newBuyPrice, newProduct.sellPrice);
-                      }}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="0"
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Harga Jual
-                    </label>
-                    <input
-                      type="number"
-                      value={newProduct.sellPrice}
-                      onChange={(e) => {
-                        const newSellPrice = e.target.value;
-                        setNewProduct({...newProduct, sellPrice: newSellPrice});
-                        validatePrices(newProduct.buyPrice, newSellPrice);
-                      }}
-                      className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 ${
-                        priceError 
-                          ? 'border-red-300 focus:ring-red-500' 
-                          : 'border-gray-300 focus:ring-blue-500'
-                      }`}
-                      placeholder="0"
-                      required
-                    />
-                    {priceError && (
-                      <p className="text-red-500 text-xs mt-1">{priceError}</p>
-                    )}
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Stok Awal
-                    </label>
-                    <input
-                      type="number"
-                      value={newProduct.stock}
-                      onChange={(e) => setNewProduct({...newProduct, stock: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="0"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Min. Stok
-                    </label>
-                    <input
-                      type="number"
-                      value={newProduct.threshold}
-                      onChange={(e) => setNewProduct({...newProduct, threshold: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="5"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
                       Satuan
                     </label>
                     <select
                       value={newProduct.unit}
                       onChange={(e) => setNewProduct({...newProduct, unit: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     >
                       <option value="pcs">Pcs</option>
                       <option value="kg">Kg</option>
@@ -866,15 +794,85 @@ export default function InventoryPage() {
                   </div>
                 </div>
 
-                <div className="flex gap-3 pt-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Harga Beli *
+                    </label>
+                    <Input
+                      type="number"
+                      value={newProduct.buyPrice}
+                      onChange={(e) => {
+                        const newBuyPrice = e.target.value;
+                        setNewProduct({...newProduct, buyPrice: newBuyPrice});
+                        validatePrices(newBuyPrice, newProduct.sellPrice);
+                      }}
+                      placeholder="Masukkan harga beli"
+                      leftIcon={<span className="text-sm font-medium text-gray-500">Rp</span>}
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Harga Jual *
+                    </label>
+                    <Input
+                      type="number"
+                      value={newProduct.sellPrice}
+                      onChange={(e) => {
+                        const newSellPrice = e.target.value;
+                        setNewProduct({...newProduct, sellPrice: newSellPrice});
+                        validatePrices(newProduct.buyPrice, newSellPrice);
+                      }}
+                      placeholder="Masukkan harga jual"
+                      leftIcon={<span className="text-sm font-medium text-gray-500">Rp</span>}
+                      className={priceError ? 'border-red-300 focus:ring-red-500' : ''}
+                      required
+                    />
+                    {priceError && (
+                      <p className="text-red-500 text-xs mt-1">{priceError}</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Stok Awal
+                    </label>
+                    <Input
+                      type="number"
+                      value={newProduct.stock}
+                      onChange={(e) => setNewProduct({...newProduct, stock: e.target.value})}
+                      placeholder="Masukkan stok awal"
+                      leftIcon={<Package className="w-4 h-4 text-gray-400" />}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Minimum Stok
+                    </label>
+                    <Input
+                      type="number"
+                      value={newProduct.threshold}
+                      onChange={(e) => setNewProduct({...newProduct, threshold: e.target.value})}
+                      placeholder="Minimum stok alert"
+                      leftIcon={<AlertTriangle className="w-4 h-4 text-gray-400" />}
+                    />
+                  </div>
+                </div>
+
+                <div className="flex gap-3 pt-6 border-t">
                   <Button
                     type="button"
                     variant="outline"
                     onClick={() => {
                       setShowAddModal(false);
+                      setEditingProduct(null);
                       resetProductForm();
                     }}
                     className="flex-1"
+                    disabled={isSubmitting}
                   >
                     Batal
                   </Button>
@@ -883,7 +881,18 @@ export default function InventoryPage() {
                     disabled={isSubmitting || !!priceError}
                     className="flex-1"
                   >
-                    {isSubmitting ? 'Menyimpan...' : 'Simpan'}
+                    {isSubmitting ? (
+                      'Menyimpan...'
+                    ) : (
+                      <>
+                        {editingProduct ? (
+                          <Edit className="w-4 h-4 mr-2" />
+                        ) : (
+                          <Plus className="w-4 h-4 mr-2" />
+                        )}
+                        {editingProduct ? 'Update Produk' : 'Tambah Produk'}
+                      </>
+                    )}
                   </Button>
                 </div>
               </form>
@@ -893,121 +902,267 @@ export default function InventoryPage() {
       )}
 
       {/* Stock Movement Modal */}
-      {showStockModal.show && showStockModal.product && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-md">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-semibold text-gray-900">
-                {showStockModal.type === 'IN' ? 'Stock Masuk' : 'Stock Keluar'}
-              </h3>
-              <Button 
-                variant="outline" 
-                onClick={() => {
-                  setShowStockModal({ show: false });
-                  setStockFormData({ quantity: '', note: '' });
-                }}
-                className="p-2"
-              >
-                ✕
-              </Button>
-            </div>
-
-            <div className="mb-6">
-              <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                <div className={`p-2 rounded-full ${
-                  showStockModal.type === 'IN' ? 'bg-green-100' : 'bg-red-100'
-                }`}>
-                  {showStockModal.type === 'IN' ? (
-                    <Plus className="w-4 h-4 text-green-600" />
-                  ) : (
-                    <Minus className="w-4 h-4 text-red-600" />
-                  )}
-                </div>
+      {showStockModal && selectedProduct && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-hidden">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-green-600 to-green-700 px-6 py-4 text-white">
+              <div className="flex items-center justify-between">
                 <div>
-                  <p className="font-medium text-gray-900">{showStockModal.product.name}</p>
-                  <p className="text-sm text-gray-500">
-                    Stok saat ini: {showStockModal.product.stock} {showStockModal.product.unit}
-                  </p>
+                  <h3 className="text-xl font-bold">Update Stok Produk</h3>
+                  <p className="text-green-100 text-sm mt-1">Kelola stok masuk dan keluar produk</p>
                 </div>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => {
+                    setShowStockModal(false);
+                    setSelectedProduct(null);
+                    setStockFormData({ type: 'IN', quantity: '', note: '' });
+                  }}
+                  className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
               </div>
             </div>
 
-            <form onSubmit={handleStockMovement} className="space-y-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Jumlah {showStockModal.type === 'IN' ? 'Masuk' : 'Keluar'} *
-                </label>
-                <div className="relative">
-                  <Input
-                    type="number"
-                    value={stockFormData.quantity}
-                    onChange={(e) => setStockFormData({ ...stockFormData, quantity: e.target.value })}
-                    placeholder="0"
-                    min="1"
-                    required
-                    className="pr-16"
-                  />
-                  <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">
-                    {showStockModal.product.unit}
-                  </span>
+            {/* Modal Content */}
+            <div className="p-6">
+              <div className="mb-6">
+                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
+                  <div className="p-2 rounded-full bg-blue-100">
+                    <Package className="w-4 h-4 text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="font-medium text-gray-900">{selectedProduct.name}</p>
+                    <p className="text-sm text-gray-500">
+                      Stok saat ini: {selectedProduct.stock} {selectedProduct.unit}
+                    </p>
+                  </div>
                 </div>
-                {showStockModal.type === 'OUT' && (
-                  <p className="text-xs text-gray-500 mt-1">
-                    Maksimal: {showStockModal.product.stock} {showStockModal.product.unit}
-                  </p>
-                )}
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Catatan (Opsional)
-                </label>
-                <textarea
-                  value={stockFormData.note}
-                  onChange={(e) => setStockFormData({ ...stockFormData, note: e.target.value })}
-                  placeholder="Tambahkan catatan..."
-                  rows={3}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-              </div>
+              <form onSubmit={handleStockMovement} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Tipe Movement *
+                  </label>
+                  <select
+                    value={stockFormData.type}
+                    onChange={(e) => setStockFormData({ ...stockFormData, type: e.target.value as 'IN' | 'OUT' })}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                    required
+                  >
+                    <option value="IN">Stock Masuk</option>
+                    <option value="OUT">Stock Keluar</option>
+                  </select>
+                </div>
 
-              <div className="flex gap-3 pt-4 border-t">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    setShowStockModal({ show: false });
-                    setStockFormData({ quantity: '', note: '' });
-                  }}
-                  className="flex-1"
-                  disabled={isSubmitting}
-                >
-                  Batal
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={isSubmitting}
-                  className={`flex-1 ${
-                    showStockModal.type === 'IN' 
-                      ? 'bg-green-600 hover:bg-green-700' 
-                      : 'bg-red-600 hover:bg-red-700'
-                  }`}
-                >
-                  {isSubmitting ? (
-                    'Menyimpan...'
-                  ) : (
-                    <>
-                      {showStockModal.type === 'IN' ? (
-                        <Plus className="w-4 h-4 mr-2" />
-                      ) : (
-                        <Minus className="w-4 h-4 mr-2" />
-                      )}
-                      {showStockModal.type === 'IN' ? 'Tambah Stock' : 'Kurangi Stock'}
-                    </>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Jumlah {stockFormData.type === 'IN' ? 'Masuk' : 'Keluar'} *
+                  </label>
+                  <div className="relative">
+                    <Input
+                      type="number"
+                      value={stockFormData.quantity}
+                      onChange={(e) => setStockFormData({ ...stockFormData, quantity: e.target.value })}
+                      placeholder="0"
+                      min="1"
+                      required
+                      className="pr-16"
+                    />
+                    <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">
+                      {selectedProduct.unit}
+                    </span>
+                  </div>
+                  {stockFormData.type === 'OUT' && (
+                    <p className="text-xs text-gray-500 mt-1">
+                      Maksimal: {selectedProduct.stock} {selectedProduct.unit}
+                    </p>
                   )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Catatan <span className="text-gray-500 font-normal">(Opsional)</span>
+                  </label>
+                  <textarea
+                    value={stockFormData.note}
+                    onChange={(e) => setStockFormData({ ...stockFormData, note: e.target.value })}
+                    placeholder="Tambahkan catatan..."
+                    rows={3}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
+                  />
+                </div>
+
+                <div className="flex gap-3 pt-4 border-t">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setShowStockModal(false);
+                      setSelectedProduct(null);
+                      setStockFormData({ type: 'IN', quantity: '', note: '' });
+                    }}
+                    className="flex-1"
+                    disabled={isSubmitting}
+                  >
+                    Batal
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className={`flex-1 ${
+                      stockFormData.type === 'IN' 
+                        ? 'bg-green-600 hover:bg-green-700' 
+                        : 'bg-red-600 hover:bg-red-700'
+                    }`}
+                  >
+                    {isSubmitting ? (
+                      'Menyimpan...'
+                    ) : (
+                      <>
+                        {stockFormData.type === 'IN' ? (
+                          <Plus className="w-4 h-4 mr-2" />
+                        ) : (
+                          <Minus className="w-4 h-4 mr-2" />
+                        )}
+                        {stockFormData.type === 'IN' ? 'Tambah Stock' : 'Kurangi Stock'}
+                      </>
+                    )}
+                  </Button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Product Detail Modal */}
+      {selectedProduct && !showStockModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 text-white">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-bold">Detail Produk</h3>
+                  <p className="text-blue-100 text-sm mt-1">Informasi lengkap produk inventori</p>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setSelectedProduct(null)}
+                  className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                >
+                  <X className="w-4 h-4" />
                 </Button>
               </div>
-            </form>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="space-y-4">
+                  <h4 className="font-semibold text-gray-900">Informasi Produk</h4>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-sm text-gray-600">Nama Produk</label>
+                      <p className="font-medium">{selectedProduct.name}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm text-gray-600">Kategori</label>
+                      <p className="font-medium">{selectedProduct.category.name}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm text-gray-600">Satuan</label>
+                      <p className="font-medium">{selectedProduct.unit}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <h4 className="font-semibold text-gray-900">Informasi Harga</h4>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-sm text-gray-600">Harga Beli</label>
+                      <p className="font-medium">{formatCurrency(selectedProduct.buyPrice)}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm text-gray-600">Harga Jual</label>
+                      <p className="font-medium">{formatCurrency(selectedProduct.sellPrice)}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm text-gray-600">Keuntungan per Unit</label>
+                      <p className="font-medium text-green-600">
+                        {formatCurrency(selectedProduct.sellPrice - selectedProduct.buyPrice)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <h4 className="font-semibold text-gray-900">Informasi Stok</h4>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-sm text-gray-600">Stok Saat Ini</label>
+                      <p className={`font-medium ${
+                        selectedProduct.stock <= selectedProduct.threshold 
+                          ? 'text-red-600' 
+                          : 'text-green-600'
+                      }`}>
+                        {selectedProduct.stock} {selectedProduct.unit}
+                      </p>
+                    </div>
+                    <div>
+                      <label className="text-sm text-gray-600">Minimum Stok</label>
+                      <p className="font-medium">{selectedProduct.threshold} {selectedProduct.unit}</p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <h4 className="font-semibold text-gray-900">Statistik Penjualan</h4>
+                  <div className="space-y-3">
+                    <div>
+                      <label className="text-sm text-gray-600">Terjual Hari Ini</label>
+                      <p className="font-medium">{selectedProduct.soldToday} {selectedProduct.unit}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm text-gray-600">Total Terjual</label>
+                      <p className="font-medium">{selectedProduct.totalSold} {selectedProduct.unit}</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="mt-6 pt-6 border-t">
+                <div className="flex gap-3">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setSelectedProduct(null);
+                      handleEditProduct(selectedProduct);
+                    }}
+                    className="flex-1"
+                  >
+                    <Edit className="w-4 h-4 mr-2" />
+                    Edit Produk
+                  </Button>
+                  <Button
+                    onClick={() => {
+                      handleStockUpdate(selectedProduct);
+                    }}
+                    className="flex-1 bg-green-600 hover:bg-green-700"
+                  >
+                    <Package className="w-4 h-4 mr-2" />
+                    Update Stok
+                  </Button>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}
