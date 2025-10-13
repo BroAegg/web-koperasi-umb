@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { DateSelector } from '@/components/ui/date-selector';
 import { useNotification } from '@/lib/notification-context';
 import { formatCurrency } from '@/lib/utils';
 import { 
@@ -384,12 +385,6 @@ export default function InventoryPage() {
           <p className="text-gray-600 mt-1 text-sm sm:text-base">Kelola stok dan produk koperasi</p>
         </div>
         <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-          <input
-            type="date"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value)}
-            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-          />
           <Button variant="outline" size="sm" className="w-full sm:w-auto">
             <Download className="w-4 h-4 mr-2" />
             <span className="hidden sm:inline">Ekspor Data</span>
@@ -403,106 +398,115 @@ export default function InventoryPage() {
         </div>
       </div>
 
+      {/* Date Selector */}
+      <DateSelector
+        selectedDate={selectedDate}
+        onDateChange={setSelectedDate}
+        showControls={true}
+      />
+
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 sm:gap-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
         <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-4 sm:p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-2 sm:p-3 rounded-lg bg-blue-50">
-                <Package className="w-5 h-5 sm:w-6 sm:h-6 text-blue-700" />
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="p-2 rounded-lg bg-blue-50 shrink-0">
+                <Package className="w-4 h-4 sm:w-5 sm:h-5 text-blue-700" />
               </div>
-              <div className="text-xs sm:text-sm font-medium px-2 py-1 rounded-full text-blue-700 bg-blue-100">
-                {totalProducts} Items
+              <div className="text-xs font-medium px-1.5 py-0.5 rounded-full text-blue-700 bg-blue-100 shrink-0">
+                {totalProducts}
               </div>
             </div>
             <div>
-              <h3 className="text-xs sm:text-sm font-medium text-gray-600 mb-1">Total Produk</h3>
-              <p className="text-xl sm:text-2xl font-bold text-gray-900">{totalProducts}</p>
+              <h3 className="text-xs font-medium text-gray-600 mb-1 truncate">Total Produk</h3>
+              <p className="text-lg sm:text-xl font-bold text-gray-900">{totalProducts}</p>
             </div>
           </CardContent>
         </Card>
 
         <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-4 sm:p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-2 sm:p-3 rounded-lg bg-emerald-50">
-                <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600" />
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="p-2 rounded-lg bg-emerald-50 shrink-0">
+                <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" />
               </div>
-              <div className="text-xs sm:text-sm font-medium px-2 py-1 rounded-full text-emerald-700 bg-emerald-100">
+              <div className="text-xs font-medium px-1.5 py-0.5 rounded-full text-emerald-700 bg-emerald-100 shrink-0">
                 +15%
               </div>
             </div>
             <div>
-              <h3 className="text-xs sm:text-sm font-medium text-gray-600 mb-1">Nilai Stok</h3>
-              <p className="text-xl sm:text-2xl font-bold text-gray-900">{formatCurrency(totalStockValue)}</p>
+              <h3 className="text-xs font-medium text-gray-600 mb-1 truncate">Nilai Stok</h3>
+              <p className="text-sm sm:text-lg font-bold text-gray-900 truncate" title={formatCurrency(totalStockValue)}>
+                {formatCurrency(totalStockValue)}
+              </p>
             </div>
           </CardContent>
         </Card>
 
         <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-4 sm:p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-2 sm:p-3 rounded-lg bg-amber-50">
-                <AlertTriangle className="w-5 h-5 sm:w-6 sm:h-6 text-amber-600" />
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="p-2 rounded-lg bg-amber-50 shrink-0">
+                <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600" />
               </div>
-              <div className="text-xs sm:text-sm font-medium px-2 py-1 rounded-full text-amber-700 bg-amber-100">
-                {lowStockProducts.length} Items
+              <div className="text-xs font-medium px-1.5 py-0.5 rounded-full text-amber-700 bg-amber-100 shrink-0">
+                {lowStockProducts.length}
               </div>
             </div>
             <div>
-              <h3 className="text-xs sm:text-sm font-medium text-gray-600 mb-1">Stok Rendah</h3>
-              <p className="text-xl sm:text-2xl font-bold text-gray-900">{lowStockProducts.length}</p>
+              <h3 className="text-xs font-medium text-gray-600 mb-1 truncate">Stok Rendah</h3>
+              <p className="text-lg sm:text-xl font-bold text-gray-900">{lowStockProducts.length}</p>
             </div>
           </CardContent>
         </Card>
 
         <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-4 sm:p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-2 sm:p-3 rounded-lg bg-green-50">
-                <Plus className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="p-2 rounded-lg bg-green-50 shrink-0">
+                <Plus className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
               </div>
-              <div className="text-xs sm:text-sm font-medium px-2 py-1 rounded-full text-green-700 bg-green-100">
+              <div className="text-xs font-medium px-1.5 py-0.5 rounded-full text-green-700 bg-green-100 shrink-0">
                 {new Date(selectedDate).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })}
               </div>
             </div>
             <div>
-              <h3 className="text-xs sm:text-sm font-medium text-gray-600 mb-1">Stock Masuk</h3>
-              <p className="text-xl sm:text-2xl font-bold text-gray-900">{dailySummary.totalIn}</p>
+              <h3 className="text-xs font-medium text-gray-600 mb-1 truncate">Stock Masuk</h3>
+              <p className="text-lg sm:text-xl font-bold text-gray-900">{dailySummary.totalIn}</p>
             </div>
           </CardContent>
         </Card>
 
         <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-4 sm:p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-2 sm:p-3 rounded-lg bg-red-50">
-                <Minus className="w-5 h-5 sm:w-6 sm:h-6 text-red-600" />
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="p-2 rounded-lg bg-red-50 shrink-0">
+                <Minus className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" />
               </div>
-              <div className="text-xs sm:text-sm font-medium px-2 py-1 rounded-full text-red-700 bg-red-100">
+              <div className="text-xs font-medium px-1.5 py-0.5 rounded-full text-red-700 bg-red-100 shrink-0">
                 {new Date(selectedDate).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })}
               </div>
             </div>
             <div>
-              <h3 className="text-xs sm:text-sm font-medium text-gray-600 mb-1">Stock Keluar</h3>
-              <p className="text-xl sm:text-2xl font-bold text-gray-900">{dailySummary.totalOut}</p>
+              <h3 className="text-xs font-medium text-gray-600 mb-1 truncate">Stock Keluar</h3>
+              <p className="text-lg sm:text-xl font-bold text-gray-900">{dailySummary.totalOut}</p>
             </div>
           </CardContent>
         </Card>
 
         <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-4 sm:p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div className="p-2 sm:p-3 rounded-lg bg-blue-50">
-                <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
+          <CardContent className="p-3 sm:p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div className="p-2 rounded-lg bg-blue-50 shrink-0">
+                <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
               </div>
-              <div className="text-xs sm:text-sm font-medium px-2 py-1 rounded-full text-blue-700 bg-blue-100">
+              <div className="text-xs font-medium px-1.5 py-0.5 rounded-full text-blue-700 bg-blue-100 shrink-0">
                 Total
               </div>
             </div>
             <div>
-              <h3 className="text-xs sm:text-sm font-medium text-gray-600 mb-1">Movement Hari Ini</h3>
-              <p className="text-xl sm:text-2xl font-bold text-gray-900">{dailySummary.totalMovements}</p>
+              <h3 className="text-xs font-medium text-gray-600 mb-1 truncate">Movement</h3>
+              <p className="text-lg sm:text-xl font-bold text-gray-900">{dailySummary.totalMovements}</p>
             </div>
           </CardContent>
         </Card>
@@ -648,62 +652,24 @@ export default function InventoryPage() {
 
         {/* Sidebar - Recent Transactions & Low Stock Alert */}
         <div className="space-y-6">
-          {/* Low Stock Alert */}
-          <Card className="border-0 shadow-sm">
-            <CardHeader className="pb-4">
-              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                <AlertTriangle className="w-5 h-5 text-amber-500" />
-                <span className="truncate">Stok Rendah</span>
-              </h3>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {lowStockProducts.length === 0 ? (
-                <p className="text-gray-500 text-sm">Semua stok dalam kondisi baik</p>
-              ) : (
-                lowStockProducts.map((product) => (
-                  <div key={product.id} className="p-3 bg-amber-50 rounded-lg border border-amber-200">
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="flex-1 min-w-0">
-                        <p className="font-medium text-gray-900 text-sm truncate" title={product.name}>
-                          {product.name}
-                        </p>
-                        <p className="text-xs text-gray-500">Sisa: {product.stock} unit</p>
-                      </div>
-                      <Button 
-                        size="sm" 
-                        variant="outline" 
-                        className="text-xs shrink-0 px-2 py-1 h-auto"
-                      >
-                        Restock
-                      </Button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </CardContent>
-          </Card>
-
           {/* Recent Stock Movements */}
           <Card className="border-0 shadow-sm">
             <CardHeader className="pb-4">
-              <div className="flex items-center justify-between gap-2">
-                <div>
-                  <h3 className="text-lg font-bold text-gray-900 truncate">Stock Movement</h3>
-                  <p className="text-sm text-gray-500">
-                    {new Date(selectedDate).toLocaleDateString('id-ID', { 
-                      weekday: 'long', 
-                      day: 'numeric', 
-                      month: 'long', 
-                      year: 'numeric' 
-                    })}
-                  </p>
-                </div>
-                <Button variant="outline" size="sm" className="shrink-0 text-xs px-2 py-1 h-auto">
-                  <BarChart3 className="w-3 h-3 mr-1" />
-                  <span className="hidden sm:inline">Lihat Semua</span>
-                  <span className="sm:hidden">Semua</span>
+              <div className="flex items-center justify-between gap-3 mb-2">
+                <h3 className="text-lg font-bold text-gray-900 truncate">Stock Movement</h3>
+                <Button variant="outline" size="sm" className="shrink-0 text-xs px-2 py-1 h-6 whitespace-nowrap">
+                  <BarChart3 className="w-3 h-3" />
+                  <span className="ml-1 hidden xl:inline">Lihat Semua</span>
                 </Button>
               </div>
+              <p className="text-sm text-gray-500 truncate">
+                {new Date(selectedDate).toLocaleDateString('id-ID', { 
+                  weekday: 'short', 
+                  day: 'numeric', 
+                  month: 'short', 
+                  year: 'numeric' 
+                })}
+              </p>
             </CardHeader>
             <CardContent className="space-y-3">
               {stockMovements.length > 0 ? (
@@ -748,6 +714,41 @@ export default function InventoryPage() {
                   <Package className="w-8 h-8 mx-auto mb-2 opacity-50" />
                   <p className="text-sm">Belum ada stock movement</p>
                 </div>
+              )}
+            </CardContent>
+          </Card>
+          
+          {/* Low Stock Alert */}
+          <Card className="border-0 shadow-sm">
+            <CardHeader className="pb-4">
+              <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                <AlertTriangle className="w-5 h-5 text-amber-500" />
+                <span className="truncate">Stok Rendah</span>
+              </h3>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {lowStockProducts.length === 0 ? (
+                <p className="text-gray-500 text-sm">Semua stok dalam kondisi baik</p>
+              ) : (
+                lowStockProducts.map((product) => (
+                  <div key={product.id} className="p-3 bg-amber-50 rounded-lg border border-amber-200">
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-gray-900 text-sm truncate" title={product.name}>
+                          {product.name}
+                        </p>
+                        <p className="text-xs text-gray-500">Sisa: {product.stock} unit</p>
+                      </div>
+                      <Button 
+                        size="sm" 
+                        variant="outline" 
+                        className="text-xs shrink-0 px-2 py-1 h-auto whitespace-nowrap"
+                      >
+                        Restock
+                      </Button>
+                    </div>
+                  </div>
+                ))
               )}
             </CardContent>
           </Card>

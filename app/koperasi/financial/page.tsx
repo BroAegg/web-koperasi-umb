@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Loading, CardSkeleton } from '@/components/ui/loading';
+import { DateSelector } from '@/components/ui/date-selector';
 import { formatCurrency, formatDate, formatTime, formatCurrencyInput, parseCurrencyInput } from '@/lib/utils';
 import { useNotification } from '@/lib/notification-context';
 import { 
@@ -81,6 +82,7 @@ export default function FinancialPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [filterType, setFilterType] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<string | null>(null);
@@ -327,11 +329,15 @@ export default function FinancialPage() {
     }
   };
 
-  const filteredTransactions = transactions.filter(transaction =>
-    transaction.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    transaction.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (transaction.reference && transaction.reference.toLowerCase().includes(searchTerm.toLowerCase()))
-  );
+  const filteredTransactions = transactions.filter(transaction => {
+    const matchesSearch = transaction.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      transaction.category.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (transaction.reference && transaction.reference.toLowerCase().includes(searchTerm.toLowerCase()));
+    
+    const matchesType = filterType === '' || transaction.type === filterType;
+    
+    return matchesSearch && matchesType;
+  });
 
   return (
     <div className="space-y-6">
@@ -354,28 +360,48 @@ export default function FinancialPage() {
       </div>
 
       {/* Date Filter */}
+      <DateSelector
+        selectedDate={selectedDate}
+        onDateChange={setSelectedDate}
+        showControls={true}
+      />
+
+      {/* Search Controls */}
       <Card>
         <CardContent className="p-6">
-          <div className="flex flex-col md:flex-row gap-4 items-center">
-            <div className="flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-gray-500" />
-              <label className="text-sm font-medium text-gray-700">Tanggal:</label>
+          <div className="flex flex-col sm:flex-row gap-4 items-center">
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3 flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Input
+                  placeholder="Cari transaksi..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 w-full sm:w-64"
+                />
+              </div>
+              <select
+                value={filterType}
+                onChange={(e) => setFilterType(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+              >
+                <option value="">Semua Tipe</option>
+                <option value="SALE">Penjualan</option>
+                <option value="PURCHASE">Pembelian</option>
+                <option value="RETURN">Retur</option>
+                <option value="INCOME">Pemasukan</option>
+                <option value="EXPENSE">Pengeluaran</option>
+              </select>
             </div>
-            <Input
-              type="date"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value)}
-              className="w-auto"
-            />
-            <div className="flex-1" />
-            <div className="flex items-center gap-4">
-              <Input
-                placeholder="Cari transaksi..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                leftIcon={<Search className="w-4 h-4 text-gray-400" />}
-                className="w-64"
-              />
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm">
+                <Filter className="w-4 h-4 mr-2" />
+                Filter
+              </Button>
+              <Button variant="outline" size="sm">
+                <Download className="w-4 h-4 mr-2" />
+                Export
+              </Button>
             </div>
           </div>
         </CardContent>

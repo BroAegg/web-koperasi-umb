@@ -80,7 +80,7 @@ export async function DELETE(
       success: true,
       message: 'Produk berhasil dihapus',
     });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error deleting product:', error);
     
     if (error.code === 'P2025') {

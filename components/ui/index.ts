@@ -4,3 +4,4 @@ export { Card, CardHeader, CardContent, CardFooter } from './card';
 export { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from './table';
 export { Toast, ToastContainer, Notification, NotificationContainer, type ToastProps, type NotificationProps } from './toast';
 export { ConfirmationDialog, type ConfirmationDialogProps } from './confirmation-dialog';
+export { DateSelector } from './date-selector';
