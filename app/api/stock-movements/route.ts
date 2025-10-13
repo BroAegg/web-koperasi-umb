@@ -9,6 +9,7 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const productId = searchParams.get('productId');
     const type = searchParams.get('type');
+    const date = searchParams.get('date');
     const limit = parseInt(searchParams.get('limit') || '50');
     const offset = parseInt(searchParams.get('offset') || '0');
 
@@ -20,6 +21,20 @@ export async function GET(request: NextRequest) {
 
     if (type) {
       where.type = type.toUpperCase();
+    }
+
+    // Date filtering
+    if (date) {
+      const startDate = new Date(date);
+      startDate.setHours(0, 0, 0, 0);
+      
+      const endDate = new Date(date);
+      endDate.setHours(23, 59, 59, 999);
+
+      where.createdAt = {
+        gte: startDate,
+        lte: endDate,
+      };
     }
 
     const stockMovements = await prisma.stockMovement.findMany({

@@ -64,6 +64,7 @@ interface StockMovement {
 export default function InventoryPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("semua");
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showStockModal, setShowStockModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -75,6 +76,11 @@ export default function InventoryPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [stockMovements, setStockMovements] = useState<StockMovement[]>([]);
+  const [dailySummary, setDailySummary] = useState({
+    totalIn: 0,
+    totalOut: 0,
+    totalMovements: 0,
+  });
   const [stockFormData, setStockFormData] = useState({
     type: 'IN' as 'IN' | 'OUT',
     quantity: '',
@@ -101,11 +107,12 @@ export default function InventoryPage() {
     fetchProducts();
     fetchCategories();
     fetchStockMovements();
-  }, []);
+    fetchDailySummary();
+  }, [selectedDate]);
 
   const fetchStockMovements = async () => {
     try {
-      const response = await fetch('/api/stock-movements?limit=20');
+      const response = await fetch(`/api/stock-movements?date=${selectedDate}&limit=20`);
       const result = await response.json();
       
       if (result.success) {
@@ -115,6 +122,21 @@ export default function InventoryPage() {
       }
     } catch (error) {
       console.error('Error fetching stock movements:', error);
+    }
+  };
+
+  const fetchDailySummary = async () => {
+    try {
+      const response = await fetch(`/api/stock-movements/summary?date=${selectedDate}`);
+      const result = await response.json();
+      
+      if (result.success) {
+        setDailySummary(result.data);
+      } else {
+        console.error('Failed to fetch daily summary:', result.error);
+      }
+    } catch (error) {
+      console.error('Error fetching daily summary:', error);
     }
   };
 
@@ -212,6 +234,7 @@ export default function InventoryPage() {
         // Refresh data
         fetchProducts();
         fetchStockMovements();
+        fetchDailySummary();
         
         success('Stock Movement Berhasil', result.message);
       } else {
@@ -361,6 +384,12 @@ export default function InventoryPage() {
           <p className="text-gray-600 mt-1 text-sm sm:text-base">Kelola stok dan produk koperasi</p>
         </div>
         <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
+          <input
+            type="date"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value)}
+            className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+          />
           <Button variant="outline" size="sm" className="w-full sm:w-auto">
             <Download className="w-4 h-4 mr-2" />
             <span className="hidden sm:inline">Ekspor Data</span>
@@ -375,7 +404,7 @@ export default function InventoryPage() {
       </div>
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4 sm:gap-6">
         <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
           <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between mb-4">
@@ -431,15 +460,49 @@ export default function InventoryPage() {
           <CardContent className="p-4 sm:p-6">
             <div className="flex items-center justify-between mb-4">
               <div className="p-2 sm:p-3 rounded-lg bg-green-50">
-                <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
+                <Plus className="w-5 h-5 sm:w-6 sm:h-6 text-green-600" />
               </div>
               <div className="text-xs sm:text-sm font-medium px-2 py-1 rounded-full text-green-700 bg-green-100">
-                Hari Ini
+                {new Date(selectedDate).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })}
               </div>
             </div>
             <div>
-              <h3 className="text-xs sm:text-sm font-medium text-gray-600 mb-1">Keuntungan</h3>
-              <p className="text-xl sm:text-2xl font-bold text-gray-900">{formatCurrency(todayProfit)}</p>
+              <h3 className="text-xs sm:text-sm font-medium text-gray-600 mb-1">Stock Masuk</h3>
+              <p className="text-xl sm:text-2xl font-bold text-gray-900">{dailySummary.totalIn}</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-2 sm:p-3 rounded-lg bg-red-50">
+                <Minus className="w-5 h-5 sm:w-6 sm:h-6 text-red-600" />
+              </div>
+              <div className="text-xs sm:text-sm font-medium px-2 py-1 rounded-full text-red-700 bg-red-100">
+                {new Date(selectedDate).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })}
+              </div>
+            </div>
+            <div>
+              <h3 className="text-xs sm:text-sm font-medium text-gray-600 mb-1">Stock Keluar</h3>
+              <p className="text-xl sm:text-2xl font-bold text-gray-900">{dailySummary.totalOut}</p>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-2 sm:p-3 rounded-lg bg-blue-50">
+                <BarChart3 className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
+              </div>
+              <div className="text-xs sm:text-sm font-medium px-2 py-1 rounded-full text-blue-700 bg-blue-100">
+                Total
+              </div>
+            </div>
+            <div>
+              <h3 className="text-xs sm:text-sm font-medium text-gray-600 mb-1">Movement Hari Ini</h3>
+              <p className="text-xl sm:text-2xl font-bold text-gray-900">{dailySummary.totalMovements}</p>
             </div>
           </CardContent>
         </Card>
@@ -624,7 +687,17 @@ export default function InventoryPage() {
           <Card className="border-0 shadow-sm">
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between gap-2">
-                <h3 className="text-lg font-bold text-gray-900 truncate">Stock Movement Terbaru</h3>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900 truncate">Stock Movement</h3>
+                  <p className="text-sm text-gray-500">
+                    {new Date(selectedDate).toLocaleDateString('id-ID', { 
+                      weekday: 'long', 
+                      day: 'numeric', 
+                      month: 'long', 
+                      year: 'numeric' 
+                    })}
+                  </p>
+                </div>
                 <Button variant="outline" size="sm" className="shrink-0 text-xs px-2 py-1 h-auto">
                   <BarChart3 className="w-3 h-3 mr-1" />
                   <span className="hidden sm:inline">Lihat Semua</span>
