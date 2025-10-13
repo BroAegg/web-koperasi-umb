@@ -71,7 +71,6 @@ export default function InventoryPage() {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedRange, setSelectedRange] = useState<any>(null);
   const [financialPeriod, setFinancialPeriod] = useState<'today' | '7days' | '1month' | '3months' | '6months' | '1year'>('today');
-  const [showCalendarModal, setShowCalendarModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showStockModal, setShowStockModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -444,8 +443,24 @@ export default function InventoryPage() {
                     <option value="6months">6 Bulan</option>
                     <option value="1year">1 Tahun</option>
                   </select>
+                  
+                  {/* Hidden Date Input */}
+                  <input
+                    type="date"
+                    value={selectedDate}
+                    onChange={(e) => {
+                      setSelectedDate(e.target.value);
+                      setFinancialPeriod('today'); // Reset to today when manual date is selected
+                      setSelectedRange(null); // Clear any range selection
+                    }}
+                    className="absolute opacity-0 pointer-events-none"
+                    id="calendar-input"
+                  />
+                  
+                  {/* Calendar Button */}
                   <button 
-                    onClick={() => setShowCalendarModal(true)}
+                    type="button"
+                    onClick={() => document.getElementById('calendar-input')?.click()}
                     className="px-2.5 py-1.5 border-l border-blue-100 text-gray-600 hover:bg-blue-50 transition-colors"
                   >
                     <Calendar className="h-3.5 w-3.5" />
@@ -1304,75 +1319,6 @@ export default function InventoryPage() {
                   </Button>
                 </div>
               </div>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Calendar Modal */}
-      {showCalendarModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-sm w-full">
-            <div className="flex items-center justify-between p-4 border-b">
-              <h3 className="text-lg font-semibold text-gray-900">Pilih Tanggal</h3>
-              <button
-                onClick={() => setShowCalendarModal(false)}
-                className="text-gray-400 hover:text-gray-600 transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
-            
-            <div className="p-4">
-              <div className="space-y-4">
-                {/* Simple Date Input */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Tanggal
-                  </label>
-                  <input
-                    type="date"
-                    value={selectedDate}
-                    onChange={(e) => setSelectedDate(e.target.value)}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-                
-                {/* Display Selected Date */}
-                <div className="bg-blue-50 p-3 rounded-lg">
-                  <p className="text-sm text-blue-700 font-medium">
-                    Tanggal terpilih:
-                  </p>
-                  <p className="text-blue-900 font-semibold">
-                    {new Date(selectedDate).toLocaleDateString('id-ID', {
-                      weekday: 'long',
-                      day: 'numeric',
-                      month: 'long',
-                      year: 'numeric'
-                    })}
-                  </p>
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex gap-3 p-4 border-t">
-              <Button
-                variant="outline"
-                onClick={() => setShowCalendarModal(false)}
-                className="flex-1"
-              >
-                Batal
-              </Button>
-              <Button
-                onClick={() => {
-                  setFinancialPeriod('today'); // Reset to today when manual date is selected
-                  setSelectedRange(null); // Clear any range selection
-                  setShowCalendarModal(false);
-                }}
-                className="flex-1"
-              >
-                Terapkan
-              </Button>
             </div>
           </div>
         </div>
