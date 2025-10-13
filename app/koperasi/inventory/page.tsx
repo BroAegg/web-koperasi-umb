@@ -72,6 +72,7 @@ export default function InventoryPage() {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedRange, setSelectedRange] = useState<any>(null);
   const [financialPeriod, setFinancialPeriod] = useState<'today' | '7days' | '1month' | '3months' | '6months' | '1year'>('today');
+  const [showCalendarModal, setShowCalendarModal] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showStockModal, setShowStockModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -412,15 +413,6 @@ export default function InventoryPage() {
         </div>
       </div>
 
-      {/* Date Selector */}
-      <DateSelector
-        selectedDate={selectedDate}
-        onDateChange={setSelectedDate}
-        onRangeChange={setSelectedRange}
-        activeRange={selectedRange}
-        showControls={true}
-      />
-
       {/* Statistics Cards with Visual Hierarchy */}
       <div className="space-y-4 sm:space-y-6">
         {/* DOMINANT: Financial Metrics Card */}
@@ -453,7 +445,10 @@ export default function InventoryPage() {
                     <option value="6months">6 Bulan</option>
                     <option value="1year">1 Tahun</option>
                   </select>
-                  <button className="px-2.5 py-1.5 border-l border-blue-100 text-gray-600 hover:bg-blue-50 transition-colors">
+                  <button 
+                    onClick={() => setShowCalendarModal(true)}
+                    className="px-2.5 py-1.5 border-l border-blue-100 text-gray-600 hover:bg-blue-50 transition-colors"
+                  >
                     <Calendar className="h-3.5 w-3.5" />
                   </button>
                 </div>
@@ -1310,6 +1305,61 @@ export default function InventoryPage() {
                   </Button>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Calendar Modal */}
+      {showCalendarModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+            <div className="flex items-center justify-between p-4 border-b">
+              <h3 className="text-lg font-semibold text-gray-900">Pilih Periode Tanggal</h3>
+              <button
+                onClick={() => setShowCalendarModal(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            
+            <div className="p-4">
+              <DateSelector
+                selectedDate={selectedDate}
+                onDateChange={(date) => {
+                  setSelectedDate(date);
+                  setFinancialPeriod('today'); // Reset to today when manual date is selected
+                }}
+                onRangeChange={(range) => {
+                  setSelectedRange(range);
+                  if (range) {
+                    // Update financial period based on range
+                    if (range.label === '7 Hari Terakhir') setFinancialPeriod('7days');
+                    else if (range.label === '1 Bulan Terakhir') setFinancialPeriod('1month');
+                    else if (range.label === '6 Bulan Terakhir') setFinancialPeriod('6months');
+                  }
+                }}
+                activeRange={selectedRange}
+                showControls={true}
+                className="border-0 shadow-none"
+              />
+            </div>
+            
+            <div className="flex gap-3 p-4 border-t">
+              <Button
+                variant="outline"
+                onClick={() => setShowCalendarModal(false)}
+                className="flex-1"
+              >
+                Batal
+              </Button>
+              <Button
+                onClick={() => setShowCalendarModal(false)}
+                className="flex-1"
+              >
+                Terapkan
+              </Button>
             </div>
           </div>
         </div>
