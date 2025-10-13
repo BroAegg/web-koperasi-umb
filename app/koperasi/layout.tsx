@@ -100,7 +100,7 @@ export default function KoperasiLayout({ children }: { children: React.ReactNode
       )}
 
       {/* Mobile Sidebar */}
-      <aside className={`lg:hidden fixed inset-y-0 left-0 w-72 bg-white shadow-xl transform transition-transform duration-300 ease-in-out z-50 ${
+      <aside className={`lg:hidden fixed inset-y-0 left-0 w-64 bg-white shadow-xl transform transition-transform duration-300 ease-in-out z-50 ${
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
         <div className="absolute top-4 right-4">
@@ -120,12 +120,12 @@ export default function KoperasiLayout({ children }: { children: React.ReactNode
 
       <div className="lg:flex">
         {/* Desktop Sidebar */}
-        <aside className="hidden lg:block w-72 fixed left-0 top-0 h-screen bg-white border-r border-gray-200 shadow-sm z-20 overflow-y-auto">
+        <aside className="hidden lg:block w-64 fixed left-0 top-0 h-screen bg-white border-r border-gray-200 shadow-sm z-20 overflow-y-auto">
           <SidebarContent />
         </aside>
 
         {/* Main Content */}
-        <main className="lg:ml-72 flex-1 min-h-screen">
+        <main className="lg:ml-64 flex-1 min-h-screen">
           {/* Desktop Header */}
           <header className="hidden lg:flex bg-white border-b border-gray-200 px-6 py-4 items-center justify-between sticky top-0 z-30">
             <div className="flex-1">

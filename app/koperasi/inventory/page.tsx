@@ -363,11 +363,13 @@ export default function InventoryPage() {
     }
   };
 
-  const filteredProducts = products.filter(product => {
-    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = selectedCategory === "semua" || product.category.name === selectedCategory;
-    return matchesSearch && matchesCategory;
-  });
+  const filteredProducts = products
+    .filter(product => {
+      const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesCategory = selectedCategory === "semua" || product.category.name === selectedCategory;
+      return matchesSearch && matchesCategory;
+    })
+    .sort((a, b) => b.stock - a.stock); // Sort by stock: highest to lowest
 
   const lowStockProducts = products.filter(p => p.stock <= p.threshold);
   const totalProducts = products.length;
