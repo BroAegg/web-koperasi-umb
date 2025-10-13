@@ -21,7 +21,10 @@ import {
   Trash2,
   BarChart3,
   X,
-  Hash
+  Hash,
+  DollarSign,
+  Receipt,
+  PiggyBank
 } from 'lucide-react';
 
 interface Product {
@@ -375,6 +378,11 @@ export default function InventoryPage() {
   const totalProducts = products.length;
   const totalStockValue = products.reduce((sum, p) => sum + (p.buyPrice * p.stock), 0);
   const todayProfit = products.reduce((sum, p) => sum + (p.profit * p.soldToday), 0);
+  
+  // Financial metrics calculations
+  const consignmentPayments = products.reduce((sum, p) => sum + (p.consignmentPayments || 0), 0);
+  const totalRevenue = products.reduce((sum, p) => sum + (p.sellPrice * p.soldToday), 0);
+  const totalProfit = products.reduce((sum, p) => sum + ((p.sellPrice - p.buyPrice) * p.soldToday), 0);
 
   const categoryOptions = ["semua", ...categories.map(c => c.name)];
 
@@ -408,107 +416,93 @@ export default function InventoryPage() {
       />
 
       {/* Statistics Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+        {/* Total Produk */}
         <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-3 sm:p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="p-2 rounded-lg bg-blue-50 shrink-0">
-                <Package className="w-4 h-4 sm:w-5 sm:h-5 text-blue-700" />
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-3 rounded-lg bg-blue-50">
+                <Package className="w-6 h-6 text-blue-700" />
               </div>
-              <div className="text-xs font-medium px-1.5 py-0.5 rounded-full text-blue-700 bg-blue-100 shrink-0">
-                {totalProducts}
+              <div className="text-sm font-medium px-2 py-1 rounded-full text-blue-700 bg-blue-100">
+                {totalProducts} Items
               </div>
             </div>
             <div>
-              <h3 className="text-xs font-medium text-gray-600 mb-1 truncate">Total Produk</h3>
-              <p className="text-lg sm:text-xl font-bold text-gray-900">{totalProducts}</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-3 sm:p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="p-2 rounded-lg bg-emerald-50 shrink-0">
-                <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" />
-              </div>
-              <div className="text-xs font-medium px-1.5 py-0.5 rounded-full text-emerald-700 bg-emerald-100 shrink-0">
-                +15%
-              </div>
-            </div>
-            <div>
-              <h3 className="text-xs font-medium text-gray-600 mb-1 truncate">Nilai Stok</h3>
-              <p className="text-sm sm:text-lg font-bold text-gray-900 truncate" title={formatCurrency(totalStockValue)}>
-                {formatCurrency(totalStockValue)}
+              <h3 className="text-sm font-medium text-gray-600 mb-1">Total Produk</h3>
+              <p className="text-2xl font-bold text-gray-900">{totalProducts}</p>
+              <p className="text-xs text-gray-500 mt-1">
+                {lowStockProducts.length} produk stok rendah
               </p>
             </div>
           </CardContent>
         </Card>
 
+        {/* Nilai Stok */}
         <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-3 sm:p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="p-2 rounded-lg bg-amber-50 shrink-0">
-                <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600" />
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-3 rounded-lg bg-emerald-50">
+                <TrendingUp className="w-6 h-6 text-emerald-600" />
               </div>
-              <div className="text-xs font-medium px-1.5 py-0.5 rounded-full text-amber-700 bg-amber-100 shrink-0">
-                {lowStockProducts.length}
+              <div className="text-sm font-medium px-2 py-1 rounded-full text-emerald-700 bg-emerald-100">
+                Asset
               </div>
             </div>
             <div>
-              <h3 className="text-xs font-medium text-gray-600 mb-1 truncate">Stok Rendah</h3>
-              <p className="text-lg sm:text-xl font-bold text-gray-900">{lowStockProducts.length}</p>
+              <h3 className="text-sm font-medium text-gray-600 mb-1">Nilai Stok</h3>
+              <p className="text-2xl font-bold text-gray-900">{formatCurrency(totalStockValue)}</p>
+              <p className="text-xs text-gray-500 mt-1">
+                Total aset inventory
+              </p>
             </div>
           </CardContent>
         </Card>
 
+        {/* Omzet & Keuntungan Combined */}
         <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-3 sm:p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="p-2 rounded-lg bg-green-50 shrink-0">
-                <Plus className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-3 rounded-lg bg-yellow-50">
+                <DollarSign className="w-6 h-6 text-yellow-600" />
               </div>
-              <div className="text-xs font-medium px-1.5 py-0.5 rounded-full text-green-700 bg-green-100 shrink-0">
-                {new Date(selectedDate).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })}
+              <div className="text-sm font-medium px-2 py-1 rounded-full text-yellow-700 bg-yellow-100">
+                Hari Ini
               </div>
             </div>
             <div>
-              <h3 className="text-xs font-medium text-gray-600 mb-1 truncate">Stock Masuk</h3>
-              <p className="text-lg sm:text-xl font-bold text-gray-900">{dailySummary.totalIn}</p>
+              <h3 className="text-sm font-medium text-gray-600 mb-2">Omzet & Keuntungan</h3>
+              <div className="space-y-2">
+                <div>
+                  <p className="text-xl font-bold text-gray-900">{formatCurrency(totalRevenue)}</p>
+                  <p className="text-xs text-gray-500">Omzet</p>
+                </div>
+                <div className="border-t pt-2">
+                  <p className="text-lg font-semibold text-green-600">{formatCurrency(totalProfit)}</p>
+                  <p className="text-xs text-gray-500">Keuntungan</p>
+                </div>
+              </div>
             </div>
           </CardContent>
         </Card>
 
+        {/* Pembayaran Konsinyasi */}
         <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-3 sm:p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="p-2 rounded-lg bg-red-50 shrink-0">
-                <Minus className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" />
+          <CardContent className="p-4 sm:p-6">
+            <div className="flex items-center justify-between mb-4">
+              <div className="p-3 rounded-lg bg-purple-50">
+                <Receipt className="w-6 h-6 text-purple-600" />
               </div>
-              <div className="text-xs font-medium px-1.5 py-0.5 rounded-full text-red-700 bg-red-100 shrink-0">
-                {new Date(selectedDate).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })}
+              <div className="text-sm font-medium px-2 py-1 rounded-full text-purple-700 bg-purple-100">
+                Konsinyasi
               </div>
             </div>
             <div>
-              <h3 className="text-xs font-medium text-gray-600 mb-1 truncate">Stock Keluar</h3>
-              <p className="text-lg sm:text-xl font-bold text-gray-900">{dailySummary.totalOut}</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-3 sm:p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="p-2 rounded-lg bg-blue-50 shrink-0">
-                <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
-              </div>
-              <div className="text-xs font-medium px-1.5 py-0.5 rounded-full text-blue-700 bg-blue-100 shrink-0">
-                Total
-              </div>
-            </div>
-            <div>
-              <h3 className="text-xs font-medium text-gray-600 mb-1 truncate">Movement</h3>
-              <p className="text-lg sm:text-xl font-bold text-gray-900">{dailySummary.totalMovements}</p>
+              <h3 className="text-sm font-medium text-gray-600 mb-1">Pembayaran Konsinyasi</h3>
+              <p className="text-2xl font-bold text-gray-900">{formatCurrency(consignmentPayments)}</p>
+              <p className="text-xs text-gray-500 mt-1">
+                Total stock movement: {dailySummary.totalMovements}
+              </p>
             </div>
           </CardContent>
         </Card>
