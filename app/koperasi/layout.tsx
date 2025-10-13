@@ -23,7 +23,7 @@ export default function KoperasiLayout({ children }: { children: React.ReactNode
     <div className="h-full flex flex-col">
       <div className="flex items-center gap-3 mb-8 px-6 pt-6">
         <Image src="/logo-umb.png" width={40} height={40} alt="UMB" className="rounded-full" />
-        <div className="text-lg font-bold text-blue-700 leading-tight">KOPERASI<br />UM Bandung</div>
+        <div className="text-lg font-bold text-blue-700 leading-tight">KOPERASI<br />UM BANDUNG</div>
       </div>
 
       <nav className="space-y-1 px-6 flex-1">
