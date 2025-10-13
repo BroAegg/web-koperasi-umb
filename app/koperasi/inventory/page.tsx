@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { DateSelector } from '@/components/ui/date-selector';
 import { useNotification } from '@/lib/notification-context';
 import { formatCurrency } from '@/lib/utils';
 import { 
@@ -1313,9 +1312,9 @@ export default function InventoryPage() {
       {/* Calendar Modal */}
       {showCalendarModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-lg shadow-xl max-w-md w-full">
+          <div className="bg-white rounded-lg shadow-xl max-w-sm w-full">
             <div className="flex items-center justify-between p-4 border-b">
-              <h3 className="text-lg font-semibold text-gray-900">Pilih Periode Tanggal</h3>
+              <h3 className="text-lg font-semibold text-gray-900">Pilih Tanggal</h3>
               <button
                 onClick={() => setShowCalendarModal(false)}
                 className="text-gray-400 hover:text-gray-600 transition-colors"
@@ -1325,25 +1324,35 @@ export default function InventoryPage() {
             </div>
             
             <div className="p-4">
-              <DateSelector
-                selectedDate={selectedDate}
-                onDateChange={(date) => {
-                  setSelectedDate(date);
-                  setFinancialPeriod('today'); // Reset to today when manual date is selected
-                }}
-                onRangeChange={(range) => {
-                  setSelectedRange(range);
-                  if (range) {
-                    // Update financial period based on range
-                    if (range.label === '7 Hari Terakhir') setFinancialPeriod('7days');
-                    else if (range.label === '1 Bulan Terakhir') setFinancialPeriod('1month');
-                    else if (range.label === '6 Bulan Terakhir') setFinancialPeriod('6months');
-                  }
-                }}
-                activeRange={selectedRange}
-                showControls={true}
-                className="border-0 shadow-none"
-              />
+              <div className="space-y-4">
+                {/* Simple Date Input */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Tanggal
+                  </label>
+                  <input
+                    type="date"
+                    value={selectedDate}
+                    onChange={(e) => setSelectedDate(e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  />
+                </div>
+                
+                {/* Display Selected Date */}
+                <div className="bg-blue-50 p-3 rounded-lg">
+                  <p className="text-sm text-blue-700 font-medium">
+                    Tanggal terpilih:
+                  </p>
+                  <p className="text-blue-900 font-semibold">
+                    {new Date(selectedDate).toLocaleDateString('id-ID', {
+                      weekday: 'long',
+                      day: 'numeric',
+                      month: 'long',
+                      year: 'numeric'
+                    })}
+                  </p>
+                </div>
+              </div>
             </div>
             
             <div className="flex gap-3 p-4 border-t">
@@ -1355,7 +1364,11 @@ export default function InventoryPage() {
                 Batal
               </Button>
               <Button
-                onClick={() => setShowCalendarModal(false)}
+                onClick={() => {
+                  setFinancialPeriod('today'); // Reset to today when manual date is selected
+                  setSelectedRange(null); // Clear any range selection
+                  setShowCalendarModal(false);
+                }}
                 className="flex-1"
               >
                 Terapkan
