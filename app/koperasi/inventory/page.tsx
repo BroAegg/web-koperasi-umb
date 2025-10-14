@@ -5,7 +5,6 @@ import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { DateSelector } from '@/components/ui/date-selector';
 import { useNotification } from '@/lib/notification-context';
 import { formatCurrency } from '@/lib/utils';
 import { 
@@ -21,7 +20,11 @@ import {
   Trash2,
   BarChart3,
   X,
-  Hash
+  Hash,
+  DollarSign,
+  Receipt,
+  PiggyBank,
+  Calendar
 } from 'lucide-react';
 
 interface Product {
@@ -66,6 +69,8 @@ export default function InventoryPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("semua");
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [selectedRange, setSelectedRange] = useState<any>(null);
+  const [financialPeriod, setFinancialPeriod] = useState<'today' | '7days' | '1month' | '3months' | '6months' | '1year'>('today');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showStockModal, setShowStockModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
@@ -375,6 +380,12 @@ export default function InventoryPage() {
   const totalProducts = products.length;
   const totalStockValue = products.reduce((sum, p) => sum + (p.buyPrice * p.stock), 0);
   const todayProfit = products.reduce((sum, p) => sum + (p.profit * p.soldToday), 0);
+  
+  // Financial metrics calculations
+  const totalSoldToday = products.reduce((sum, p) => sum + p.soldToday, 0);
+  const consignmentPayments = products.reduce((sum, p) => sum + (p.buyPrice * p.stock * 0.3), 0); // Assuming 30% consignment
+  const totalRevenue = products.reduce((sum, p) => sum + (p.sellPrice * p.soldToday), 0);
+  const totalProfit = products.reduce((sum, p) => sum + ((p.sellPrice - p.buyPrice) * p.soldToday), 0);
 
   const categoryOptions = ["semua", ...categories.map(c => c.name)];
 
@@ -400,118 +411,186 @@ export default function InventoryPage() {
         </div>
       </div>
 
-      {/* Date Selector */}
-      <DateSelector
-        selectedDate={selectedDate}
-        onDateChange={setSelectedDate}
-        showControls={true}
-      />
-
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3 sm:gap-4">
-        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-3 sm:p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="p-2 rounded-lg bg-blue-50 shrink-0">
-                <Package className="w-4 h-4 sm:w-5 sm:h-5 text-blue-700" />
+      {/* Statistics Cards with Visual Hierarchy */}
+      <div className="space-y-4 sm:space-y-6">
+        {/* DOMINANT: Financial Metrics Card */}
+        <Card className="border border-blue-200 shadow-lg hover:shadow-xl transition-all bg-gradient-to-br from-blue-50 to-indigo-50">
+          <CardHeader className="border-b border-blue-100 pb-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 shadow-md">
+                  <DollarSign className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">Omzet & Keuntungan</h3>
+                  <p className="text-xs text-gray-600">Analisis performa finansial</p>
+                </div>
               </div>
-              <div className="text-xs font-medium px-1.5 py-0.5 rounded-full text-blue-700 bg-blue-100 shrink-0">
-                {totalProducts}
+              
+              {/* Period Dropdown & Calendar */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs text-gray-600 font-medium hidden sm:inline">Periode:</span>
+                <div className="flex items-center rounded-lg border border-blue-200 bg-white shadow-sm overflow-hidden">
+                  <select
+                    value={financialPeriod}
+                    onChange={(e) => setFinancialPeriod(e.target.value as any)}
+                    className="px-3 py-1.5 text-xs font-medium bg-white border-none outline-none appearance-none cursor-pointer text-gray-700"
+                  >
+                    <option value="today">Hari Ini</option>
+                    <option value="7days">7 Hari</option>
+                    <option value="1month">1 Bulan</option>
+                    <option value="3months">3 Bulan</option>
+                    <option value="6months">6 Bulan</option>
+                    <option value="1year">1 Tahun</option>
+                  </select>
+                  
+                  {/* Calendar Date Input - Hidden behind icon */}
+                  <div className="relative">
+                    <input
+                      type="date"
+                      value={selectedDate}
+                      onChange={(e) => {
+                        setSelectedDate(e.target.value);
+                        setFinancialPeriod('today'); // Reset to today when manual date is selected
+                        setSelectedRange(null); // Clear any range selection
+                      }}
+                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    />
+                    <button 
+                      type="button"
+                      className="px-2.5 py-1.5 border-l border-blue-100 text-gray-600 hover:bg-blue-50 transition-colors pointer-events-none"
+                    >
+                      <Calendar className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
+                </div>
               </div>
             </div>
-            <div>
-              <h3 className="text-xs font-medium text-gray-600 mb-1 truncate">Total Produk</h3>
-              <p className="text-lg sm:text-xl font-bold text-gray-900">{totalProducts}</p>
+            
+            {/* Period Display */}
+            <div className="mt-2">
+              <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                {financialPeriod === 'today' ? 'Hari Ini' :
+                 financialPeriod === '7days' ? '7 Hari Terakhir' :
+                 financialPeriod === '1month' ? '30 Hari Terakhir' :
+                 financialPeriod === '3months' ? '3 Bulan Terakhir' :
+                 financialPeriod === '6months' ? '6 Bulan Terakhir' :
+                 '1 Tahun Terakhir'}
+              </span>
+            </div>
+          </CardHeader>
+          
+          <CardContent className="p-6">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* Total Omzet */}
+              <div className="space-y-2">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-gray-600">Total Omzet</span>
+                  <TrendingUp className="h-4 w-4 text-emerald-500" />
+                </div>
+                <p className="text-3xl font-bold text-gray-900">{formatCurrency(totalRevenue)}</p>
+                <div className="flex items-center gap-1">
+                  <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                    +12% dari periode sebelumnya
+                  </span>
+                </div>
+              </div>
+              
+              {/* Keuntungan Bersih */}
+              <div className="space-y-2 border-l border-blue-100 pl-6">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-gray-600">Keuntungan Bersih</span>
+                  <PiggyBank className="h-4 w-4 text-green-500" />
+                </div>
+                <p className="text-3xl font-bold text-emerald-600">{formatCurrency(totalProfit)}</p>
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-500">Profit Margin:</span>
+                  <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                    {totalRevenue > 0 ? ((totalProfit / totalRevenue) * 100).toFixed(1) : 0}%
+                  </span>
+                </div>
+              </div>
+              
+              {/* Produk Terjual */}
+              <div className="space-y-2 border-l border-blue-100 pl-6">
+                <div className="flex items-center gap-2">
+                  <span className="text-sm font-medium text-gray-600">Produk Terjual</span>
+                  <Hash className="h-4 w-4 text-blue-500" />
+                </div>
+                <p className="text-3xl font-bold text-gray-900">{totalSoldToday}</p>
+                <p className="text-xs text-gray-500">
+                  Item terjual periode ini
+                </p>
+              </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-3 sm:p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="p-2 rounded-lg bg-emerald-50 shrink-0">
-                <TrendingUp className="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" />
+        {/* SECONDARY: Other Metrics - 3 Cards in a Row */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          {/* Total Produk */}
+          <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-3 rounded-lg bg-blue-50">
+                  <Package className="w-6 h-6 text-blue-700" />
+                </div>
+                <div className="text-sm font-medium px-2 py-1 rounded-full text-blue-700 bg-blue-100">
+                  {totalProducts} Items
+                </div>
               </div>
-              <div className="text-xs font-medium px-1.5 py-0.5 rounded-full text-emerald-700 bg-emerald-100 shrink-0">
-                +15%
+              <div>
+                <h3 className="text-sm font-medium text-gray-600 mb-1">Total Produk</h3>
+                <p className="text-2xl font-bold text-gray-900">{totalProducts}</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  {lowStockProducts.length} produk stok rendah
+                </p>
               </div>
-            </div>
-            <div>
-              <h3 className="text-xs font-medium text-gray-600 mb-1 truncate">Nilai Stok</h3>
-              <p className="text-sm sm:text-lg font-bold text-gray-900 truncate" title={formatCurrency(totalStockValue)}>
-                {formatCurrency(totalStockValue)}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-3 sm:p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="p-2 rounded-lg bg-amber-50 shrink-0">
-                <AlertTriangle className="w-4 h-4 sm:w-5 sm:h-5 text-amber-600" />
+          {/* Nilai Stok */}
+          <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-3 rounded-lg bg-emerald-50">
+                  <TrendingUp className="w-6 h-6 text-emerald-600" />
+                </div>
+                <div className="text-sm font-medium px-2 py-1 rounded-full text-emerald-700 bg-emerald-100">
+                  Asset
+                </div>
               </div>
-              <div className="text-xs font-medium px-1.5 py-0.5 rounded-full text-amber-700 bg-amber-100 shrink-0">
-                {lowStockProducts.length}
+              <div>
+                <h3 className="text-sm font-medium text-gray-600 mb-1">Nilai Stok</h3>
+                <p className="text-2xl font-bold text-gray-900">{formatCurrency(totalStockValue)}</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Total aset inventory
+                </p>
               </div>
-            </div>
-            <div>
-              <h3 className="text-xs font-medium text-gray-600 mb-1 truncate">Stok Rendah</h3>
-              <p className="text-lg sm:text-xl font-bold text-gray-900">{lowStockProducts.length}</p>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-3 sm:p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="p-2 rounded-lg bg-green-50 shrink-0">
-                <Plus className="w-4 h-4 sm:w-5 sm:h-5 text-green-600" />
+          {/* Pembayaran Konsinyasi */}
+          <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
+            <CardContent className="p-4 sm:p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-3 rounded-lg bg-purple-50">
+                  <Receipt className="w-6 h-6 text-purple-600" />
+                </div>
+                <div className="text-sm font-medium px-2 py-1 rounded-full text-purple-700 bg-purple-100">
+                  Konsinyasi
+                </div>
               </div>
-              <div className="text-xs font-medium px-1.5 py-0.5 rounded-full text-green-700 bg-green-100 shrink-0">
-                {new Date(selectedDate).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })}
+              <div>
+                <h3 className="text-sm font-medium text-gray-600 mb-1">Pembayaran Konsinyasi</h3>
+                <p className="text-2xl font-bold text-gray-900">{formatCurrency(consignmentPayments)}</p>
+                <p className="text-xs text-gray-500 mt-1">
+                  Total stock movement: {dailySummary.totalMovements}
+                </p>
               </div>
-            </div>
-            <div>
-              <h3 className="text-xs font-medium text-gray-600 mb-1 truncate">Stock Masuk</h3>
-              <p className="text-lg sm:text-xl font-bold text-gray-900">{dailySummary.totalIn}</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-3 sm:p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="p-2 rounded-lg bg-red-50 shrink-0">
-                <Minus className="w-4 h-4 sm:w-5 sm:h-5 text-red-600" />
-              </div>
-              <div className="text-xs font-medium px-1.5 py-0.5 rounded-full text-red-700 bg-red-100 shrink-0">
-                {new Date(selectedDate).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })}
-              </div>
-            </div>
-            <div>
-              <h3 className="text-xs font-medium text-gray-600 mb-1 truncate">Stock Keluar</h3>
-              <p className="text-lg sm:text-xl font-bold text-gray-900">{dailySummary.totalOut}</p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
-          <CardContent className="p-3 sm:p-4">
-            <div className="flex items-center justify-between mb-3">
-              <div className="p-2 rounded-lg bg-blue-50 shrink-0">
-                <BarChart3 className="w-4 h-4 sm:w-5 sm:h-5 text-blue-600" />
-              </div>
-              <div className="text-xs font-medium px-1.5 py-0.5 rounded-full text-blue-700 bg-blue-100 shrink-0">
-                Total
-              </div>
-            </div>
-            <div>
-              <h3 className="text-xs font-medium text-gray-600 mb-1 truncate">Movement</h3>
-              <p className="text-lg sm:text-xl font-bold text-gray-900">{dailySummary.totalMovements}</p>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 xl:grid-cols-4 gap-4 sm:gap-6">

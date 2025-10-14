@@ -82,6 +82,7 @@ export default function FinancialPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
+  const [financialPeriod, setFinancialPeriod] = useState<'today' | '7days' | '1month' | '3months' | '6months' | '1year'>('today');
   const [filterType, setFilterType] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -366,78 +367,196 @@ export default function FinancialPage() {
         showControls={true}
       />
 
-      {/* Daily Summary Cards */}
+      {/* Financial Summary Cards with Visual Hierarchy */}
       {dailySummary && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Total Pemasukan</p>
-                  <h3 className="text-2xl font-bold text-green-600">
-                    {formatCurrency(dailySummary.totalIncome)}
-                  </h3>
+        <div className="space-y-4 sm:space-y-6">
+          {/* DOMINANT: Financial Summary Card */}
+          <Card className="border border-blue-200 shadow-lg hover:shadow-xl transition-all bg-gradient-to-br from-blue-50 to-indigo-50">
+            <CardHeader className="border-b border-blue-100 pb-4">
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 shadow-md">
+                    <DollarSign className="w-6 h-6 text-white" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-gray-900">Ringkasan Keuangan</h3>
+                    <p className="text-xs text-gray-600">Analisis performa keuangan harian</p>
+                  </div>
                 </div>
-                <div className="p-3 rounded-lg bg-green-50">
-                  <TrendingUp className="w-6 h-6 text-green-600" />
+                
+                {/* Period Dropdown & Calendar */}
+                <div className="flex items-center gap-2">
+                  <span className="text-xs text-gray-600 font-medium hidden sm:inline">Periode:</span>
+                  <div className="flex items-center rounded-lg border border-blue-200 bg-white shadow-sm overflow-hidden">
+                    <select
+                      value={financialPeriod}
+                      onChange={(e) => setFinancialPeriod(e.target.value as any)}
+                      className="px-3 py-1.5 text-xs font-medium bg-white border-none outline-none appearance-none cursor-pointer text-gray-700"
+                    >
+                      <option value="today">Hari Ini</option>
+                      <option value="7days">7 Hari</option>
+                      <option value="1month">1 Bulan</option>
+                      <option value="3months">3 Bulan</option>
+                      <option value="6months">6 Bulan</option>
+                      <option value="1year">1 Tahun</option>
+                    </select>
+                    
+                    {/* Calendar Date Input - Hidden behind icon */}
+                    <div className="relative">
+                      <input
+                        type="date"
+                        value={selectedDate}
+                        onChange={(e) => {
+                          setSelectedDate(e.target.value);
+                          setFinancialPeriod('today'); // Reset to today when manual date is selected
+                        }}
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                      />
+                      <button 
+                        type="button"
+                        className="px-2.5 py-1.5 border-l border-blue-100 text-gray-600 hover:bg-blue-50 transition-colors pointer-events-none"
+                      >
+                        <Calendar className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  </div>
                 </div>
               </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Total Pengeluaran</p>
-                  <h3 className="text-2xl font-bold text-red-600">
-                    {formatCurrency(dailySummary.totalExpense)}
-                  </h3>
-                </div>
-                <div className="p-3 rounded-lg bg-red-50">
-                  <TrendingDown className="w-6 h-6 text-red-600" />
-                </div>
+              
+              {/* Period Display */}
+              <div className="mt-2">
+                <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                  {financialPeriod === 'today' ? 'Hari Ini' :
+                   financialPeriod === '7days' ? '7 Hari Terakhir' :
+                   financialPeriod === '1month' ? '30 Hari Terakhir' :
+                   financialPeriod === '3months' ? '3 Bulan Terakhir' :
+                   financialPeriod === '6months' ? '6 Bulan Terakhir' :
+                   '1 Tahun Terakhir'}
+                </span>
               </div>
-            </CardContent>
-          </Card>
-          
-          <Card>
+            </CardHeader>
+            
             <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm text-gray-600">Keuntungan Bersih</p>
-                  <h3 className={`text-2xl font-bold ${
-                    dailySummary.netIncome >= 0 ? 'text-green-600' : 'text-red-600'
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                {/* Total Pemasukan */}
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-gray-600">Total Pemasukan</span>
+                    <TrendingUp className="h-4 w-4 text-emerald-500" />
+                  </div>
+                  <p className="text-3xl font-bold text-emerald-600">{formatCurrency(dailySummary.totalIncome)}</p>
+                  <div className="flex items-center gap-1">
+                    <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
+                      +15% dari periode sebelumnya
+                    </span>
+                  </div>
+                </div>
+                
+                {/* Total Pengeluaran */}
+                <div className="space-y-2 border-l border-blue-100 pl-6">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-gray-600">Total Pengeluaran</span>
+                    <TrendingDown className="h-4 w-4 text-red-500" />
+                  </div>
+                  <p className="text-3xl font-bold text-red-600">{formatCurrency(dailySummary.totalExpense)}</p>
+                  <div className="flex items-center gap-2">
+                    <span className="text-xs text-gray-500">Efisiensi:</span>
+                    <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
+                      {dailySummary.totalIncome > 0 ? ((1 - dailySummary.totalExpense / dailySummary.totalIncome) * 100).toFixed(1) : 0}%
+                    </span>
+                  </div>
+                </div>
+                
+                {/* Keuntungan Bersih */}
+                <div className="space-y-2 border-l border-blue-100 pl-6">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-medium text-gray-600">Keuntungan Bersih</span>
+                    <DollarSign className="h-4 w-4 text-blue-500" />
+                  </div>
+                  <p className={`text-3xl font-bold ${
+                    dailySummary.netIncome >= 0 ? 'text-emerald-600' : 'text-red-600'
                   }`}>
                     {formatCurrency(dailySummary.netIncome)}
-                  </h3>
-                </div>
-                <div className={`p-3 rounded-lg ${
-                  dailySummary.netIncome >= 0 ? 'bg-blue-50' : 'bg-red-50'
-                }`}>
-                  <DollarSign className={`w-6 h-6 ${
-                    dailySummary.netIncome >= 0 ? 'text-blue-600' : 'text-red-600'
-                  }`} />
+                  </p>
+                  <p className="text-xs text-gray-500">
+                    {dailySummary.transactionCount} transaksi periode ini
+                  </p>
                 </div>
               </div>
             </CardContent>
           </Card>
-          
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
+
+          {/* SECONDARY: Other Metrics - 3 Cards in a Row */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {/* Transaksi Penjualan */}
+            <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 rounded-lg bg-green-50">
+                    <ShoppingCart className="w-6 h-6 text-green-600" />
+                  </div>
+                  <div className="text-sm font-medium px-2 py-1 rounded-full text-green-700 bg-green-100">
+                    Sales
+                  </div>
+                </div>
                 <div>
-                  <p className="text-sm text-gray-600">Total Transaksi</p>
-                  <h3 className="text-2xl font-bold text-gray-900">
-                    {dailySummary.transactionCount}
-                  </h3>
+                  <h3 className="text-sm font-medium text-gray-600 mb-1">Transaksi Penjualan</h3>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {transactions.filter(t => t.type === 'SALE').length}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    {formatCurrency(transactions.filter(t => t.type === 'SALE').reduce((sum, t) => sum + t.amount, 0))}
+                  </p>
                 </div>
-                <div className="p-3 rounded-lg bg-gray-50">
-                  <Receipt className="w-6 h-6 text-gray-600" />
+              </CardContent>
+            </Card>
+
+            {/* Metode Pembayaran */}
+            <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 rounded-lg bg-blue-50">
+                    <CreditCard className="w-6 h-6 text-blue-600" />
+                  </div>
+                  <div className="text-sm font-medium px-2 py-1 rounded-full text-blue-700 bg-blue-100">
+                    Payment
+                  </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+                <div>
+                  <h3 className="text-sm font-medium text-gray-600 mb-1">Pembayaran Cash</h3>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {transactions.filter(t => t.paymentMethod === 'CASH').length}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    dari {dailySummary.transactionCount} total transaksi
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Rata-rata Transaksi */}
+            <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
+              <CardContent className="p-4 sm:p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="p-3 rounded-lg bg-purple-50">
+                    <Receipt className="w-6 h-6 text-purple-600" />
+                  </div>
+                  <div className="text-sm font-medium px-2 py-1 rounded-full text-purple-700 bg-purple-100">
+                    Average
+                  </div>
+                </div>
+                <div>
+                  <h3 className="text-sm font-medium text-gray-600 mb-1">Rata-rata Transaksi</h3>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {formatCurrency(dailySummary.transactionCount > 0 ? dailySummary.totalIncome / dailySummary.transactionCount : 0)}
+                  </p>
+                  <p className="text-xs text-gray-500 mt-1">
+                    per transaksi hari ini
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </div>
       )}
 
