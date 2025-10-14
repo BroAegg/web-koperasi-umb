@@ -360,13 +360,6 @@ export default function FinancialPage() {
         </div>
       </div>
 
-      {/* Date Filter */}
-      <DateSelector
-        selectedDate={selectedDate}
-        onDateChange={setSelectedDate}
-        showControls={true}
-      />
-
       {/* Financial Summary Cards with Visual Hierarchy */}
       {dailySummary && (
         <div className="space-y-4 sm:space-y-6">
