@@ -338,7 +338,7 @@ export default function InventoryPage() {
       stock: product.stock.toString(),
       threshold: product.threshold.toString(),
       unit: product.unit,
-    });
+    }); 
     setShowAddModal(true);
   };
 
@@ -390,7 +390,7 @@ export default function InventoryPage() {
   const categoryOptions = ["semua", ...categories.map(c => c.name)];
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
@@ -419,7 +419,7 @@ export default function InventoryPage() {
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
               <div className="flex items-center gap-3">
                 <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 shadow-md">
-                  <DollarSign className="w-6 h-6 text-white" />
+                  <DollarSign className="w-4 h-4 text-white" />
                 </div>
                 <div>
                   <h3 className="text-lg font-bold text-gray-900">Omzet & Keuntungan</h3>
