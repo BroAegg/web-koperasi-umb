@@ -79,6 +79,7 @@ export default function InventoryPage() {
   const [financialPeriod, setFinancialPeriod] = useState<'today' | '7days' | '1month' | '3months' | '6months' | '1year'>('today');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showStockModal, setShowStockModal] = useState(false);
+  const [showFilterModal, setShowFilterModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
@@ -626,34 +627,19 @@ export default function InventoryPage() {
                       className="pl-10 w-full sm:w-64"
                     />
                   </div>
-                  <select
-                    value={selectedCategory}
-                    onChange={(e) => setSelectedCategory(e.target.value)}
-                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                  <Button
+                    variant="outline"
+                    onClick={() => setShowFilterModal(true)}
+                    className="relative"
                   >
-                    {categoryOptions.map(cat => (
-                      <option key={cat} value={cat}>{cat === "semua" ? "Semua Kategori" : cat}</option>
-                    ))}
-                  </select>
-                  <select
-                    value={selectedOwnership}
-                    onChange={(e) => setSelectedOwnership(e.target.value as 'semua' | 'TOKO' | 'TITIPAN')}
-                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                  >
-                    <option value="semua">Semua Jenis</option>
-                    <option value="TOKO">🏪 Toko</option>
-                    <option value="TITIPAN">🎁 Titipan</option>
-                  </select>
-                  <select
-                    value={selectedCycle}
-                    onChange={(e) => setSelectedCycle(e.target.value as 'semua' | 'HARIAN' | 'MINGGUAN' | 'DUA_MINGGUAN')}
-                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                  >
-                    <option value="semua">Semua Siklus</option>
-                    <option value="HARIAN">📅 Harian</option>
-                    <option value="MINGGUAN">📅 Mingguan</option>
-                    <option value="DUA_MINGGUAN">📅 Dua Mingguan</option>
-                  </select>
+                    <BarChart3 className="w-4 h-4 mr-2" />
+                    Filter
+                    {(selectedCategory !== 'semua' || selectedOwnership !== 'semua' || selectedCycle !== 'semua') && (
+                      <span className="absolute -top-1 -right-1 bg-blue-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                        {[selectedCategory !== 'semua', selectedOwnership !== 'semua', selectedCycle !== 'semua'].filter(Boolean).length}
+                      </span>
+                    )}
+                  </Button>
                 </div>
               </div>
             </CardHeader>
@@ -678,25 +664,25 @@ export default function InventoryPage() {
                           <div className="flex flex-col gap-1.5">
                             <span className="font-medium">{product.name}</span>
                             <div className="flex flex-wrap gap-1.5">
-                              {/* Ownership Badge */}
+                              {/* Ownership Badge - Clean, No Emoji */}
                               {product.ownershipType && (
-                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
                                   product.ownershipType === 'TOKO' 
-                                    ? 'bg-blue-100 text-blue-700' 
-                                    : 'bg-purple-100 text-purple-700'
+                                    ? 'bg-blue-50 text-blue-700 border border-blue-200' 
+                                    : 'bg-purple-50 text-purple-700 border border-purple-200'
                                 }`}>
-                                  {product.ownershipType === 'TOKO' ? '🏪 Toko' : '🎁 Titipan'}
+                                  {product.ownershipType === 'TOKO' ? 'Toko' : 'Titipan'}
                                 </span>
                               )}
-                              {/* Stock Cycle Badge */}
+                              {/* Stock Cycle Badge - Clean, No Emoji */}
                               {product.stockCycle && (
-                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                                  product.stockCycle === 'HARIAN' ? 'bg-orange-100 text-orange-700' :
-                                  product.stockCycle === 'MINGGUAN' ? 'bg-blue-100 text-blue-700' :
-                                  'bg-green-100 text-green-700'
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
+                                  product.stockCycle === 'HARIAN' ? 'bg-orange-50 text-orange-700 border border-orange-200' :
+                                  product.stockCycle === 'MINGGUAN' ? 'bg-green-50 text-green-700 border border-green-200' :
+                                  'bg-teal-50 text-teal-700 border border-teal-200'
                                 }`}>
-                                  {product.stockCycle === 'HARIAN' ? '📅 Harian' :
-                                   product.stockCycle === 'MINGGUAN' ? '📅 Mingguan' : '📅 Dua Mingguan'}
+                                  {product.stockCycle === 'HARIAN' ? 'Harian' :
+                                   product.stockCycle === 'MINGGUAN' ? 'Mingguan' : 'Dua Mingguan'}
                                 </span>
                               )}
                             </div>
@@ -1249,6 +1235,161 @@ export default function InventoryPage() {
                   </Button>
                 </div>
               </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Filter Modal - Clean & Organized */}
+      {showFilterModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 text-white">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-bold">Filter Produk</h3>
+                  <p className="text-blue-100 text-sm mt-1">Atur filter untuk pencarian produk</p>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setShowFilterModal(false)}
+                  className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 space-y-6">
+              {/* Category Filter */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Kategori Produk
+                </label>
+                <select
+                  value={selectedCategory}
+                  onChange={(e) => setSelectedCategory(e.target.value)}
+                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white"
+                >
+                  {categoryOptions.map(cat => (
+                    <option key={cat} value={cat}>
+                      {cat === "semua" ? "Semua Kategori" : cat}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Ownership Type Filter */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Jenis Kepemilikan
+                </label>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    onClick={() => setSelectedOwnership('semua')}
+                    className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                      selectedOwnership === 'semua'
+                        ? 'bg-blue-600 text-white shadow-md'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    Semua
+                  </button>
+                  <button
+                    onClick={() => setSelectedOwnership('TOKO')}
+                    className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                      selectedOwnership === 'TOKO'
+                        ? 'bg-blue-600 text-white shadow-md'
+                        : 'bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100'
+                    }`}
+                  >
+                    Toko
+                  </button>
+                  <button
+                    onClick={() => setSelectedOwnership('TITIPAN')}
+                    className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                      selectedOwnership === 'TITIPAN'
+                        ? 'bg-purple-600 text-white shadow-md'
+                        : 'bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100'
+                    }`}
+                  >
+                    Titipan
+                  </button>
+                </div>
+              </div>
+
+              {/* Stock Cycle Filter */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Siklus Stok
+                </label>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => setSelectedCycle('semua')}
+                    className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                      selectedCycle === 'semua'
+                        ? 'bg-blue-600 text-white shadow-md'
+                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                    }`}
+                  >
+                    Semua
+                  </button>
+                  <button
+                    onClick={() => setSelectedCycle('HARIAN')}
+                    className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                      selectedCycle === 'HARIAN'
+                        ? 'bg-orange-600 text-white shadow-md'
+                        : 'bg-orange-50 text-orange-700 border border-orange-200 hover:bg-orange-100'
+                    }`}
+                  >
+                    Harian
+                  </button>
+                  <button
+                    onClick={() => setSelectedCycle('MINGGUAN')}
+                    className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                      selectedCycle === 'MINGGUAN'
+                        ? 'bg-green-600 text-white shadow-md'
+                        : 'bg-green-50 text-green-700 border border-green-200 hover:bg-green-100'
+                    }`}
+                  >
+                    Mingguan
+                  </button>
+                  <button
+                    onClick={() => setSelectedCycle('DUA_MINGGUAN')}
+                    className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                      selectedCycle === 'DUA_MINGGUAN'
+                        ? 'bg-teal-600 text-white shadow-md'
+                        : 'bg-teal-50 text-teal-700 border border-teal-200 hover:bg-teal-100'
+                    }`}
+                  >
+                    Dua Mingguan
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-4 bg-gray-50 flex gap-3 rounded-b-xl">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setSelectedCategory('semua');
+                  setSelectedOwnership('semua');
+                  setSelectedCycle('semua');
+                }}
+                className="flex-1"
+              >
+                Reset Filter
+              </Button>
+              <Button
+                onClick={() => setShowFilterModal(false)}
+                className="flex-1 bg-blue-600 hover:bg-blue-700"
+              >
+                Terapkan Filter
+              </Button>
             </div>
           </div>
         </div>
