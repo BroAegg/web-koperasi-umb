@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
     }
 
     // If not found in User, try SupplierProfile (direct supplier registration)
-    const supplier = await prisma.supplierProfile.findUnique({ 
+    const supplier = await prisma.supplier_profiles.findUnique({ 
       where: { email },
       select: {
         id: true,

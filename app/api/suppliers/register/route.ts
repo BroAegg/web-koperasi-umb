@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if email already exists
-    const existingSupplier = await prisma.supplierProfile.findUnique({
+    const existingSupplier = await prisma.supplier_profiles.findUnique({
       where: { email },
     });
 
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
     const hashedPassword = await hashPassword(password);
 
     // Create supplier profile (without user account first)
-    const supplierProfile = await prisma.supplierProfile.create({
+    const supplierProfile = await prisma.supplier_profiles.create({
       data: {
         businessName: name,
         ownerName: name,
