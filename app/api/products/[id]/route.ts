@@ -89,27 +89,42 @@ export async function DELETE(
     
     // Delete in correct order to avoid foreign key constraints
     
-    // 1. Delete consignment batches (if any)
+    // 1. First, get all consignment batches for this product
+    const batches = await prisma.consignmentBatch.findMany({
+      where: { productId: id },
+      select: { id: true },
+    });
+    
+    // 2. Delete consignment sales (if any) - these reference batches
+    if (batches.length > 0) {
+      await prisma.consignmentSale.deleteMany({
+        where: { 
+          batchId: { in: batches.map(b => b.id) }
+        },
+      });
+    }
+    
+    // 3. Now delete consignment batches
     await prisma.consignmentBatch.deleteMany({
       where: { productId: id },
     });
 
-    // 2. Delete stock movements
+    // 4. Delete stock movements
     await prisma.stockMovement.deleteMany({
       where: { productId: id },
     });
 
-    // 3. Delete transaction items (if any)
+    // 5. Delete transaction items (if any)
     await prisma.transactionItem.deleteMany({
       where: { productId: id },
     });
 
-    // 4. Delete purchase items (if any)
+    // 6. Delete purchase items (if any)
     await prisma.purchaseItem.deleteMany({
       where: { productId: id },
     });
 
-    // 5. Finally, delete the product
+    // 7. Finally, delete the product
     await prisma.product.delete({
       where: { id },
     });

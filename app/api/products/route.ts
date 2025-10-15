@@ -162,12 +162,19 @@ export async function POST(request: NextRequest) {
 
     // Create initial stock movement if stock > 0
     if (stock > 0) {
+      // For consignment products, use avgCost or sellPrice * 0.7 as unit cost estimate
+      let unitCostValue = buyPrice ? new Decimal(buyPrice) : null;
+      if (ownershipType === 'TITIPAN' && !unitCostValue) {
+        // Estimate: 70% of sell price as consignment cost
+        unitCostValue = new Decimal(sellPrice).mul(0.7);
+      }
+      
       await prisma.stockMovement.create({
         data: {
           productId: product.id,
           movementType: ownershipType === 'TOKO' ? 'PURCHASE_IN' : 'CONSIGNMENT_IN',
           quantity: parseInt(stock.toString()),
-          unitCost: buyPrice ? new Decimal(buyPrice) : null,
+          unitCost: unitCostValue,
           note: 'Initial stock',
         },
       });

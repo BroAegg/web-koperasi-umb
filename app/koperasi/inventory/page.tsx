@@ -438,7 +438,7 @@ export default function InventoryPage() {
       sku: '',
       buyPrice: '',
       sellPrice: '',
-      stock: '0',
+      stock: '', // Empty string untuk placeholder
       threshold: '5',
       unit: 'pcs',
       ownershipType: 'TOKO' as 'TOKO' | 'TITIPAN',
@@ -1396,14 +1396,16 @@ export default function InventoryPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Stok Awal
+                      Stok Awal {editingProduct && <span className="text-xs text-gray-500">(Gunakan Update Stok untuk mengubah)</span>}
                     </label>
                     <Input
                       type="number"
                       value={newProduct.stock}
                       onChange={(e) => setNewProduct({...newProduct, stock: e.target.value})}
-                      placeholder="Masukkan stok awal"
+                      placeholder="Contoh: 100"
                       leftIcon={<Package className="w-4 h-4 text-gray-400" />}
+                      disabled={!!editingProduct}
+                      className={editingProduct ? "bg-gray-100 cursor-not-allowed" : ""}
                     />
                   </div>
                   <div>
