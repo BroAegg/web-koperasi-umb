@@ -167,47 +167,344 @@ model Category {
 }
 
 model Product {
-  id          String    @id @default(cuid())
-  name        String
-  description String?
-  categoryId  String
-  sku         String?   @unique
-  buyPrice    Decimal
-  sellPrice   Decimal
-  stock       Int       @default(0)
-  threshold   Int       @default(5) // minimum stock alert
-  unit        String    @default("pcs")
-  isActive    Boolean   @default(true)
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id              String          @id @default(cuid())
+  name            String
+  description     String?
+  categoryId      String
+  sku             String?         @unique
+  
+  // Pricing (buyPrice nullable untuk konsinyasi)
+  buyPrice        Decimal?        // Purchase price (null untuk consignment)
+  sellPrice       Decimal         // Selling price
+  avgCost         Decimal?        // Average cost (untuk COGS calculation)
+  
+  // Stock Management
+  stock           Int             @default(0) // Current stock on hand
+  threshold       Int             @default(5) // Minimum stock alert threshold
+  unit            String          @default("pcs")
+  
+  // Enhancement: Ownership & Stock Cycle
+  ownershipType   OwnershipType   @default(TOKO)
+  stockCycle      StockCycle      @default(MINGGUAN)
+  isConsignment   Boolean         @default(false)
+  
+  // Status & Lifecycle
+  status          ProductStatus   @default(ACTIVE)
+  isActive        Boolean         @default(true) // Backward compatibility
+  lastRestockAt   DateTime?       // Last restock date for cycle tracking
+  expiryPolicy    String?         // Optional expiry policy description
+  
+  // Timestamps
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
   
   // Relations
-  category    Category  @relation(fields: [categoryId], references: [id])
-  stockMovements StockMovement[]
+  category        Category        @relation(fields: [categoryId], references: [id])
+  stockMovements  StockMovement[]
   transactionItems TransactionItem[]
+  
+  // New Relations for Enhancement
+  purchases       PurchaseItem[]
+  consignmentBatches ConsignmentBatch[]
   
   @@map("products")
 }
 
+enum OwnershipType {
+  TOKO      // Store-owned (milik koperasi)
+  TITIPAN   // Consignment (titipan/konsinyasi)
+}
+
+enum StockCycle {
+  HARIAN          // Daily reset (e.g., risol, gorengan)
+  MINGGUAN        // Weekly tracking (e.g., keripik)
+  DUA_MINGGUAN    // Biweekly tracking (e.g., beras)
+}
+
+enum ProductStatus {
+  ACTIVE      // Active, available for sale
+  INACTIVE    // Inactive, not available
+  SEASONAL    // Seasonal product
+}
+
 model StockMovement {
-  id          String           @id @default(cuid())
-  productId   String
-  type        StockMovementType
-  quantity    Int
-  note        String?
-  date        DateTime         @default(now())
-  createdAt   DateTime         @default(now())
+  id            String           @id @default(cuid())
+  productId     String
+  movementType  MovementType     // Enhanced movement type
+  quantity      Int              // Positive for IN, negative for OUT
+  unitCost      Decimal?         // Cost per unit (untuk COGS tracking)
+  
+  // Reference tracking
+  referenceType ReferenceType?   // Type of reference (Purchase/Consignment/Sale/etc)
+  referenceId   String?          // ID of the related transaction
+  
+  // Additional info
+  note          String?
+  occurredAt    DateTime         @default(now()) // When the movement happened
+  createdAt     DateTime         @default(now())
   
   // Relations
-  product     Product          @relation(fields: [productId], references: [id], onDelete: Cascade)
+  product       Product          @relation(fields: [productId], references: [id], onDelete: Cascade)
   
+  @@index([productId, occurredAt])
+  @@index([referenceType, referenceId])
   @@map("stock_movements")
 }
 
-enum StockMovementType {
-  IN          // Stock masuk
-  OUT         // Stock keluar
-  ADJUSTMENT  // Penyesuaian stock
+enum MovementType {
+  PURCHASE_IN       // Stock masuk dari pembelian (store-owned)
+  CONSIGNMENT_IN    // Stock masuk dari titipan (consignment)
+  SALE_OUT          // Stock keluar dari penjualan
+  RETURN_IN         // Stock masuk dari retur pelanggan
+  RETURN_OUT        // Stock keluar retur ke supplier/consignor
+  EXPIRED_OUT       // Stock keluar karena kadaluarsa/rusak
+  ADJUSTMENT        // Penyesuaian manual (opname)
+  TRANSFER_IN       // Transfer masuk antar gudang (future)
+  TRANSFER_OUT      // Transfer keluar antar gudang (future)
+}
+
+enum ReferenceType {
+  PURCHASE          // Reference to Purchase
+  CONSIGNMENT_BATCH // Reference to ConsignmentBatch
+  SALE              // Reference to Transaction (sale)
+  ADJUSTMENT        // Manual adjustment
+  EXPIRY            // Expiry/waste tracking
+}
+
+// =====================================
+// SUPPLIERS & CONSIGNORS
+// =====================================
+
+model Supplier {
+  id          String    @id @default(cuid())
+  code        String    @unique  // Supplier code (e.g., SUP-001)
+  name        String
+  contact     String?   // Contact person
+  phone       String?
+  email       String?
+  address     String?
+  paymentTerms String?  // e.g., "Net 30", "COD"
+  isActive    Boolean   @default(true)
+  note        String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  // Relations
+  purchases   Purchase[]
+  
+  @@map("suppliers")
+}
+
+model Consignor {
+  id          String    @id @default(cuid())
+  code        String    @unique  // Consignor code (e.g., CON-001)
+  name        String
+  contact     String?   // Contact person
+  phone       String?
+  email       String?
+  address     String?
+  feeType     FeeType   @default(PERCENTAGE)
+  defaultFeePercent Decimal?  // Default fee percentage (e.g., 20.00 for 20%)
+  defaultFeeFlat    Decimal?  // Default flat fee per item
+  paymentSchedule   String?   // e.g., "Weekly", "Monthly"
+  isActive    Boolean   @default(true)
+  note        String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  
+  // Relations
+  batches     ConsignmentBatch[]
+  settlements Settlement[]
+  
+  @@map("consignors")
+}
+
+enum FeeType {
+  PERCENTAGE  // Fee based on percentage of sell price
+  FLAT        // Flat fee per unit sold
+  HYBRID      // Combination (future enhancement)
+}
+
+// =====================================
+// PURCHASE (Store-Owned Products)
+// =====================================
+
+model Purchase {
+  id              String        @id @default(cuid())
+  code            String        @unique  // Purchase order code (e.g., PO-2025-001)
+  supplierId      String
+  totalAmount     Decimal       @default(0)
+  purchaseDate    DateTime      @default(now())
+  receivedDate    DateTime?     // When goods actually received
+  status          PurchaseStatus @default(PENDING)
+  paymentStatus   PaymentStatus  @default(UNPAID)
+  paymentDate     DateTime?
+  note            String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  // Relations
+  supplier        Supplier      @relation(fields: [supplierId], references: [id])
+  items           PurchaseItem[]
+  
+  @@index([supplierId, purchaseDate])
+  @@map("purchases")
+}
+
+enum PurchaseStatus {
+  PENDING     // Order placed, awaiting delivery
+  RECEIVED    // Goods received
+  CANCELLED   // Order cancelled
+}
+
+enum PaymentStatus {
+  UNPAID      // Not yet paid
+  PARTIAL     // Partially paid
+  PAID        // Fully paid
+}
+
+model PurchaseItem {
+  id          String    @id @default(cuid())
+  purchaseId  String
+  productId   String
+  quantity    Int
+  unitCost    Decimal   // Cost per unit
+  totalCost   Decimal   // quantity * unitCost
+  createdAt   DateTime  @default(now())
+  
+  // Relations
+  purchase    Purchase  @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+  product     Product   @relation(fields: [productId], references: [id])
+  
+  @@index([purchaseId])
+  @@index([productId])
+  @@map("purchase_items")
+}
+
+// =====================================
+// CONSIGNMENT (Titipan Products)
+// =====================================
+
+model ConsignmentBatch {
+  id              String        @id @default(cuid())
+  code            String        @unique  // Batch code (e.g., CB-2025-001)
+  consignorId     String
+  productId       String
+  
+  // Batch quantities
+  qtyIn           Int           // Initial quantity received
+  qtySold         Int           @default(0)  // Quantity sold (FIFO tracking)
+  qtyReturned     Int           @default(0)  // Quantity returned to consignor
+  qtyExpired      Int           @default(0)  // Quantity expired/wasted
+  qtyRemaining    Int           // Calculated: qtyIn - qtySold - qtyReturned - qtyExpired
+  
+  // Fee structure for this batch
+  feeType         FeeType
+  feePercent      Decimal?      // Fee percentage (e.g., 20.00 for 20%)
+  feeFlat         Decimal?      // Flat fee per unit
+  
+  // Batch lifecycle
+  receivedAt      DateTime      @default(now())
+  expiryAt        DateTime?     // Optional expiry date
+  status          BatchStatus   @default(ACTIVE)
+  
+  note            String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  // Relations
+  consignor       Consignor     @relation(fields: [consignorId], references: [id])
+  product         Product       @relation(fields: [productId], references: [id])
+  consignmentSales ConsignmentSale[]
+  
+  @@index([consignorId, receivedAt])
+  @@index([productId, status])
+  @@index([receivedAt])  // For FIFO queries
+  @@map("consignment_batches")
+}
+
+enum BatchStatus {
+  ACTIVE      // Active, available for sale
+  DEPLETED    // All sold out
+  RETURNED    // Returned to consignor
+  EXPIRED     // Expired/wasted
+}
+
+model ConsignmentSale {
+  id              String        @id @default(cuid())
+  batchId         String
+  transactionItemId String      // Link to actual sale item
+  
+  // Sale details
+  qtySold         Int           // Quantity sold from this batch
+  unitPrice       Decimal       // Selling price per unit
+  totalRevenue    Decimal       // qtySold * unitPrice
+  
+  // Fee calculation
+  feeType         FeeType
+  feeAmount       Decimal       // Total fee for this sale
+  netToConsignor  Decimal       // totalRevenue - feeAmount
+  
+  // Settlement tracking
+  settlementId    String?       // Link to settlement when paid
+  isSettled       Boolean       @default(false)
+  
+  saleDate        DateTime      @default(now())
+  createdAt       DateTime      @default(now())
+  
+  // Relations
+  batch           ConsignmentBatch @relation(fields: [batchId], references: [id])
+  transactionItem TransactionItem  @relation(fields: [transactionItemId], references: [id])
+  settlement      Settlement?      @relation(fields: [settlementId], references: [id])
+  
+  @@index([batchId])
+  @@index([settlementId])
+  @@index([saleDate])
+  @@map("consignment_sales")
+}
+
+// =====================================
+// SETTLEMENT (Consignor Payment)
+// =====================================
+
+model Settlement {
+  id              String        @id @default(cuid())
+  code            String        @unique  // Settlement code (e.g., SET-2025-001)
+  consignorId     String
+  
+  // Settlement period
+  periodStart     DateTime
+  periodEnd       DateTime
+  
+  // Financial summary
+  totalRevenue    Decimal       @default(0)  // Total sales revenue
+  totalFee        Decimal       @default(0)  // Total koperasi fee
+  totalPayable    Decimal       @default(0)  // Total to pay consignor
+  
+  // Payment tracking
+  status          SettlementStatus @default(PENDING)
+  paymentMethod   PaymentMethod?
+  paymentDate     DateTime?
+  paymentRef      String?       // Payment reference number
+  
+  note            String?
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+  
+  // Relations
+  consignor       Consignor     @relation(fields: [consignorId], references: [id])
+  sales           ConsignmentSale[]
+  
+  @@index([consignorId, periodStart])
+  @@index([status])
+  @@map("settlements")
+}
+
+enum SettlementStatus {
+  PENDING     // Generated, awaiting payment
+  PAID        // Payment completed
+  CANCELLED   // Settlement cancelled
+  DISPUTED    // Under dispute/review
 }
 
 // =====================================
@@ -254,18 +551,27 @@ enum TransactionStatus {
 }
 
 model TransactionItem {
-  id            String      @id @default(cuid())
-  transactionId String
-  productId     String
-  quantity      Int
-  unitPrice     Decimal
-  totalPrice    Decimal
-  createdAt     DateTime    @default(now())
+  id              String      @id @default(cuid())
+  transactionId   String
+  productId       String
+  quantity        Int
+  unitPrice       Decimal
+  totalPrice      Decimal     // quantity * unitPrice
+  
+  // COGS tracking (untuk store-owned products)
+  cogsPerUnit     Decimal?    // Cost of Goods Sold per unit
+  totalCogs       Decimal?    // quantity * cogsPerUnit
+  grossProfit     Decimal?    // totalPrice - totalCogs
+  
+  createdAt       DateTime    @default(now())
   
   // Relations
-  transaction   Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
-  product       Product     @relation(fields: [productId], references: [id])
+  transaction     Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  product         Product     @relation(fields: [productId], references: [id])
+  consignmentSales ConsignmentSale[]  // For consignment items, link to batch sales
   
+  @@index([transactionId])
+  @@index([productId])
   @@map("transaction_items")
 }
 
