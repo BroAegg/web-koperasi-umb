@@ -1962,14 +1962,49 @@ export default function InventoryPage() {
                     })}
                   </p>
                 </div>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => setShowAllMovementsModal(false)}
-                  className="bg-white/10 border-white/20 text-white hover:bg-white/20"
-                >
-                  <X className="w-4 h-4" />
-                </Button>
+                <div className="flex items-center gap-2">
+                  {stockMovements.length > 0 && (
+                    <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={async () => {
+                        if (confirm(`⚠️ DEVELOPMENT MODE\n\nHapus ${stockMovements.length} stock movement untuk tanggal ini?\n\nPeringatan: Ini akan menghapus semua riwayat transaksi hari ini!`)) {
+                          try {
+                            // Bulk delete all stock movements for selected date
+                            const response = await fetch(`/api/stock-movements?date=${selectedDate}`, { 
+                              method: 'DELETE' 
+                            });
+                            const result = await response.json();
+                            
+                            if (result.success) {
+                              success('Berhasil Dihapus', result.message);
+                              fetchStockMovements();
+                              fetchDailySummary();
+                              fetchProducts();
+                            } else {
+                              error('Gagal Menghapus', result.error);
+                            }
+                          } catch (err) {
+                            console.error('Error deleting movements:', err);
+                            error('Kesalahan', 'Gagal menghapus stock movements');
+                          }
+                        }
+                      }}
+                      className="bg-red-500/20 border-red-300 text-white hover:bg-red-500/30"
+                    >
+                      <Trash2 className="w-4 h-4 mr-1" />
+                      Hapus Semua
+                    </Button>
+                  )}
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => setShowAllMovementsModal(false)}
+                    className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                  >
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
               </div>
             </div>
 

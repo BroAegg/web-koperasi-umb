@@ -87,22 +87,29 @@ export async function DELETE(
     // FOR DEVELOPMENT: Cascade delete stock movements and related data
     // TODO: In production, consider soft delete or prevent deletion of products with history
     
-    // Delete stock movements first (cascade)
+    // Delete in correct order to avoid foreign key constraints
+    
+    // 1. Delete consignment batches (if any)
+    await prisma.consignmentBatch.deleteMany({
+      where: { productId: id },
+    });
+
+    // 2. Delete stock movements
     await prisma.stockMovement.deleteMany({
       where: { productId: id },
     });
 
-    // Delete transaction items (if any)
+    // 3. Delete transaction items (if any)
     await prisma.transactionItem.deleteMany({
       where: { productId: id },
     });
 
-    // Delete purchase items (if any)
+    // 4. Delete purchase items (if any)
     await prisma.purchaseItem.deleteMany({
       where: { productId: id },
     });
 
-    // Finally, delete the product
+    // 5. Finally, delete the product
     await prisma.product.delete({
       where: { id },
     });

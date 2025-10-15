@@ -244,3 +244,50 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+// DELETE /api/stock-movements - Bulk delete stock movements by date (DEVELOPMENT ONLY)
+export async function DELETE(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const date = searchParams.get('date');
+
+    if (!date) {
+      return NextResponse.json(
+        { success: false, error: 'Date parameter is required' },
+        { status: 400 }
+      );
+    }
+
+    // Date filtering
+    const startDate = new Date(date);
+    startDate.setHours(0, 0, 0, 0);
+    
+    const endDate = new Date(date);
+    endDate.setHours(23, 59, 59, 999);
+
+    const where = {
+      createdAt: {
+        gte: startDate,
+        lte: endDate,
+      },
+    };
+
+    // Count before delete
+    const count = await prisma.stockMovement.count({ where });
+
+    // Delete all stock movements for the date
+    await prisma.stockMovement.deleteMany({ where });
+
+    return NextResponse.json({
+      success: true,
+      message: `${count} stock movement berhasil dihapus`,
+      count,
+    });
+  } catch (error) {
+    console.error('Error deleting stock movements:', error);
+    return NextResponse.json(
+      { success: false, error: 'Internal server error' },
+      { status: 500 }
+    );
+  }
+}
