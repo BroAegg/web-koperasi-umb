@@ -54,6 +54,14 @@ interface Category {
   description?: string;
 }
 
+interface Supplier {
+  id: string;
+  name: string;
+  code: string;
+  phone?: string;
+  email?: string;
+}
+
 interface StockMovement {
   id: string;
   productId: string;
@@ -88,6 +96,9 @@ export default function InventoryPage() {
   
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [supplierSearch, setSupplierSearch] = useState('');
+  const [showSupplierDropdown, setShowSupplierDropdown] = useState(false);
   const [stockMovements, setStockMovements] = useState<StockMovement[]>([]);
   const [dailySummary, setDailySummary] = useState({
     totalIn: 0,
@@ -108,6 +119,8 @@ export default function InventoryPage() {
     name: '',
     description: '',
     categoryId: '',
+    supplierId: '',
+    supplierName: '',
     sku: '',
     buyPrice: '',
     sellPrice: '',
@@ -122,9 +135,32 @@ export default function InventoryPage() {
   useEffect(() => {
     fetchProducts();
     fetchCategories();
+    fetchSuppliers();
     fetchStockMovements();
     fetchDailySummary();
   }, [selectedDate]);
+
+  // Price formatting helper
+  const formatPriceInput = (value: string) => {
+    // Remove non-digit characters
+    const numbers = value.replace(/\D/g, '');
+    // Format with thousand separator
+    return numbers.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  };
+
+  const parsePriceInput = (value: string) => {
+    // Remove dots and convert to number
+    return value.replace(/\./g, '');
+  };
+
+  // Calculate margin helper
+  const calculateMargin = (buyPrice: string, sellPrice: string) => {
+    const buy = parseFloat(parsePriceInput(buyPrice)) || 0;
+    const sell = parseFloat(parsePriceInput(sellPrice)) || 0;
+    const margin = sell - buy;
+    const marginPercent = buy > 0 ? ((margin / buy) * 100) : 0;
+    return { margin, marginPercent };
+  };
 
   const fetchStockMovements = async () => {
     try {
@@ -189,10 +225,25 @@ export default function InventoryPage() {
     }
   };
 
+  const fetchSuppliers = async () => {
+    try {
+      const response = await fetch('/api/suppliers');
+      const result = await response.json();
+      
+      if (result.success) {
+        setSuppliers(result.data);
+      } else {
+        console.error('Failed to fetch suppliers:', result.error);
+      }
+    } catch (error) {
+      console.error('Error fetching suppliers:', error);
+    }
+  };
+
   // Validate prices
   const validatePrices = (buyPrice: string, sellPrice: string) => {
-    const buyPriceNum = parseFloat(buyPrice) || 0;
-    const sellPriceNum = parseFloat(sellPrice) || 0;
+    const buyPriceNum = parseFloat(parsePriceInput(buyPrice)) || 0;
+    const sellPriceNum = parseFloat(parsePriceInput(sellPrice)) || 0;
     
     if (buyPrice && sellPrice && sellPriceNum <= buyPriceNum) {
       setPriceError('Harga jual harus lebih tinggi dari harga beli');
@@ -283,12 +334,19 @@ export default function InventoryPage() {
       const url = editingProduct ? `/api/products/${editingProduct.id}` : '/api/products';
       const method = editingProduct ? 'PUT' : 'POST';
       
+      // Parse formatted prices back to numbers
+      const productData = {
+        ...newProduct,
+        buyPrice: parsePriceInput(newProduct.buyPrice),
+        sellPrice: parsePriceInput(newProduct.sellPrice),
+      };
+      
       const response = await fetch(url, {
         method,
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(newProduct),
+        body: JSON.stringify(productData),
       });
 
       const result = await response.json();
@@ -321,6 +379,8 @@ export default function InventoryPage() {
       name: '',
       description: '',
       categoryId: '',
+      supplierId: '',
+      supplierName: '',
       sku: '',
       buyPrice: '',
       sellPrice: '',
@@ -331,6 +391,7 @@ export default function InventoryPage() {
       stockCycle: 'HARIAN' as 'HARIAN' | 'MINGGUAN' | 'DUA_MINGGUAN',
       isConsignment: false,
     });
+    setSupplierSearch('');
     setPriceError('');
   };
 
@@ -345,9 +406,11 @@ export default function InventoryPage() {
       name: product.name,
       description: '', // Product interface doesn't have description, set empty
       categoryId: product.category.id,
+      supplierId: '',
+      supplierName: '',
       sku: '', // Product interface doesn't have sku, set empty
-      buyPrice: product.buyPrice ? product.buyPrice.toString() : '',
-      sellPrice: product.sellPrice.toString(),
+      buyPrice: product.buyPrice ? formatPriceInput(product.buyPrice.toString()) : '',
+      sellPrice: formatPriceInput(product.sellPrice.toString()),
       stock: product.stock.toString(),
       threshold: product.threshold.toString(),
       unit: product.unit,
@@ -1020,6 +1083,82 @@ export default function InventoryPage() {
             {/* Modal Content */}
             <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
               <form onSubmit={handleAddProduct} className="space-y-6">
+                {/* PRIORITY 1: Jenis Kepemilikan - Paling Atas */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Jenis Kepemilikan *
+                  </label>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setNewProduct({...newProduct, ownershipType: 'TOKO', isConsignment: false})}
+                      className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${
+                        newProduct.ownershipType === 'TOKO'
+                          ? 'bg-blue-600 text-white shadow-md'
+                          : 'bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100'
+                      }`}
+                    >
+                      Toko
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setNewProduct({...newProduct, ownershipType: 'TITIPAN', isConsignment: true})}
+                      className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${
+                        newProduct.ownershipType === 'TITIPAN'
+                          ? 'bg-purple-600 text-white shadow-md'
+                          : 'bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100'
+                      }`}
+                    >
+                      Titipan
+                    </button>
+                  </div>
+                </div>
+
+                {/* Supplier Autocomplete Field */}
+                <div className="relative">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Nama Supplier
+                  </label>
+                  <Input
+                    type="text"
+                    value={supplierSearch}
+                    onChange={(e) => {
+                      setSupplierSearch(e.target.value);
+                      setShowSupplierDropdown(true);
+                    }}
+                    onFocus={() => setShowSupplierDropdown(true)}
+                    placeholder="Ketik nama supplier..."
+                    leftIcon={<Search className="w-4 h-4 text-gray-400" />}
+                  />
+                  {/* Autocomplete Dropdown */}
+                  {showSupplierDropdown && supplierSearch && (
+                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                      {suppliers
+                        .filter(s => s.name.toLowerCase().includes(supplierSearch.toLowerCase()))
+                        .map((supplier) => (
+                          <button
+                            key={supplier.id}
+                            type="button"
+                            onClick={() => {
+                              setNewProduct({...newProduct, supplierId: supplier.id, supplierName: supplier.name});
+                              setSupplierSearch(supplier.name);
+                              setShowSupplierDropdown(false);
+                            }}
+                            className="w-full px-4 py-2 text-left hover:bg-blue-50 flex items-center justify-between"
+                          >
+                            <span className="font-medium">{supplier.name}</span>
+                            <span className="text-xs text-gray-500">{supplier.code}</span>
+                          </button>
+                        ))}
+                      {suppliers.filter(s => s.name.toLowerCase().includes(supplierSearch.toLowerCase())).length === 0 && (
+                        <div className="px-4 py-3 text-sm text-gray-500 text-center">
+                          Supplier tidak ditemukan
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1106,14 +1245,14 @@ export default function InventoryPage() {
                       Harga Beli *
                     </label>
                     <Input
-                      type="number"
+                      type="text"
                       value={newProduct.buyPrice}
                       onChange={(e) => {
-                        const newBuyPrice = e.target.value;
-                        setNewProduct({...newProduct, buyPrice: newBuyPrice});
-                        validatePrices(newBuyPrice, newProduct.sellPrice);
+                        const formatted = formatPriceInput(e.target.value);
+                        setNewProduct({...newProduct, buyPrice: formatted});
+                        validatePrices(formatted, newProduct.sellPrice);
                       }}
-                      placeholder="Masukkan harga beli"
+                      placeholder="0"
                       leftIcon={<span className="text-sm font-medium text-gray-500">Rp</span>}
                       required
                     />
@@ -1123,14 +1262,14 @@ export default function InventoryPage() {
                       Harga Jual *
                     </label>
                     <Input
-                      type="number"
+                      type="text"
                       value={newProduct.sellPrice}
                       onChange={(e) => {
-                        const newSellPrice = e.target.value;
-                        setNewProduct({...newProduct, sellPrice: newSellPrice});
-                        validatePrices(newProduct.buyPrice, newSellPrice);
+                        const formatted = formatPriceInput(e.target.value);
+                        setNewProduct({...newProduct, sellPrice: formatted});
+                        validatePrices(newProduct.buyPrice, formatted);
                       }}
-                      placeholder="Masukkan harga jual"
+                      placeholder="0"
                       leftIcon={<span className="text-sm font-medium text-gray-500">Rp</span>}
                       className={priceError ? 'border-red-300 focus:ring-red-500' : ''}
                       required
@@ -1140,6 +1279,23 @@ export default function InventoryPage() {
                     )}
                   </div>
                 </div>
+
+                {/* Live Margin Display */}
+                {newProduct.buyPrice && newProduct.sellPrice && !priceError && (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-gray-700">Margin Keuntungan:</span>
+                      <div className="text-right">
+                        <p className="text-lg font-bold text-green-600">
+                          Rp {formatPriceInput(calculateMargin(newProduct.buyPrice, newProduct.sellPrice).margin.toString())}
+                        </p>
+                        <p className="text-xs text-gray-600">
+                          {calculateMargin(newProduct.buyPrice, newProduct.sellPrice).marginPercent.toFixed(1)}% profit
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
@@ -1168,52 +1324,21 @@ export default function InventoryPage() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Jenis Kepemilikan *
-                    </label>
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        type="button"
-                        onClick={() => setNewProduct({...newProduct, ownershipType: 'TOKO', isConsignment: false})}
-                        className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                          newProduct.ownershipType === 'TOKO'
-                            ? 'bg-blue-600 text-white shadow-md'
-                            : 'bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100'
-                        }`}
-                      >
-                        Toko
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setNewProduct({...newProduct, ownershipType: 'TITIPAN', isConsignment: true})}
-                        className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                          newProduct.ownershipType === 'TITIPAN'
-                            ? 'bg-purple-600 text-white shadow-md'
-                            : 'bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100'
-                        }`}
-                      >
-                        Titipan
-                      </button>
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Siklus Stok *
-                    </label>
-                    <select
-                      value={newProduct.stockCycle}
-                      onChange={(e) => setNewProduct({...newProduct, stockCycle: e.target.value as 'HARIAN' | 'MINGGUAN' | 'DUA_MINGGUAN'})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      required
-                    >
-                      <option value="HARIAN">Harian</option>
-                      <option value="MINGGUAN">Mingguan</option>
-                      <option value="DUA_MINGGUAN">Dua Mingguan</option>
-                    </select>
-                  </div>
+                {/* Siklus Stok */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Siklus Stok *
+                  </label>
+                  <select
+                    value={newProduct.stockCycle}
+                    onChange={(e) => setNewProduct({...newProduct, stockCycle: e.target.value as 'HARIAN' | 'MINGGUAN' | 'DUA_MINGGUAN'})}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    required
+                  >
+                    <option value="HARIAN">Harian</option>
+                    <option value="MINGGUAN">Mingguan</option>
+                    <option value="DUA_MINGGUAN">Dua Mingguan</option>
+                  </select>
                 </div>
 
                 <div className="flex gap-3 pt-6 border-t">
