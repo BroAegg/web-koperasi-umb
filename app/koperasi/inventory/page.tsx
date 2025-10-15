@@ -47,6 +47,13 @@ interface Product {
   ownershipType?: 'TOKO' | 'TITIPAN';
   stockCycle?: 'HARIAN' | 'MINGGUAN' | 'DUA_MINGGUAN';
   isConsignment?: boolean;
+  supplier?: {
+    id: string;
+    name: string;
+    phone?: string;
+    email?: string;
+  };
+  supplierContact?: string;
 }
 
 interface Category {
@@ -89,6 +96,7 @@ export default function InventoryPage() {
   const [showAddModal, setShowAddModal] = useState(false);
   const [showStockModal, setShowStockModal] = useState(false);
   const [showFilterModal, setShowFilterModal] = useState(false);
+  const [showAllMovementsModal, setShowAllMovementsModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [loading, setLoading] = useState(true);
@@ -162,6 +170,47 @@ export default function InventoryPage() {
     const margin = sell - buy;
     const marginPercent = buy > 0 ? ((margin / buy) * 100) : 0;
     return { margin, marginPercent };
+  };
+
+  // WhatsApp Restock Helper
+  const handleWhatsAppRestock = (product: Product, supplierContact?: string) => {
+    if (!supplierContact) {
+      warning('Kontak Tidak Tersedia', 'Supplier belum memiliki nomor kontak. Silakan update data supplier terlebih dahulu.');
+      return;
+    }
+
+    // Clean phone number (remove spaces, dashes, etc.)
+    const cleanPhone = supplierContact.replace(/\D/g, '');
+    
+    // Check if it's a valid phone number
+    if (!cleanPhone || cleanPhone.length < 8) {
+      error('Nomor Tidak Valid', 'Nomor kontak supplier tidak valid. Silakan periksa kembali.');
+      return;
+    }
+
+    // Format Indonesian phone number (add 62 if starts with 0)
+    const formattedPhone = cleanPhone.startsWith('0') 
+      ? '62' + cleanPhone.substring(1) 
+      : cleanPhone.startsWith('62') 
+        ? cleanPhone 
+        : '62' + cleanPhone;
+
+    // Create WhatsApp message
+    const message = encodeURIComponent(
+      `Halo, saya dari Koperasi UMB.\n\n` +
+      `Kami ingin melakukan restock untuk:\n` +
+      `📦 Produk: ${product.name}\n` +
+      `📊 Stok saat ini: ${product.stock} ${product.unit}\n` +
+      `⚠️ Minimum stok: ${product.threshold} ${product.unit}\n\n` +
+      `Mohon informasi ketersediaan dan harga terkini.\n` +
+      `Terima kasih.`
+    );
+
+    // Open WhatsApp
+    const waUrl = `https://wa.me/${formattedPhone}?text=${message}`;
+    window.open(waUrl, '_blank');
+    
+    success('WhatsApp Dibuka', `Pesan restock untuk ${product.name} siap dikirim`);
   };
 
   const fetchStockMovements = async () => {
@@ -956,7 +1005,12 @@ export default function InventoryPage() {
             <CardHeader className="pb-4">
               <div className="flex items-center justify-between gap-3 mb-2">
                 <h3 className="text-lg font-bold text-gray-900 truncate">Stock Movement</h3>
-                <Button variant="outline" size="sm" className="shrink-0 text-xs px-2 py-1 h-6 whitespace-nowrap">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => setShowAllMovementsModal(true)}
+                  className="shrink-0 text-xs px-2 py-1 h-6 whitespace-nowrap"
+                >
                   <BarChart3 className="w-3 h-3" />
                   <span className="ml-1 hidden xl:inline">Lihat Semua</span>
                 </Button>
@@ -1041,8 +1095,10 @@ export default function InventoryPage() {
                       <Button 
                         size="sm" 
                         variant="outline" 
-                        className="text-xs shrink-0 px-2 py-1 h-auto whitespace-nowrap"
+                        onClick={() => handleWhatsAppRestock(product, product.supplierContact)}
+                        className="text-xs shrink-0 px-2 py-1 h-auto whitespace-nowrap hover:bg-green-50 hover:text-green-700 hover:border-green-300"
                       >
+                        <Phone className="w-3 h-3 mr-1" />
                         Restock
                       </Button>
                     </div>
@@ -1774,6 +1830,19 @@ export default function InventoryPage() {
                         </span>
                       </div>
                     </div>
+                    {/* Supplier Info */}
+                    {(selectedProduct.supplier || selectedProduct.supplierContact) && (
+                      <div>
+                        <label className="text-sm text-gray-600">Supplier</label>
+                        <p className="font-medium">{selectedProduct.supplier?.name || '-'}</p>
+                        {selectedProduct.supplierContact && (
+                          <p className="text-sm text-gray-500 flex items-center gap-1 mt-1">
+                            <Phone className="w-3 h-3" />
+                            {selectedProduct.supplierContact}
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -1864,6 +1933,125 @@ export default function InventoryPage() {
                     Update Stok
                   </Button>
                 </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* All Stock Movements Modal */}
+      {showAllMovementsModal && (
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden">
+            {/* Modal Header */}
+            <div className="bg-gradient-to-r from-green-600 to-green-700 px-6 py-4 text-white">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-bold">Semua Stock Movement</h3>
+                  <p className="text-green-100 text-sm mt-1">
+                    {new Date(selectedDate).toLocaleDateString('id-ID', { 
+                      weekday: 'long', 
+                      day: 'numeric', 
+                      month: 'long', 
+                      year: 'numeric' 
+                    })}
+                  </p>
+                </div>
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={() => setShowAllMovementsModal(false)}
+                  className="bg-white/10 border-white/20 text-white hover:bg-white/20"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+
+            {/* Modal Content */}
+            <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+              {/* Summary Stats */}
+              <div className="grid grid-cols-3 gap-4 mb-6">
+                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                  <div className="flex items-center gap-2 text-green-700 mb-1">
+                    <Plus className="w-4 h-4" />
+                    <span className="text-sm font-medium">Stock Masuk</span>
+                  </div>
+                  <p className="text-2xl font-bold text-green-600">{dailySummary.totalIn}</p>
+                </div>
+                <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                  <div className="flex items-center gap-2 text-red-700 mb-1">
+                    <Minus className="w-4 h-4" />
+                    <span className="text-sm font-medium">Stock Keluar</span>
+                  </div>
+                  <p className="text-2xl font-bold text-red-600">{dailySummary.totalOut}</p>
+                </div>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex items-center gap-2 text-blue-700 mb-1">
+                    <BarChart3 className="w-4 h-4" />
+                    <span className="text-sm font-medium">Total Movement</span>
+                  </div>
+                  <p className="text-2xl font-bold text-blue-600">{dailySummary.totalMovements}</p>
+                </div>
+              </div>
+
+              {/* Movement List */}
+              <div className="space-y-3">
+                <h4 className="font-semibold text-gray-900 mb-3">Riwayat Movement</h4>
+                {stockMovements.length > 0 ? (
+                  stockMovements.map((movement) => (
+                    <div key={movement.id} className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors">
+                      <div className={`p-3 rounded-full shrink-0 ${
+                        movement.type === 'IN' 
+                          ? 'bg-green-100 text-green-600' 
+                          : 'bg-red-100 text-red-600'
+                      }`}>
+                        {movement.type === 'IN' ? (
+                          <Plus className="w-5 h-5" />
+                        ) : (
+                          <Minus className="w-5 h-5" />
+                        )}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex-1">
+                            <p className="font-semibold text-gray-900">{movement.product.name}</p>
+                            <p className="text-sm text-gray-600 mt-1">
+                              <span className={`font-medium ${movement.type === 'IN' ? 'text-green-600' : 'text-red-600'}`}>
+                                {movement.type === 'IN' ? '+' : '-'}{movement.quantity}
+                              </span>
+                              {' '}{movement.product.unit}
+                            </p>
+                            {movement.note && (
+                              <p className="text-sm text-gray-500 mt-1">{movement.note}</p>
+                            )}
+                          </div>
+                          <div className="text-right shrink-0">
+                            <p className="text-xs text-gray-500">
+                              {new Date(movement.createdAt).toLocaleDateString('id-ID', {
+                                day: '2-digit',
+                                month: 'short',
+                                year: 'numeric'
+                              })}
+                            </p>
+                            <p className="text-xs text-gray-400">
+                              {new Date(movement.createdAt).toLocaleTimeString('id-ID', {
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              })}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-12 text-gray-500">
+                    <Package className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                    <p className="font-medium">Belum ada stock movement</p>
+                    <p className="text-sm mt-1">Movement akan muncul setelah ada transaksi</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
