@@ -49,11 +49,15 @@ export async function GET(request: NextRequest) {
 
     const productsWithStats = products.map(product => {
       const todaySales = product.transactionItems.reduce((sum, item) => sum + item.quantity, 0);
-      const profit = Number(product.sellPrice.sub(product.buyPrice));
+      
+      // Calculate profit: for consignment use avgCost, for store-owned use buyPrice or avgCost
+      const costPrice = product.avgCost || product.buyPrice || new Decimal(0);
+      const profit = Number(product.sellPrice.sub(costPrice));
       
       return {
         ...product,
-        buyPrice: Number(product.buyPrice),
+        buyPrice: product.buyPrice ? Number(product.buyPrice) : null,
+        avgCost: product.avgCost ? Number(product.avgCost) : null,
         sellPrice: Number(product.sellPrice),
         soldToday: todaySales,
         totalSold: product.transactionItems.length, // Simplified
@@ -89,24 +93,29 @@ export async function POST(request: NextRequest) {
       threshold = 5,
       unit = 'pcs',
       isActive = true,
+      ownershipType = 'TOKO', // Default to store-owned
+      stockCycle = 'MINGGUAN', // Default to weekly
+      isConsignment = false,
     } = body;
 
-    if (!name || !categoryId || !buyPrice || !sellPrice) {
+    if (!name || !categoryId || !sellPrice) {
       return NextResponse.json(
         { success: false, error: 'Missing required fields' },
         { status: 400 }
       );
     }
 
-    // Validate that sell price is higher than buy price
-    const buyPriceNum = parseFloat(buyPrice);
-    const sellPriceNum = parseFloat(sellPrice);
-    
-    if (sellPriceNum <= buyPriceNum) {
-      return NextResponse.json(
-        { success: false, error: 'Harga jual harus lebih tinggi dari harga beli' },
-        { status: 400 }
-      );
+    // Validate that sell price is higher than buy price (only for store-owned products)
+    if (ownershipType === 'TOKO' && buyPrice) {
+      const buyPriceNum = parseFloat(buyPrice);
+      const sellPriceNum = parseFloat(sellPrice);
+      
+      if (sellPriceNum <= buyPriceNum) {
+        return NextResponse.json(
+          { success: false, error: 'Harga jual harus lebih tinggi dari harga beli' },
+          { status: 400 }
+        );
+      }
     }
 
     // Check if SKU already exists (only if SKU is provided)
@@ -129,12 +138,16 @@ export async function POST(request: NextRequest) {
         description,
         categoryId,
         sku: sku && sku.trim() !== '' ? sku.trim() : null,
-        buyPrice: new Decimal(buyPrice),
+        buyPrice: buyPrice ? new Decimal(buyPrice) : null,
         sellPrice: new Decimal(sellPrice),
+        avgCost: buyPrice ? new Decimal(buyPrice) : null, // Initial avgCost
         stock: parseInt(stock.toString()),
         threshold: parseInt(threshold.toString()),
         unit,
         isActive,
+        ownershipType,
+        stockCycle,
+        isConsignment,
       },
       include: {
         category: true,
@@ -146,8 +159,9 @@ export async function POST(request: NextRequest) {
       await prisma.stockMovement.create({
         data: {
           productId: product.id,
-          type: 'IN',
+          movementType: ownershipType === 'TOKO' ? 'PURCHASE_IN' : 'CONSIGNMENT_IN',
           quantity: parseInt(stock.toString()),
+          unitCost: buyPrice ? new Decimal(buyPrice) : null,
           note: 'Initial stock',
         },
       });
@@ -157,7 +171,8 @@ export async function POST(request: NextRequest) {
       success: true,
       data: {
         ...product,
-        buyPrice: Number(product.buyPrice),
+        buyPrice: product.buyPrice ? Number(product.buyPrice) : null,
+        avgCost: product.avgCost ? Number(product.avgCost) : null,
         sellPrice: Number(product.sellPrice),
       },
     }, { status: 201 });

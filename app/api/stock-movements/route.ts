@@ -20,7 +20,7 @@ export async function GET(request: NextRequest) {
     }
 
     if (type) {
-      where.type = type.toUpperCase();
+      where.movementType = type.toUpperCase();
     }
 
     // Date filtering
@@ -109,10 +109,30 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if there's enough stock for OUT movements
-    if (type.toUpperCase() === 'OUT' && product.stock < quantity) {
+    // Map simple type to MovementType enum
+    let movementType: string;
+    let quantityValue: number;
+    
+    if (type.toUpperCase() === 'IN') {
+      movementType = product.ownershipType === 'TOKO' ? 'PURCHASE_IN' : 'CONSIGNMENT_IN';
+      quantityValue = parseInt(quantity);
+    } else if (type.toUpperCase() === 'OUT') {
+      movementType = 'SALE_OUT';
+      quantityValue = -parseInt(quantity); // Negative for OUT movements
+      
+      // Check if there's enough stock for OUT movements
+      if (product.stock < quantity) {
+        return NextResponse.json(
+          { success: false, error: `Stok tidak cukup. Stok tersedia: ${product.stock}` },
+          { status: 400 }
+        );
+      }
+    } else if (type.toUpperCase() === 'ADJUSTMENT') {
+      movementType = 'ADJUSTMENT';
+      quantityValue = parseInt(quantity);
+    } else {
       return NextResponse.json(
-        { success: false, error: `Stok tidak cukup. Stok tersedia: ${product.stock}` },
+        { success: false, error: 'Invalid movement type' },
         { status: 400 }
       );
     }
@@ -121,8 +141,8 @@ export async function POST(request: NextRequest) {
     const stockMovement = await prisma.stockMovement.create({
       data: {
         productId,
-        type: type.toUpperCase(),
-        quantity: parseInt(quantity),
+        movementType,
+        quantity: quantityValue,
         note: note || '',
       },
       include: {
@@ -136,8 +156,8 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Update product stock
-    const stockChange = type.toUpperCase() === 'IN' ? quantity : -quantity;
+    // Update product stock (quantity is already signed)
+    const stockChange = quantityValue;
     const updatedProduct = await prisma.product.update({
       where: { id: productId },
       data: {

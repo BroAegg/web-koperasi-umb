@@ -11,17 +11,28 @@ export async function PUT(
     const { id } = params;
 
     // Convert string values to appropriate types
-    const productData = {
+    const productData: any = {
       name: data.name,
       description: data.description || null,
       categoryId: data.categoryId,
       sku: data.sku || null,
-      buyPrice: parseFloat(data.buyPrice),
       sellPrice: parseFloat(data.sellPrice),
       stock: parseInt(data.stock),
       threshold: parseInt(data.threshold),
       unit: data.unit,
     };
+
+    // Only include buyPrice if provided (nullable for consignment)
+    if (data.buyPrice !== undefined && data.buyPrice !== null) {
+      productData.buyPrice = parseFloat(data.buyPrice);
+      // Update avgCost if buyPrice is updated
+      productData.avgCost = parseFloat(data.buyPrice);
+    }
+
+    // Include ownership fields if provided
+    if (data.ownershipType) productData.ownershipType = data.ownershipType;
+    if (data.stockCycle) productData.stockCycle = data.stockCycle;
+    if (data.isConsignment !== undefined) productData.isConsignment = data.isConsignment;
 
     const product = await prisma.product.update({
       where: { id },

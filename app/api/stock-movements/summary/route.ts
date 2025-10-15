@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
         },
       },
       select: {
-        type: true,
+        movementType: true,
         quantity: true,
       },
     });
@@ -30,10 +30,11 @@ export async function GET(request: NextRequest) {
     // Calculate summary
     const summary = movements.reduce(
       (acc, movement) => {
-        if (movement.type === 'IN') {
+        // Quantity is positive for IN movements, negative for OUT movements
+        if (movement.quantity > 0) {
           acc.totalIn += movement.quantity;
-        } else if (movement.type === 'OUT') {
-          acc.totalOut += movement.quantity;
+        } else {
+          acc.totalOut += Math.abs(movement.quantity);
         }
         acc.totalMovements++;
         return acc;
