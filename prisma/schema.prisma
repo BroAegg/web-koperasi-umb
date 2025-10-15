@@ -339,9 +339,11 @@ enum FeeType {
 
 model SupplierProfile {
   id              String              @id @default(cuid())
-  userId          String              @unique
+  userId          String?             @unique  // Optional - bisa null untuk direct registration
   businessName    String
   ownerName       String
+  email           String              @unique  // Email untuk login langsung
+  password        String?                      // Password untuk login langsung (hashed)
   phone           String
   address         String
   productCategory String              // Kategori produk (Makanan, Minuman, ATK, dll)
@@ -354,6 +356,7 @@ model SupplierProfile {
   rejectedReason  String?
   
   // Payment tracking
+  paymentStatus   PaymentStatus       @default(UNPAID)
   monthlyFee      Decimal             @default(25000)  // Rp 25,000/bulan
   lastPaymentDate DateTime?
   nextPaymentDue  DateTime?
@@ -363,10 +366,17 @@ model SupplierProfile {
   updatedAt       DateTime            @updatedAt
   
   // Relations
-  user            User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user            User?               @relation(fields: [userId], references: [id], onDelete: Cascade)
   payments        SupplierPayment[]
   
   @@map("supplier_profiles")
+}
+
+enum PaymentStatus {
+  UNPAID
+  PAID_PENDING_APPROVAL
+  PAID_APPROVED
+  PAID_REJECTED
 }
 
 enum SupplierStatus {
@@ -418,7 +428,7 @@ model Purchase {
   purchaseDate    DateTime      @default(now())
   receivedDate    DateTime?     // When goods actually received
   status          PurchaseStatus @default(PENDING)
-  paymentStatus   PaymentStatus  @default(UNPAID)
+  paymentStatus   PurchasePaymentStatus  @default(UNPAID)
   paymentDate     DateTime?
   note            String?
   createdAt       DateTime      @default(now())
@@ -438,7 +448,7 @@ enum PurchaseStatus {
   CANCELLED   // Order cancelled
 }
 
-enum PaymentStatus {
+enum PurchasePaymentStatus {
   UNPAID      // Not yet paid
   PARTIAL     // Partially paid
   PAID        // Fully paid
