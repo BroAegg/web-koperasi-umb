@@ -107,7 +107,6 @@ export default function InventoryPage() {
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
-  const [supplierSearch, setSupplierSearch] = useState('');
   const [showSupplierDropdown, setShowSupplierDropdown] = useState(false);
   const [stockMovements, setStockMovements] = useState<StockMovement[]>([]);
   const [dailySummary, setDailySummary] = useState({
@@ -444,7 +443,6 @@ export default function InventoryPage() {
       stockCycle: 'HARIAN' as 'HARIAN' | 'MINGGUAN' | 'DUA_MINGGUAN',
       isConsignment: false,
     });
-    setSupplierSearch('');
     setPriceError('');
   };
 
@@ -1183,9 +1181,9 @@ export default function InventoryPage() {
                     </label>
                     <Input
                       type="text"
-                      value={supplierSearch}
+                      value={newProduct.supplierName || ''}
                       onChange={(e) => {
-                        setSupplierSearch(e.target.value);
+                        setNewProduct({...newProduct, supplierName: e.target.value});
                         setShowSupplierDropdown(true);
                       }}
                       onFocus={() => setShowSupplierDropdown(true)}
@@ -1197,10 +1195,10 @@ export default function InventoryPage() {
                       leftIcon={<Search className="w-4 h-4 text-gray-400" />}
                     />
                     {/* Autocomplete Dropdown - Only show when focused AND has input */}
-                    {showSupplierDropdown && supplierSearch.trim() && (
+                    {showSupplierDropdown && newProduct.supplierName && newProduct.supplierName.trim() && (
                       <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
                         {suppliers
-                          .filter(s => s.name.toLowerCase().includes(supplierSearch.toLowerCase()))
+                          .filter(s => s.name.toLowerCase().includes(newProduct.supplierName!.toLowerCase()))
                           .map((supplier) => (
                             <button
                               key={supplier.id}
@@ -1212,7 +1210,6 @@ export default function InventoryPage() {
                                   supplierName: supplier.name,
                                   supplierContact: supplier.phone || supplier.email || ''
                                 });
-                                setSupplierSearch(supplier.name);
                                 setShowSupplierDropdown(false);
                               }}
                               className="w-full px-4 py-2 text-left hover:bg-blue-50 flex flex-col gap-0.5"
@@ -1228,7 +1225,7 @@ export default function InventoryPage() {
                               )}
                             </button>
                           ))}
-                        {suppliers.filter(s => s.name.toLowerCase().includes(supplierSearch.toLowerCase())).length === 0 && (
+                        {suppliers.filter(s => s.name.toLowerCase().includes(newProduct.supplierName!.toLowerCase())).length === 0 && (
                           <div className="px-4 py-3 text-sm text-gray-500 text-center">
                             Supplier tidak ditemukan
                           </div>
