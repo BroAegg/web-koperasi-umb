@@ -426,15 +426,15 @@ export default function FinancialPage() {
                     const isCustomDate = selectedDate !== today;
                     
                     if (isCustomDate) {
-                      return `📅 ${formatDate(new Date(selectedDate))}`;
+                      return formatDate(new Date(selectedDate));
                     }
                     
-                    return financialPeriod === 'today' ? '📅 Hari Ini' :
-                           financialPeriod === '7days' ? '📅 7 Hari Terakhir' :
-                           financialPeriod === '1month' ? '📅 30 Hari Terakhir' :
-                           financialPeriod === '3months' ? '📅 3 Bulan Terakhir' :
-                           financialPeriod === '6months' ? '📅 6 Bulan Terakhir' :
-                           '📅 1 Tahun Terakhir';
+                    return financialPeriod === 'today' ? 'Hari Ini' :
+                           financialPeriod === '7days' ? '7 Hari Terakhir' :
+                           financialPeriod === '1month' ? '30 Hari Terakhir' :
+                           financialPeriod === '3months' ? '3 Bulan Terakhir' :
+                           financialPeriod === '6months' ? '6 Bulan Terakhir' :
+                           '1 Tahun Terakhir';
                   })()}
                 </span>
               </div>
