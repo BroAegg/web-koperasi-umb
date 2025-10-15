@@ -29,7 +29,7 @@ export async function getUserFromToken(token?: string) {
   if (!token) return null;
   const data = verifyToken(token);
   if (!data || !data.userId) return null;
-  const user = await prisma.user.findUnique({ where: { id: data.userId } });
+  const user = await prisma.users.findUnique({ where: { id: data.userId } });
   return user;
 }
 

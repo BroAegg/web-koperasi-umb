@@ -1,6 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -9,691 +6,402 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
-//=================================
-// USER & AUTHENTICATION
-// =====================================
 
-model User {
-  id          String   @id @default(cuid())
-  email       String   @unique
-  password    String
-  name        String
-  role        Role     @default(USER)
-  isActive    Boolean  @default(true)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  
-  // Relations
-  member      Member?
-  createdBroadcasts Broadcast[]
-  supplierProfile   SupplierProfile?
-  
-  @@map("users")
+model audit_logs {
+  id        String   @id
+  userId    String?
+  action    String
+  entity    String
+  entityId  String?
+  oldData   String?
+  newData   String?
+  ipAddress String?
+  userAgent String?
+  createdAt DateTime @default(now())
 }
 
-enum Role {
-  SUPER_ADMIN
-  ADMIN
-  SUPPLIER
-  USER
+model broadcasts {
+  id                   String          @id
+  title                String
+  message              String
+  type                 BroadcastType
+  targetAudience       TargetAudience
+  unitTarget           String?
+  status               BroadcastStatus @default(DRAFT)
+  scheduledAt          DateTime?
+  sentAt               DateTime?
+  totalRecipients      Int             @default(0)
+  successfulDeliveries Int             @default(0)
+  failedDeliveries     Int             @default(0)
+  createdById          String
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime
+  users                users           @relation(fields: [createdById], references: [id])
 }
 
-// =====================================
-// MEMBERSHIP
-// =====================================
-
-model Member {
-  id                String   @id @default(cuid())
-  userId            String   @unique
-  nomorAnggota      String   @unique
-  name              String
-  email             String   @unique
-  phone             String?
-  address           String?
-  gender            Gender
-  unitKerja         String
-  joinDate          DateTime @default(now())
-  status            MemberStatus @default(ACTIVE)
-  
-  // Simpanan
-  simpananPokok     Decimal  @default(0)
-  simpananWajib     Decimal  @default(0)
-  simpananSukarela  Decimal  @default(0)
-  
-  createdAt         DateTime @default(now())
-  updatedAt         DateTime @updatedAt
-  
-  // Relations
-  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  transactions      Transaction[]
-  savings           Saving[]
-  loans             Loan[]
-  
-  @@map("members")
-}
-
-enum Gender {
-  MALE
-  FEMALE
-}
-
-enum MemberStatus {
-  ACTIVE
-  INACTIVE
-  SUSPENDED
-}
-
-// =====================================
-// SAVINGS & LOANS
-// =====================================
-
-model Saving {
-  id          String      @id @default(cuid())
-  memberId    String
-  type        SavingType
-  amount      Decimal
+model categories {
+  id          String     @id
+  name        String     @unique
   description String?
-  date        DateTime    @default(now())
-  createdAt   DateTime    @default(now())
-  
-  // Relations
-  member      Member      @relation(fields: [memberId], references: [id], onDelete: Cascade)
-  
-  @@map("savings")
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime
+  products    products[]
 }
 
-enum SavingType {
-  POKOK
-  WAJIB
-  SUKARELA
-  WITHDRAWAL
+model consignment_batches {
+  id                String              @id
+  code              String              @unique
+  consignorId       String
+  productId         String
+  qtyIn             Int
+  qtySold           Int                 @default(0)
+  qtyReturned       Int                 @default(0)
+  qtyExpired        Int                 @default(0)
+  qtyRemaining      Int
+  feeType           FeeType
+  feePercent        Decimal?
+  feeFlat           Decimal?
+  receivedAt        DateTime            @default(now())
+  expiryAt          DateTime?
+  status            BatchStatus         @default(ACTIVE)
+  note              String?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime
+  consignors        consignors          @relation(fields: [consignorId], references: [id])
+  products          products            @relation(fields: [productId], references: [id])
+  consignment_sales consignment_sales[]
+
+  @@index([consignorId, receivedAt])
+  @@index([productId, status])
+  @@index([receivedAt])
 }
 
-model Loan {
-  id            String     @id @default(cuid())
-  memberId      String
-  amount        Decimal
-  interestRate  Decimal
-  tenor         Int        // months
-  monthlyPayment Decimal
-  remainingAmount Decimal
-  status        LoanStatus @default(ACTIVE)
-  startDate     DateTime   @default(now())
-  endDate       DateTime
-  description   String?
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
-  
-  // Relations
-  member        Member     @relation(fields: [memberId], references: [id], onDelete: Cascade)
-  payments      LoanPayment[]
-  
-  @@map("loans")
+model consignment_sales {
+  id                  String              @id
+  batchId             String
+  transactionItemId   String
+  qtySold             Int
+  unitPrice           Decimal
+  totalRevenue        Decimal
+  feeType             FeeType
+  feeAmount           Decimal
+  netToConsignor      Decimal
+  settlementId        String?
+  isSettled           Boolean             @default(false)
+  saleDate            DateTime            @default(now())
+  createdAt           DateTime            @default(now())
+  consignment_batches consignment_batches @relation(fields: [batchId], references: [id])
+  settlements         settlements?        @relation(fields: [settlementId], references: [id])
+  transaction_items   transaction_items   @relation(fields: [transactionItemId], references: [id])
+
+  @@index([batchId])
+  @@index([saleDate])
+  @@index([settlementId])
 }
 
-enum LoanStatus {
-  ACTIVE
-  COMPLETED
-  OVERDUE
+model consignors {
+  id                  String                @id
+  code                String                @unique
+  name                String
+  contact             String?
+  phone               String?
+  email               String?
+  address             String?
+  feeType             FeeType               @default(PERCENTAGE)
+  defaultFeePercent   Decimal?
+  defaultFeeFlat      Decimal?
+  paymentSchedule     String?
+  isActive            Boolean               @default(true)
+  note                String?
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime
+  consignment_batches consignment_batches[]
+  settlements         settlements[]
 }
 
-model LoanPayment {
-  id          String   @id @default(cuid())
+model loan_payments {
+  id          String   @id
   loanId      String
   amount      Decimal
   paymentDate DateTime @default(now())
   description String?
   createdAt   DateTime @default(now())
-  
-  // Relations
-  loan        Loan     @relation(fields: [loanId], references: [id], onDelete: Cascade)
-  
-  @@map("loan_payments")
+  loans       loans    @relation(fields: [loanId], references: [id], onDelete: Cascade)
 }
 
-// =====================================
-// INVENTORY & PRODUCTS
-// =====================================
-
-model Category {
-  id          String    @id @default(cuid())
-  name        String    @unique
-  description String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  
-  // Relations
-  products    Product[]
-  
-  @@map("categories")
-}
-
-model Product {
-  id              String          @id @default(cuid())
-  name            String
+model loans {
+  id              String          @id
+  memberId        String
+  amount          Decimal
+  interestRate    Decimal
+  tenor           Int
+  monthlyPayment  Decimal
+  remainingAmount Decimal
+  status          LoanStatus      @default(ACTIVE)
+  startDate       DateTime        @default(now())
+  endDate         DateTime
   description     String?
-  categoryId      String
-  supplierId      String?         // Optional supplier relation
-  sku             String?         @unique
-  
-  // Pricing (buyPrice nullable untuk konsinyasi)
-  buyPrice        Decimal?        // Purchase price (null untuk consignment)
-  sellPrice       Decimal         // Selling price
-  avgCost         Decimal?        // Average cost (untuk COGS calculation)
-  
-  // Stock Management
-  stock           Int             @default(0) // Current stock on hand
-  threshold       Int             @default(5) // Minimum stock alert threshold
-  unit            String          @default("pcs")
-  
-  // Enhancement: Ownership & Stock Cycle
-  ownershipType   OwnershipType   @default(TOKO)
-  stockCycle      StockCycle      @default(MINGGUAN)
-  isConsignment   Boolean         @default(false)
-  
-  // Supplier Contact (for quick restock)
-  supplierContact String?         // Phone or email for direct contact
-  
-  // Status & Lifecycle
-  status          ProductStatus   @default(ACTIVE)
-  isActive        Boolean         @default(true) // Backward compatibility
-  lastRestockAt   DateTime?       // Last restock date for cycle tracking
-  expiryPolicy    String?         // Optional expiry policy description
-  
-  // Timestamps
   createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
-  
-  // Relations
-  category        Category        @relation(fields: [categoryId], references: [id])
-  supplier        Supplier?       @relation(fields: [supplierId], references: [id])
-  stockMovements  StockMovement[]
-  transactionItems TransactionItem[]
-  
-  // New Relations for Enhancement
-  purchases       PurchaseItem[]
-  consignmentBatches ConsignmentBatch[]
-  
-  @@map("products")
+  updatedAt       DateTime
+  loan_payments   loan_payments[]
+  members         members         @relation(fields: [memberId], references: [id], onDelete: Cascade)
 }
 
-enum OwnershipType {
-  TOKO      // Store-owned (milik koperasi)
-  TITIPAN   // Consignment (titipan/konsinyasi)
+model members {
+  id               String         @id
+  userId           String         @unique
+  nomorAnggota     String         @unique
+  name             String
+  email            String         @unique
+  phone            String?
+  address          String?
+  gender           Gender
+  unitKerja        String
+  joinDate         DateTime       @default(now())
+  status           MemberStatus   @default(ACTIVE)
+  simpananPokok    Decimal        @default(0)
+  simpananWajib    Decimal        @default(0)
+  simpananSukarela Decimal        @default(0)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime
+  loans            loans[]
+  users            users          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  savings          savings[]
+  transactions     transactions[]
 }
 
-enum StockCycle {
-  HARIAN          // Daily reset (e.g., risol, gorengan)
-  MINGGUAN        // Weekly tracking (e.g., keripik)
-  DUA_MINGGUAN    // Biweekly tracking (e.g., beras)
+model products {
+  id                  String                @id
+  name                String
+  description         String?
+  categoryId          String
+  sku                 String?               @unique
+  buyPrice            Decimal?
+  sellPrice           Decimal
+  avgCost             Decimal?
+  stock               Int                   @default(0)
+  threshold           Int                   @default(5)
+  unit                String                @default("pcs")
+  ownershipType       OwnershipType         @default(TOKO)
+  stockCycle          StockCycle            @default(MINGGUAN)
+  isConsignment       Boolean               @default(false)
+  status              ProductStatus         @default(ACTIVE)
+  isActive            Boolean               @default(true)
+  lastRestockAt       DateTime?
+  expiryPolicy        String?
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime
+  supplierContact     String?
+  supplierId          String?
+  consignment_batches consignment_batches[]
+  categories          categories            @relation(fields: [categoryId], references: [id])
+  suppliers           suppliers?            @relation(fields: [supplierId], references: [id])
+  purchase_items      purchase_items[]
+  stock_movements     stock_movements[]
+  transaction_items   transaction_items[]
 }
 
-enum ProductStatus {
-  ACTIVE      // Active, available for sale
-  INACTIVE    // Inactive, not available
-  SEASONAL    // Seasonal product
+model purchase_items {
+  id         String    @id
+  purchaseId String
+  productId  String
+  quantity   Int
+  unitCost   Decimal
+  totalCost  Decimal
+  createdAt  DateTime  @default(now())
+  products   products  @relation(fields: [productId], references: [id])
+  purchases  purchases @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
+
+  @@index([productId])
+  @@index([purchaseId])
 }
 
-model StockMovement {
-  id            String           @id @default(cuid())
+model purchases {
+  id             String                @id
+  code           String                @unique
+  supplierId     String
+  totalAmount    Decimal               @default(0)
+  purchaseDate   DateTime              @default(now())
+  receivedDate   DateTime?
+  status         PurchaseStatus        @default(PENDING)
+  paymentStatus  PurchasePaymentStatus @default(UNPAID)
+  paymentDate    DateTime?
+  note           String?
+  createdAt      DateTime              @default(now())
+  updatedAt      DateTime
+  purchase_items purchase_items[]
+  suppliers      suppliers             @relation(fields: [supplierId], references: [id])
+
+  @@index([supplierId, purchaseDate])
+}
+
+model savings {
+  id          String     @id
+  memberId    String
+  type        SavingType
+  amount      Decimal
+  description String?
+  date        DateTime   @default(now())
+  createdAt   DateTime   @default(now())
+  members     members    @relation(fields: [memberId], references: [id], onDelete: Cascade)
+}
+
+model settlements {
+  id                String              @id
+  code              String              @unique
+  consignorId       String
+  periodStart       DateTime
+  periodEnd         DateTime
+  totalRevenue      Decimal             @default(0)
+  totalFee          Decimal             @default(0)
+  totalPayable      Decimal             @default(0)
+  status            SettlementStatus    @default(PENDING)
+  paymentMethod     PaymentMethod?
+  paymentDate       DateTime?
+  paymentRef        String?
+  note              String?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime
+  consignment_sales consignment_sales[]
+  consignors        consignors          @relation(fields: [consignorId], references: [id])
+
+  @@index([consignorId, periodStart])
+  @@index([status])
+}
+
+model stock_movements {
+  id            String         @id
   productId     String
-  movementType  MovementType     // Enhanced movement type
-  quantity      Int              // Positive for IN, negative for OUT
-  unitCost      Decimal?         // Cost per unit (untuk COGS tracking)
-  
-  // Reference tracking
-  referenceType ReferenceType?   // Type of reference (Purchase/Consignment/Sale/etc)
-  referenceId   String?          // ID of the related transaction
-  
-  // Additional info
+  movementType  MovementType
+  quantity      Int
+  unitCost      Decimal?
+  referenceType ReferenceType?
+  referenceId   String?
   note          String?
-  occurredAt    DateTime         @default(now()) // When the movement happened
-  createdAt     DateTime         @default(now())
-  
-  // Relations
-  product       Product          @relation(fields: [productId], references: [id], onDelete: Cascade)
-  
+  occurredAt    DateTime       @default(now())
+  createdAt     DateTime       @default(now())
+  products      products       @relation(fields: [productId], references: [id], onDelete: Cascade)
+
   @@index([productId, occurredAt])
   @@index([referenceType, referenceId])
-  @@map("stock_movements")
 }
 
-enum MovementType {
-  PURCHASE_IN       // Stock masuk dari pembelian (store-owned)
-  CONSIGNMENT_IN    // Stock masuk dari titipan (consignment)
-  SALE_OUT          // Stock keluar dari penjualan
-  RETURN_IN         // Stock masuk dari retur pelanggan
-  RETURN_OUT        // Stock keluar retur ke supplier/consignor
-  EXPIRED_OUT       // Stock keluar karena kadaluarsa/rusak
-  ADJUSTMENT        // Penyesuaian manual (opname)
-  TRANSFER_IN       // Transfer masuk antar gudang (future)
-  TRANSFER_OUT      // Transfer keluar antar gudang (future)
-}
-
-enum ReferenceType {
-  PURCHASE          // Reference to Purchase
-  CONSIGNMENT_BATCH // Reference to ConsignmentBatch
-  SALE              // Reference to Transaction (sale)
-  ADJUSTMENT        // Manual adjustment
-  EXPIRY            // Expiry/waste tracking
-}
-
-// =====================================
-// SUPPLIERS & CONSIGNORS
-// =====================================
-
-model Supplier {
-  id          String    @id @default(cuid())
-  code        String    @unique  // Supplier code (e.g., SUP-001)
-  name        String
-  contact     String?   // Contact person
-  phone       String?
-  email       String?
-  address     String?
-  paymentTerms String?  // e.g., "Net 30", "COD"
-  isActive    Boolean   @default(true)
-  note        String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  
-  // Relations
-  products    Product[] // Products from this supplier
-  purchases   Purchase[]
-  
-  @@map("suppliers")
-}
-
-model Consignor {
-  id          String    @id @default(cuid())
-  code        String    @unique  // Consignor code (e.g., CON-001)
-  name        String
-  contact     String?   // Contact person
-  phone       String?
-  email       String?
-  address     String?
-  feeType     FeeType   @default(PERCENTAGE)
-  defaultFeePercent Decimal?  // Default fee percentage (e.g., 20.00 for 20%)
-  defaultFeeFlat    Decimal?  // Default flat fee per item
-  paymentSchedule   String?   // e.g., "Weekly", "Monthly"
-  isActive    Boolean   @default(true)
-  note        String?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  
-  // Relations
-  batches     ConsignmentBatch[]
-  settlements Settlement[]
-  
-  @@map("consignors")
-}
-
-enum FeeType {
-  PERCENTAGE  // Fee based on percentage of sell price
-  FLAT        // Flat fee per unit sold
-  HYBRID      // Combination (future enhancement)
-}
-
-// =====================================
-// SUPPLIER PROFILE & REGISTRATION
-// =====================================
-
-model SupplierProfile {
-  id              String              @id @default(cuid())
-  userId          String              @unique
-  businessName    String
-  ownerName       String
-  phone           String
-  address         String
-  productCategory String              // Kategori produk (Makanan, Minuman, ATK, dll)
-  description     String?
-  
-  // Registration & Approval
-  status          SupplierStatus      @default(PENDING)
-  approvedById    String?
-  approvedAt      DateTime?
-  rejectedReason  String?
-  
-  // Payment tracking
-  monthlyFee      Decimal             @default(25000)  // Rp 25,000/bulan
-  lastPaymentDate DateTime?
-  nextPaymentDue  DateTime?
-  isPaymentActive Boolean             @default(false)
-  
-  createdAt       DateTime            @default(now())
-  updatedAt       DateTime            @updatedAt
-  
-  // Relations
-  user            User                @relation(fields: [userId], references: [id], onDelete: Cascade)
-  payments        SupplierPayment[]
-  
-  @@map("supplier_profiles")
-}
-
-enum SupplierStatus {
-  PENDING         // Menunggu approval
-  APPROVED        // Disetujui
-  REJECTED        // Ditolak
-  SUSPENDED       // Ditangguhkan (tidak bayar, dll)
-  ACTIVE          // Aktif (approved + payment up to date)
-}
-
-model SupplierPayment {
-  id              String          @id @default(cuid())
+model supplier_payments {
+  id                String                    @id
   supplierProfileId String
-  amount          Decimal
-  paymentMethod   PaymentMethod   @default(TRANSFER)
-  paymentDate     DateTime        @default(now())
-  periodStart     DateTime        // Periode mulai
-  periodEnd       DateTime        // Periode berakhir
-  referenceNo     String?         // Nomor referensi pembayaran
-  verifiedBy      String?         // User ID yang verifikasi
-  verifiedAt      DateTime?
-  status          PaymentVerificationStatus @default(PENDING)
-  note            String?
-  createdAt       DateTime        @default(now())
-  updatedAt       DateTime        @updatedAt
-  
-  // Relations
-  supplierProfile SupplierProfile @relation(fields: [supplierProfileId], references: [id], onDelete: Cascade)
-  
+  amount            Decimal
+  paymentMethod     PaymentMethod             @default(TRANSFER)
+  paymentDate       DateTime                  @default(now())
+  periodStart       DateTime
+  periodEnd         DateTime
+  referenceNo       String?
+  verifiedBy        String?
+  verifiedAt        DateTime?
+  status            PaymentVerificationStatus @default(PENDING)
+  note              String?
+  createdAt         DateTime                  @default(now())
+  updatedAt         DateTime
+  supplier_profiles supplier_profiles         @relation(fields: [supplierProfileId], references: [id], onDelete: Cascade)
+
   @@index([supplierProfileId, paymentDate])
-  @@map("supplier_payments")
 }
 
-enum PaymentVerificationStatus {
-  PENDING         // Menunggu verifikasi
-  VERIFIED        // Terverifikasi
-  REJECTED        // Ditolak
+model supplier_profiles {
+  id                String              @id
+  userId            String?             @unique
+  businessName      String
+  ownerName         String
+  email             String              @unique
+  phone             String
+  address           String
+  productCategory   String
+  description       String?
+  password          String?
+  status            SupplierStatus      @default(PENDING)
+  paymentStatus     PaymentStatus       @default(UNPAID)
+  approvedById      String?
+  approvedAt        DateTime?
+  rejectedReason    String?
+  monthlyFee        Decimal             @default(25000)
+  lastPaymentDate   DateTime?
+  nextPaymentDue    DateTime?
+  isPaymentActive   Boolean             @default(false)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime
+  supplier_payments supplier_payments[]
+  users             users?              @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-// =====================================
-// PURCHASE (Store-Owned Products)
-// =====================================
-
-model Purchase {
-  id              String        @id @default(cuid())
-  code            String        @unique  // Purchase order code (e.g., PO-2025-001)
-  supplierId      String
-  totalAmount     Decimal       @default(0)
-  purchaseDate    DateTime      @default(now())
-  receivedDate    DateTime?     // When goods actually received
-  status          PurchaseStatus @default(PENDING)
-  paymentStatus   PaymentStatus  @default(UNPAID)
-  paymentDate     DateTime?
-  note            String?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  
-  // Relations
-  supplier        Supplier      @relation(fields: [supplierId], references: [id])
-  items           PurchaseItem[]
-  
-  @@index([supplierId, purchaseDate])
-  @@map("purchases")
+model suppliers {
+  id           String      @id
+  code         String      @unique
+  name         String
+  contact      String?
+  phone        String?
+  email        String?
+  address      String?
+  paymentTerms String?
+  isActive     Boolean     @default(true)
+  note         String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime
+  products     products[]
+  purchases    purchases[]
 }
 
-enum PurchaseStatus {
-  PENDING     // Order placed, awaiting delivery
-  RECEIVED    // Goods received
-  CANCELLED   // Order cancelled
-}
+model transaction_items {
+  id                String              @id
+  transactionId     String
+  productId         String
+  quantity          Int
+  unitPrice         Decimal
+  totalPrice        Decimal
+  cogsPerUnit       Decimal?
+  totalCogs         Decimal?
+  grossProfit       Decimal?
+  createdAt         DateTime            @default(now())
+  consignment_sales consignment_sales[]
+  products          products            @relation(fields: [productId], references: [id])
+  transactions      transactions        @relation(fields: [transactionId], references: [id], onDelete: Cascade)
 
-enum PaymentStatus {
-  UNPAID      // Not yet paid
-  PARTIAL     // Partially paid
-  PAID        // Fully paid
-}
-
-model PurchaseItem {
-  id          String    @id @default(cuid())
-  purchaseId  String
-  productId   String
-  quantity    Int
-  unitCost    Decimal   // Cost per unit
-  totalCost   Decimal   // quantity * unitCost
-  createdAt   DateTime  @default(now())
-  
-  // Relations
-  purchase    Purchase  @relation(fields: [purchaseId], references: [id], onDelete: Cascade)
-  product     Product   @relation(fields: [productId], references: [id])
-  
-  @@index([purchaseId])
   @@index([productId])
-  @@map("purchase_items")
+  @@index([transactionId])
 }
 
-// =====================================
-// CONSIGNMENT (Titipan Products)
-// =====================================
+model transactions {
+  id                String              @id
+  memberId          String?
+  type              TransactionType
+  totalAmount       Decimal
+  paymentMethod     PaymentMethod       @default(CASH)
+  status            TransactionStatus   @default(COMPLETED)
+  note              String?
+  date              DateTime            @default(now())
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime
+  transaction_items transaction_items[]
+  members           members?            @relation(fields: [memberId], references: [id])
+}
 
-model ConsignmentBatch {
-  id              String        @id @default(cuid())
-  code            String        @unique  // Batch code (e.g., CB-2025-001)
-  consignorId     String
-  productId       String
-  
-  // Batch quantities
-  qtyIn           Int           // Initial quantity received
-  qtySold         Int           @default(0)  // Quantity sold (FIFO tracking)
-  qtyReturned     Int           @default(0)  // Quantity returned to consignor
-  qtyExpired      Int           @default(0)  // Quantity expired/wasted
-  qtyRemaining    Int           // Calculated: qtyIn - qtySold - qtyReturned - qtyExpired
-  
-  // Fee structure for this batch
-  feeType         FeeType
-  feePercent      Decimal?      // Fee percentage (e.g., 20.00 for 20%)
-  feeFlat         Decimal?      // Flat fee per unit
-  
-  // Batch lifecycle
-  receivedAt      DateTime      @default(now())
-  expiryAt        DateTime?     // Optional expiry date
-  status          BatchStatus   @default(ACTIVE)
-  
-  note            String?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  
-  // Relations
-  consignor       Consignor     @relation(fields: [consignorId], references: [id])
-  product         Product       @relation(fields: [productId], references: [id])
-  consignmentSales ConsignmentSale[]
-  
-  @@index([consignorId, receivedAt])
-  @@index([productId, status])
-  @@index([receivedAt])  // For FIFO queries
-  @@map("consignment_batches")
+model users {
+  id                String              @id
+  email             String              @unique
+  password          String
+  name              String
+  role              Role                @default(USER)
+  isActive          Boolean             @default(true)
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime
+  broadcasts        broadcasts[]
+  members           members?
+  supplier_profiles supplier_profiles?
 }
 
 enum BatchStatus {
-  ACTIVE      // Active, available for sale
-  DEPLETED    // All sold out
-  RETURNED    // Returned to consignor
-  EXPIRED     // Expired/wasted
-}
-
-model ConsignmentSale {
-  id              String        @id @default(cuid())
-  batchId         String
-  transactionItemId String      // Link to actual sale item
-  
-  // Sale details
-  qtySold         Int           // Quantity sold from this batch
-  unitPrice       Decimal       // Selling price per unit
-  totalRevenue    Decimal       // qtySold * unitPrice
-  
-  // Fee calculation
-  feeType         FeeType
-  feeAmount       Decimal       // Total fee for this sale
-  netToConsignor  Decimal       // totalRevenue - feeAmount
-  
-  // Settlement tracking
-  settlementId    String?       // Link to settlement when paid
-  isSettled       Boolean       @default(false)
-  
-  saleDate        DateTime      @default(now())
-  createdAt       DateTime      @default(now())
-  
-  // Relations
-  batch           ConsignmentBatch @relation(fields: [batchId], references: [id])
-  transactionItem TransactionItem  @relation(fields: [transactionItemId], references: [id])
-  settlement      Settlement?      @relation(fields: [settlementId], references: [id])
-  
-  @@index([batchId])
-  @@index([settlementId])
-  @@index([saleDate])
-  @@map("consignment_sales")
-}
-
-// =====================================
-// SETTLEMENT (Consignor Payment)
-// =====================================
-
-model Settlement {
-  id              String        @id @default(cuid())
-  code            String        @unique  // Settlement code (e.g., SET-2025-001)
-  consignorId     String
-  
-  // Settlement period
-  periodStart     DateTime
-  periodEnd       DateTime
-  
-  // Financial summary
-  totalRevenue    Decimal       @default(0)  // Total sales revenue
-  totalFee        Decimal       @default(0)  // Total koperasi fee
-  totalPayable    Decimal       @default(0)  // Total to pay consignor
-  
-  // Payment tracking
-  status          SettlementStatus @default(PENDING)
-  paymentMethod   PaymentMethod?
-  paymentDate     DateTime?
-  paymentRef      String?       // Payment reference number
-  
-  note            String?
-  createdAt       DateTime      @default(now())
-  updatedAt       DateTime      @updatedAt
-  
-  // Relations
-  consignor       Consignor     @relation(fields: [consignorId], references: [id])
-  sales           ConsignmentSale[]
-  
-  @@index([consignorId, periodStart])
-  @@index([status])
-  @@map("settlements")
-}
-
-enum SettlementStatus {
-  PENDING     // Generated, awaiting payment
-  PAID        // Payment completed
-  CANCELLED   // Settlement cancelled
-  DISPUTED    // Under dispute/review
-}
-
-// =====================================
-// TRANSACTIONS & SALES
-// =====================================
-
-model Transaction {
-  id          String    @id @default(cuid())
-  memberId    String?   // nullable for non-member transactions
-  type        TransactionType
-  totalAmount Decimal
-  paymentMethod PaymentMethod @default(CASH)
-  status      TransactionStatus @default(COMPLETED)
-  note        String?
-  date        DateTime  @default(now())
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
-  
-  // Relations
-  member      Member?   @relation(fields: [memberId], references: [id])
-  items       TransactionItem[]
-  
-  @@map("transactions")
-}
-
-enum TransactionType {
-  SALE        // Penjualan
-  PURCHASE    // Pembelian
-  RETURN      // Retur
-  INCOME      // Pemasukan lain
-  EXPENSE     // Pengeluaran
-}
-
-enum PaymentMethod {
-  CASH
-  TRANSFER
-  CREDIT
-}
-
-enum TransactionStatus {
-  PENDING
-  COMPLETED
-  CANCELLED
-}
-
-model TransactionItem {
-  id              String      @id @default(cuid())
-  transactionId   String
-  productId       String
-  quantity        Int
-  unitPrice       Decimal
-  totalPrice      Decimal     // quantity * unitPrice
-  
-  // COGS tracking (untuk store-owned products)
-  cogsPerUnit     Decimal?    // Cost of Goods Sold per unit
-  totalCogs       Decimal?    // quantity * cogsPerUnit
-  grossProfit     Decimal?    // totalPrice - totalCogs
-  
-  createdAt       DateTime    @default(now())
-  
-  // Relations
-  transaction     Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
-  product         Product     @relation(fields: [productId], references: [id])
-  consignmentSales ConsignmentSale[]  // For consignment items, link to batch sales
-  
-  @@index([transactionId])
-  @@index([productId])
-  @@map("transaction_items")
-}
-
-// =====================================
-// BROADCAST & COMMUNICATION
-// =====================================
-
-model Broadcast {
-  id                String           @id @default(cuid())
-  title             String
-  message           String
-  type              BroadcastType
-  targetAudience    TargetAudience
-  unitTarget        String?          // specific unit if target is UNIT_SPECIFIC
-  status            BroadcastStatus  @default(DRAFT)
-  scheduledAt       DateTime?
-  sentAt            DateTime?
-  totalRecipients   Int              @default(0)
-  successfulDeliveries Int           @default(0)
-  failedDeliveries  Int              @default(0)
-  createdById       String
-  createdAt         DateTime         @default(now())
-  updatedAt         DateTime         @updatedAt
-  
-  // Relations
-  createdBy         User             @relation(fields: [createdById], references: [id])
-  
-  @@map("broadcasts")
-}
-
-enum BroadcastType {
-  ANNOUNCEMENT
-  URGENT
-  INFO
-  REMINDER
-}
-
-enum TargetAudience {
-  ALL
-  ACTIVE_MEMBERS
-  UNIT_SPECIFIC
+  ACTIVE
+  DEPLETED
+  RETURNED
+  EXPIRED
 }
 
 enum BroadcastStatus {
@@ -703,21 +411,149 @@ enum BroadcastStatus {
   FAILED
 }
 
-// =====================================
-// SYSTEM LOGS & AUDIT
-// =====================================
+enum BroadcastType {
+  ANNOUNCEMENT
+  URGENT
+  INFO
+  REMINDER
+}
 
-model AuditLog {
-  id          String    @id @default(cuid())
-  userId      String?
-  action      String
-  entity      String
-  entityId    String?
-  oldData     String?   // JSON string
-  newData     String?   // JSON string
-  ipAddress   String?
-  userAgent   String?
-  createdAt   DateTime  @default(now())
-  
-  @@map("audit_logs")
+enum FeeType {
+  PERCENTAGE
+  FLAT
+  HYBRID
+}
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+enum LoanStatus {
+  ACTIVE
+  COMPLETED
+  OVERDUE
+}
+
+enum MemberStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+}
+
+enum MovementType {
+  PURCHASE_IN
+  CONSIGNMENT_IN
+  SALE_OUT
+  RETURN_IN
+  RETURN_OUT
+  EXPIRED_OUT
+  ADJUSTMENT
+  TRANSFER_IN
+  TRANSFER_OUT
+}
+
+enum OwnershipType {
+  TOKO
+  TITIPAN
+}
+
+enum PaymentMethod {
+  CASH
+  TRANSFER
+  CREDIT
+}
+
+enum PaymentStatus {
+  UNPAID
+  PAID_PENDING_APPROVAL
+  PAID_APPROVED
+  PAID_REJECTED
+}
+
+enum PaymentVerificationStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+enum ProductStatus {
+  ACTIVE
+  INACTIVE
+  SEASONAL
+}
+
+enum PurchasePaymentStatus {
+  UNPAID
+  PARTIAL
+  PAID
+}
+
+enum PurchaseStatus {
+  PENDING
+  RECEIVED
+  CANCELLED
+}
+
+enum ReferenceType {
+  PURCHASE
+  CONSIGNMENT_BATCH
+  SALE
+  ADJUSTMENT
+  EXPIRY
+}
+
+enum Role {
+  SUPER_ADMIN
+  ADMIN
+  SUPPLIER
+  USER
+}
+
+enum SavingType {
+  POKOK
+  WAJIB
+  SUKARELA
+  WITHDRAWAL
+}
+
+enum SettlementStatus {
+  PENDING
+  PAID
+  CANCELLED
+  DISPUTED
+}
+
+enum StockCycle {
+  HARIAN
+  MINGGUAN
+  DUA_MINGGUAN
+}
+
+enum SupplierStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  SUSPENDED
+  ACTIVE
+}
+
+enum TargetAudience {
+  ALL
+  ACTIVE_MEMBERS
+  UNIT_SPECIFIC
+}
+
+enum TransactionStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+}
+
+enum TransactionType {
+  SALE
+  PURCHASE
+  RETURN
+  INCOME
+  EXPENSE
 }

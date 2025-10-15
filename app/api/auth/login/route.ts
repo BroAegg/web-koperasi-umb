@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     }
 
     // First try to find User account (Admin, SuperAdmin)
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await prisma.users.findUnique({ where: { email } });
     console.log('User found:', !!user);
     
     if (user) {
@@ -49,7 +49,7 @@ export async function POST(request: NextRequest) {
     }
 
     // If not found in User, try SupplierProfile (direct supplier registration)
-    const supplier = await prisma.supplierProfile.findUnique({ 
+    const supplier = await prisma.supplier_profiles.findUnique({ 
       where: { email },
       select: {
         id: true,
