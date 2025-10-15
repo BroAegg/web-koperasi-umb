@@ -159,7 +159,7 @@ async function main() {
     await prisma.stockMovement.create({
       data: {
         productId: product.id,
-        type: 'IN',
+        movementType: 'PURCHASE_IN',
         quantity: product.stock,
         note: 'Initial stock',
       },
@@ -211,7 +211,7 @@ async function main() {
     await prisma.stockMovement.create({
       data: {
         productId: randomProduct.id,
-        type: 'OUT',
+        movementType: 'SALE_OUT',
         quantity,
         note: `Penjualan transaksi ${transaction.id}`,
       },
@@ -228,7 +228,7 @@ async function main() {
     await prisma.stockMovement.create({
       data: {
         productId: randomProduct.id,
-        type: 'IN',
+        movementType: 'PURCHASE_IN',
         quantity,
         note: `Restock ${randomProduct.name}`,
       },

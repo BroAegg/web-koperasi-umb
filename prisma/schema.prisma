@@ -26,6 +26,7 @@ model User {
   // Relations
   member      Member?
   createdBroadcasts Broadcast[]
+  supplierProfile   SupplierProfile?
   
   @@map("users")
 }
@@ -324,6 +325,79 @@ enum FeeType {
   PERCENTAGE  // Fee based on percentage of sell price
   FLAT        // Flat fee per unit sold
   HYBRID      // Combination (future enhancement)
+}
+
+// =====================================
+// SUPPLIER PROFILE & REGISTRATION
+// =====================================
+
+model SupplierProfile {
+  id              String              @id @default(cuid())
+  userId          String              @unique
+  businessName    String
+  ownerName       String
+  phone           String
+  address         String
+  productCategory String              // Kategori produk (Makanan, Minuman, ATK, dll)
+  description     String?
+  
+  // Registration & Approval
+  status          SupplierStatus      @default(PENDING)
+  approvedById    String?
+  approvedAt      DateTime?
+  rejectedReason  String?
+  
+  // Payment tracking
+  monthlyFee      Decimal             @default(25000)  // Rp 25,000/bulan
+  lastPaymentDate DateTime?
+  nextPaymentDue  DateTime?
+  isPaymentActive Boolean             @default(false)
+  
+  createdAt       DateTime            @default(now())
+  updatedAt       DateTime            @updatedAt
+  
+  // Relations
+  user            User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  payments        SupplierPayment[]
+  
+  @@map("supplier_profiles")
+}
+
+enum SupplierStatus {
+  PENDING         // Menunggu approval
+  APPROVED        // Disetujui
+  REJECTED        // Ditolak
+  SUSPENDED       // Ditangguhkan (tidak bayar, dll)
+  ACTIVE          // Aktif (approved + payment up to date)
+}
+
+model SupplierPayment {
+  id              String          @id @default(cuid())
+  supplierProfileId String
+  amount          Decimal
+  paymentMethod   PaymentMethod   @default(TRANSFER)
+  paymentDate     DateTime        @default(now())
+  periodStart     DateTime        // Periode mulai
+  periodEnd       DateTime        // Periode berakhir
+  referenceNo     String?         // Nomor referensi pembayaran
+  verifiedBy      String?         // User ID yang verifikasi
+  verifiedAt      DateTime?
+  status          PaymentVerificationStatus @default(PENDING)
+  note            String?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+  
+  // Relations
+  supplierProfile SupplierProfile @relation(fields: [supplierProfileId], references: [id], onDelete: Cascade)
+  
+  @@index([supplierProfileId, paymentDate])
+  @@map("supplier_payments")
+}
+
+enum PaymentVerificationStatus {
+  PENDING         // Menunggu verifikasi
+  VERIFIED        // Terverifikasi
+  REJECTED        // Ditolak
 }
 
 // =====================================

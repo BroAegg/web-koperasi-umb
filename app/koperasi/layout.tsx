@@ -2,7 +2,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import { Home, Boxes, Users, Megaphone, DollarSign, Settings, LogOut, Menu, X, Bell, User } from "lucide-react";
 import { Button } from '@/components/ui/button';
 import { NotificationProvider } from '@/lib/notification-context';
@@ -17,8 +17,11 @@ const navItems = [
 
 export default function KoperasiLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
+  const router = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [user, setUser] = useState<any>(null);
+  const [showLogoutModal, setShowLogoutModal] = useState(false);
+  
   useEffect(() => {
     const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
     if (!token) return;
@@ -31,6 +34,11 @@ export default function KoperasiLayout({ children }: { children: React.ReactNode
       })
       .catch(() => {});
   }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    router.push('/login');
+  };
 
   const SidebarContent = () => (
     <div className="h-full flex flex-col">
@@ -68,15 +76,17 @@ export default function KoperasiLayout({ children }: { children: React.ReactNode
 
       <div className="border-t border-gray-200 space-y-1 px-6 py-6 mt-auto">
         <Link
-          href="/settings"
+          href="/koperasi/settings"
           onClick={() => setSidebarOpen(false)}
-          className="flex items-center gap-3 px-3 py-3 rounded-lg text-gray-700 hover:bg-gray-50 hover:text-gray-900 transition-colors"
+          className={`flex items-center gap-3 px-3 py-3 rounded-lg font-medium transition-colors ${
+            pathname === '/koperasi/settings' ? "bg-gray-100 text-gray-900" : "text-gray-700 hover:bg-gray-50 hover:text-gray-900"
+          }`}
         >
           <Settings size={18} className="flex-shrink-0" /> 
           <span>Settings</span>
         </Link>
         <button 
-          onClick={() => { localStorage.removeItem('token'); window.location.href = '/'; }}
+          onClick={() => { setSidebarOpen(false); setShowLogoutModal(true); }}
           className="flex items-center gap-3 w-full text-left px-3 py-3 text-red-600 hover:bg-red-50 rounded-lg font-medium transition-colors"
         >
           <LogOut size={18} className="flex-shrink-0" /> 
@@ -179,6 +189,39 @@ export default function KoperasiLayout({ children }: { children: React.ReactNode
           </div>
         </main>
       </div>
+
+      {/* Logout Confirmation Modal */}
+      {showLogoutModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl p-6 max-w-sm w-full mx-4">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-12 h-12 bg-red-100 rounded-full flex items-center justify-center">
+                <LogOut className="w-6 h-6 text-red-600" />
+              </div>
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900">Konfirmasi Logout</h3>
+                <p className="text-sm text-gray-500">Anda yakin ingin keluar?</p>
+              </div>
+            </div>
+            
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setShowLogoutModal(false)}
+                className="flex-1"
+              >
+                Batal
+              </Button>
+              <Button
+                onClick={handleLogout}
+                className="flex-1 bg-red-600 hover:bg-red-700 text-white"
+              >
+                Ya, Logout
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

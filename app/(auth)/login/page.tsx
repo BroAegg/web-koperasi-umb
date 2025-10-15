@@ -211,7 +211,7 @@ export default function LoginPage() {
                   </div>
                 </form>
 
-                <div className="mt-6 text-center">
+                <div className="mt-6 text-center space-y-2">
                   <p className="text-sm text-gray-600">
                     Belum punya akun?{' '}
                     <Link 
@@ -219,6 +219,15 @@ export default function LoginPage() {
                       className="text-blue-700 hover:text-blue-800 font-medium"
                     >
                       Daftar sekarang
+                    </Link>
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    Ingin jadi supplier?{' '}
+                    <Link 
+                      href="/supplier/register" 
+                      className="text-blue-700 hover:text-blue-800 font-medium"
+                    >
+                      Daftar di sini
                     </Link>
                   </p>
                 </div>
