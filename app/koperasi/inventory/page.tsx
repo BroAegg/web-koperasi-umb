@@ -47,6 +47,7 @@ interface Product {
   ownershipType?: 'TOKO' | 'TITIPAN';
   stockCycle?: 'HARIAN' | 'MINGGUAN' | 'DUA_MINGGUAN';
   isConsignment?: boolean;
+  supplierId?: string | null;
   supplier?: {
     id: string;
     name: string;
@@ -458,9 +459,9 @@ export default function InventoryPage() {
       name: product.name,
       description: '', // Product interface doesn't have description, set empty
       categoryId: product.category.id,
-      supplierId: '',
-      supplierName: '',
-      supplierContact: '',
+      supplierId: product.supplierId || '',
+      supplierName: product.supplier?.name || '',
+      supplierContact: product.supplierContact || '',
       sku: '', // Product interface doesn't have sku, set empty
       buyPrice: product.buyPrice ? formatPriceInput(product.buyPrice.toString()) : '',
       sellPrice: formatPriceInput(product.sellPrice.toString()),
