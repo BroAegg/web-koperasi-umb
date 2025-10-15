@@ -437,44 +437,360 @@ These are simple UI enhancements implemented WITHOUT waiting for Phase 7:
 ---
 
 ## 📅 **PHASE 2: CORE BUSINESS LOGIC** (Week 3-4)
-### **Status:** 🔵 Ready to Start | **Target Start:** 16 Oktober 2025 (Tomorrow)
+### **Status:** 🟡 In Progress | **Started:** 15 Oktober 2025
 
-### **2.1 Ownership System Implementation**
-**Tasks:**
-- [ ] Create business logic layer untuk ownership types
-- [ ] Implement store-owned product handling
-- [ ] Implement consignment product handling
-- [ ] Validation rules per ownership type
-- [ ] Unit tests untuk ownership logic
+---
 
-### **2.2 Stock Cycle Management**
-**Tasks:**
-- [ ] Implement harian cycle logic (daily reset)
-- [ ] Implement mingguan cycle logic (weekly tracking)
-- [ ] Implement dua_mingguan cycle logic
+## 🎯 **PHASE 2 SCOPE: Inventory Management UI & Financial Tracking**
+
+### **What We're Building:**
+Based on conversation & actual implementation, Phase 2 focuses on:
+1. ✅ **Enhanced Inventory Management Page** with:
+   - Real-time financial metrics (Omzet, Keuntungan, Produk Terjual)
+   - Dynamic period filtering (today, 7days, 1month, 3months, 6months, 1year)
+   - Pagination system (10 items per page)
+   - Search & filtering (category, ownership, stock status)
+   - Stock movement tracking (IN/OUT with quantity)
+   - Product CRUD operations (add, edit, delete)
+   - Supplier integration & autocomplete
+   - WhatsApp restock notifications
+
+2. ✅ **Financial Period API** untuk:
+   - Dynamic date range calculations
+   - Transaction-based revenue & profit tracking
+   - Real-time dashboard updates
+
+3. 🔄 **Future Enhancements** (not started yet):
+   - POS System (Point of Sale for cashier)
+   - Advanced Reporting (Excel/PDF export)
+   - Pembayaran Konsinyasi workflow
+   - Member Management & loyalty
+   - Broadcast & Notification system
+
+---
+
+### **2.1 Enhanced Inventory Management UI** ✅ Completed
+**Completed:** 15 Oktober 2025 | **Status:** 🟢 Production-Ready
+
+**Implemented Features:**
+
+1. **Financial Dashboard Cards** ✅
+   - [x] Total Omzet (Revenue) dengan period filter
+   - [x] Keuntungan Bersih (Net Profit) dengan period filter
+   - [x] Produk Terjual (Items Sold) dengan period filter
+   - [x] Dynamic period selector (Hari Ini, 7 Hari, 1 Bulan, 3 Bulan, 6 Bulan, 1 Tahun)
+   - [x] Custom date picker untuk periode spesifik
+   - [x] Real-time updates setelah stock movements
+   - [x] Currency formatting (Rupiah)
+
+2. **Product Table Enhancements** ✅
+   - [x] Ownership badges (🏪 Toko blue, 🎁 Titipan purple)
+   - [x] Stock cycle indicators (📅 Harian, Mingguan, Dua Mingguan)
+   - [x] Visual distinction untuk out-of-stock products (gray muted + "HABIS" badge)
+   - [x] Stock quantity display with color coding
+   - [x] Price information (Beli & Jual)
+   - [x] Category filtering
+   - [x] Search functionality (by product name)
+   - [x] Product counter (menampilkan X dari Y produk)
+
+3. **Pagination System** ✅
+   - [x] 10 items per page
+   - [x] Icon-based navigation (< > buttons)
+   - [x] Page number indicators
+   - [x] Smart ellipsis untuk many pages
+   - [x] Current page highlighting
+   - [x] Search integration (reset ke page 1)
+   - [x] Responsive design
+
+4. **Stock Filtering** ✅
+   - [x] Toggle "Sembunyikan Habis" / "Tampilkan Semua"
+   - [x] Hide products dengan stock = 0
+   - [x] Empty state messaging
+   - [x] Filter combination (Search + Category + Stock status)
+
+5. **Stock Movement Tracking** ✅
+   - [x] Modal form untuk IN/OUT movements
+   - [x] Quantity input dengan validation
+   - [x] Movement type selection (PURCHASE_IN, CONSIGNMENT_IN, SALE_OUT, etc.)
+   - [x] Real-time stock updates
+   - [x] Financial metrics refresh after movements
+   - [x] Error handling & user feedback
+
+6. **Product CRUD Operations** ✅
+   - [x] Add new product form dengan supplier autocomplete
+   - [x] Edit product (with stock field read-only in edit mode)
+   - [x] Delete product with cascade handling
+   - [x] Bulk delete stock movements
+   - [x] Form validation (required fields, price validation)
+   - [x] Supplier data loading in edit mode
+
+7. **Supplier Integration** ✅
+   - [x] Supplier selection dropdown
+   - [x] WhatsApp contact display
+   - [x] "Hubungi Supplier" button (open WhatsApp)
+   - [x] Restock message template
+   - [x] Database migration untuk supplierId & supplierContact
+
+8. **UX Enhancements** ✅
+   - [x] Loading states untuk async operations
+   - [x] Toast notifications (success/error)
+   - [x] Confirmation dialogs (delete, bulk actions)
+   - [x] Responsive table design
+   - [x] Color-coded UI elements
+   - [x] Icon integration (Lucide React)
+
+**Git Commits:**
+- `ac5f67c` - "feat: dynamic financial period filter & implement pagination with stock toggle"
+- `a2a974b` - "fix: refresh financial data after stock movement & enhance UX with out-of-stock styling and icon-only pagination"
+
+**Technical Implementation:**
+- File: `app/koperasi/inventory/page.tsx` (2312 lines)
+- API Endpoints: `/api/financial/period`, `/api/products`, `/api/stock-movements`, `/api/suppliers`
+- State Management: React useState with multiple states (pagination, filtering, financial data)
+- UI Library: Custom components (Button, Card, Table, Input, DateSelector)
+
+---
+
+### **2.2 Financial Period API** ✅ Completed
+**Completed:** 15 Oktober 2025 | **Status:** 🟢 Production-Ready
+
+**Implemented Endpoints:**
+
+1. **GET /api/financial/period** ✅
+   - [x] Query params: `period` (today/7days/1month/3months/6months/1year)
+   - [x] Optional: `date` (custom date untuk "Hari Ini" calculation)
+   - [x] Response: `{ totalRevenue, totalProfit, totalSoldItems, profitMargin }`
+   - [x] Transaction-based calculations (only COMPLETED transactions)
+   - [x] Dynamic date range logic based on period
+   - [x] Error handling & validation
+
+**Business Logic:**
+```typescript
+// Date range calculation based on period
+switch (period) {
+  case 'today': // Hari ini 00:00 - 23:59
+  case '7days': // 6 hari yang lalu - hari ini
+  case '1month': // 29 hari yang lalu - hari ini
+  case '3months': // 3 bulan yang lalu - hari ini
+  case '6months': // 6 bulan yang lalu - hari ini
+  case '1year': // 1 tahun yang lalu - hari ini
+}
+
+// Financial calculations
+totalRevenue = SUM(transactionItems.totalPrice)
+totalCOGS = SUM(transactionItems.totalCogs)
+totalProfit = totalRevenue - totalCOGS
+profitMargin = (totalProfit / totalRevenue) * 100
+totalSoldItems = SUM(transactionItems.quantity)
+```
+
+**File:** `app/api/financial/period/route.ts` (130 lines)
+
+---
+
+### **2.3 Consignment Payment Tracking** ✅ Fixed
+**Completed:** 15 Oktober 2025 | **Status:** 🟢 Working Correctly
+
+**Issue Resolved:**
+- ❌ Problem: Consignment payments counting all stock movements (IN + OUT)
+- ✅ Solution: Filter only `CONSIGNMENT_IN` movements
+- ✅ Verified: TOKO products don't count towards consignment totals
+- ✅ Logic: Only track initial consignment receiving, not sales
+
+**Implementation:**
+```typescript
+// Only count CONSIGNMENT_IN movements for payment calculation
+const totalConsignmentPayments = stockMovements
+  .filter(movement => 
+    movement.movementType === 'CONSIGNMENT_IN' && 
+    movement.product.ownershipType === 'TITIPAN'
+  )
+  .reduce((sum, movement) => 
+    sum + movement.quantity * movement.unitCost, 0
+  );
+```
+
+---
+
+### **2.4 Stock Cycle Management** 🔵 Ready (UI badges added, logic not yet implemented)
+**Status:** Partially Complete (Visual only)
+
+**Completed:**
+- [x] Visual indicators (Harian orange, Mingguan blue, Dua Mingguan green)
+- [x] Stock cycle stored in database (Product.stockCycle)
+- [x] Filtering by stock cycle available in UI
+
+**Not Yet Implemented:**
+- [ ] Daily reset automation (Harian cycle)
+- [ ] Weekly restock reminders (Mingguan cycle)
+- [ ] Biweekly restock reminders (Dua Mingguan cycle)
 - [ ] LastRestockAt tracking mechanism
-- [ ] Restock reminder logic
+- [ ] Auto-inactive product detection
+- [ ] Scheduled jobs (cron/worker)
 
-### **2.3 FIFO Batch Tracking**
-**Tasks:**
-- [ ] Implement FIFO algorithm untuk consignment
-- [ ] Batch allocation during sales
-- [ ] Batch expiry handling
+**Note:** This is planned for **Phase 5: Automation & Scheduled Jobs**
+
+---
+
+### **2.5 FIFO Batch Tracking** 🔵 Ready (Database ready, UI not yet implemented)
+**Status:** Database Schema Complete, Business Logic Pending
+
+**Database Ready:**
+- [x] ConsignmentBatch model with FIFO support
+- [x] qtyIn, qtySold, qtyReturned tracking
+- [x] receivedAt index untuk FIFO ordering
+- [x] ConsignmentSale linking to batches
+- [x] Fee calculation fields
+
+**Not Yet Implemented:**
+- [ ] FIFO allocation algorithm during sales
+- [ ] Batch selection UI for consignment receiving
 - [ ] Batch reporting & analytics
-- [ ] Edge case handling (partial batches, returns)
+- [ ] Batch expiry handling
+- [ ] Partial batch allocation
+- [ ] Settlement calculation based on batches
 
-### **2.4 Movement Tracking System**
-**Tasks:**
-- [ ] Create StockMovement service layer
-- [ ] Implement movement types:
-  - [ ] PURCHASE_IN (procurement)
-  - [ ] CONSIGNMENT_IN (batch receiving)
-  - [ ] SALE_OUT (sales deduction)
-  - [ ] RETURN_OUT (customer/supplier return)
-  - [ ] EXPIRED_OUT (expiry/waste)
-  - [ ] ADJUSTMENT (manual adjustment)
-- [ ] Audit trail functionality
-- [ ] Movement history reporting
+**Note:** This is planned for **Phase 3: Transaction Flows (Consignment Sales)**
+
+---
+
+### **2.6 Movement Tracking System** ✅ Partially Complete
+**Status:** 🟡 Core features working, advanced features pending
+
+**Implemented:**
+- [x] StockMovement API (GET, POST, DELETE)
+- [x] Movement types: PURCHASE_IN, CONSIGNMENT_IN, SALE_OUT, ADJUSTMENT
+- [x] Basic audit trail (createdAt, user tracking)
+- [x] Bulk delete functionality
+- [x] UI for IN/OUT movements
+
+**Not Yet Implemented:**
+- [ ] Advanced movement types (RETURN_OUT, EXPIRED_OUT, TRANSFER, OPENING_BALANCE)
+- [ ] Movement approval workflow
+- [ ] Complete audit trail reporting
+- [ ] Movement history timeline view
+- [ ] Export audit trail (Excel/PDF)
+
+---
+
+## 🎯 **PHASE 2 COMPLETION STATUS**
+
+### **Overall Progress:** 60% Complete 🟡
+
+| Module | Status | Progress | Notes |
+|--------|--------|----------|-------|
+| Enhanced Inventory UI | 🟢 Complete | 100% | Production-ready |
+| Financial Period API | 🟢 Complete | 100% | Working correctly |
+| Consignment Payment Fix | 🟢 Complete | 100% | Logic validated |
+| Stock Cycle (Visual) | 🟢 Complete | 100% | Automation pending (Phase 5) |
+| FIFO Batch Tracking | 🔵 Ready | 20% | Database ready, logic pending (Phase 3) |
+| Movement Tracking | 🟡 Partial | 70% | Core working, advanced features pending |
+
+---
+
+## 🚀 **NEXT PRIORITIES FOR PHASE 2 COMPLETION**
+
+### **Option A: Complete Current Phase 2 Scope** (Recommended)
+Focus on finishing movement tracking & FIFO basics before Phase 3:
+
+1. **Advanced Movement Types Implementation** (2-3 hours)
+   - [ ] Implement RETURN_OUT (customer/supplier returns)
+   - [ ] Implement EXPIRED_OUT (waste/expiry tracking)
+   - [ ] Implement TRANSFER (inter-branch, future)
+   - [ ] Add movement type validation in API
+   - [ ] Update UI untuk support all movement types
+
+2. **Basic FIFO Logic** (3-4 hours)
+   - [ ] Implement simple FIFO allocation algorithm
+   - [ ] Test dengan 2-3 batches
+   - [ ] Link sales to batches (ConsignmentSale)
+   - [ ] Basic fee calculation
+
+3. **Movement History UI** (2-3 hours)
+   - [ ] Timeline view untuk stock movements
+   - [ ] Filter by date range & movement type
+   - [ ] Export to Excel/CSV
+
+**Total Estimated Time:** 1-2 days of focused work
+
+---
+
+### **Option B: Jump to Phase 3 (POS System)** (High Impact)
+Skip advanced Phase 2 features and focus on core business need:
+
+This is what we discussed! Building:
+1. **POS System** untuk cashier operations
+2. **Transaction Flow** dengan FIFO allocation
+3. **Receipt Generation** & printing
+
+**Pros:**
+- ✅ Delivers immediate business value (cashier can use system)
+- ✅ Validates FIFO logic in real-world scenario
+- ✅ User feedback earlier in process
+
+**Cons:**
+- ⚠️ Some Phase 2 features incomplete (movement history, advanced types)
+- ⚠️ Might need to circle back later
+
+---
+
+## 💡 **RECOMMENDED NEXT STEPS**
+
+Based on conversation & business priorities:
+
+### **Priority 1: POS System (Phase 3 Preview)** 🎯
+**Why:** This is the CORE business functionality - kasir needs this NOW
+**What:** Build Point of Sale interface with:
+- Product search/scan
+- Shopping cart
+- Payment processing
+- FIFO allocation untuk consignment
+- Receipt generation
+- Real-time stock updates
+
+**Estimated:** 3-5 days of focused development
+
+### **Priority 2: Complete Movement Tracking** 
+**Why:** Foundation untuk reporting & audit
+**What:** Finish advanced movement types & history view
+**Estimated:** 1 day
+
+### **Priority 3: Reporting & Analytics**
+**Why:** Business needs visibility into operations
+**What:** Export features, advanced filtering, dashboards
+**Estimated:** 2-3 days
+
+---
+
+## 📝 **PHASE 2 SUMMARY**
+
+### **What's Working Today (15 Oktober 2025):**
+✅ Enhanced inventory management with financial tracking  
+✅ Dynamic period filtering (omzet & profit by date range)  
+✅ Pagination & search (10 items/page)  
+✅ Stock movements (IN/OUT)  
+✅ Product CRUD with supplier integration  
+✅ WhatsApp restock notifications  
+✅ Visual indicators (ownership, stock cycle, out-of-stock)  
+✅ Consignment payment tracking (CONSIGNMENT_IN only)  
+✅ Real-time financial updates after stock movements  
+
+### **What's Pending:**
+⏳ Advanced movement types (RETURN, EXPIRED, TRANSFER)  
+⏳ FIFO batch allocation algorithm  
+⏳ Movement history timeline UI  
+⏳ Stock cycle automation (daily reset, reminders)  
+⏳ Export functionality (Excel/PDF)  
+
+### **Ready to Build Next:**
+🚀 **POS System** (Phase 3) - Highest business priority  
+🚀 **Laporan & Reporting** (Phase 4) - Business insights  
+🚀 **Pembayaran Konsinyasi** (Phase 4) - Settlement workflow  
+
+---
+
+**Last Updated:** 15 Oktober 2025, 22:00 WIB  
+**Next Session:** Phase 3 Kickoff - POS System Development
 
 ---
 
