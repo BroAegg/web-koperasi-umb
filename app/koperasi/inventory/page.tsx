@@ -25,7 +25,9 @@ import {
   Receipt,
   PiggyBank,
   Calendar,
-  Phone
+  Phone,
+  ChevronLeft,
+  ChevronRight
 } from 'lucide-react';
 
 interface Product {
@@ -402,6 +404,7 @@ export default function InventoryPage() {
         await fetchProducts();
         await fetchStockMovements(today);
         await fetchDailySummary(today);
+        await fetchPeriodFinancialData(); // Update omzet & keuntungan
         
         success('Stock Movement Berhasil', result.message);
       } else {
@@ -465,6 +468,7 @@ export default function InventoryPage() {
         await fetchProducts(); // Refresh product list
         await fetchStockMovements(today); // Fetch stock movements untuk hari ini
         await fetchDailySummary(today); // Fetch summary untuk hari ini
+        await fetchPeriodFinancialData(); // Update omzet & keuntungan
         
         const action = editingProduct ? 'diperbarui' : 'ditambahkan';
         success(`Produk Berhasil ${action.charAt(0).toUpperCase() + action.slice(1)}`, 
@@ -960,10 +964,20 @@ export default function InventoryPage() {
                   </TableHeader>
                   <TableBody>
                     {paginatedProducts.length > 0 ? paginatedProducts.map((product) => (
-                      <TableRow key={product.id}>
+                      <TableRow 
+                        key={product.id}
+                        className={product.stock === 0 ? 'bg-gray-50 opacity-60 hover:opacity-80 transition-opacity' : ''}
+                      >
                         <TableCell className="font-medium">
                           <div className="flex flex-col gap-1.5">
-                            <span className="font-medium">{product.name}</span>
+                            <div className="flex items-center gap-2">
+                              <span className="font-medium">{product.name}</span>
+                              {product.stock === 0 && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-gray-200 text-gray-700 border border-gray-300">
+                                  HABIS
+                                </span>
+                              )}
+                            </div>
                             <div className="flex flex-wrap gap-1.5">
                               {/* Ownership Badge - Clean, No Emoji */}
                               {product.ownershipType && (
@@ -1114,8 +1128,10 @@ export default function InventoryPage() {
                       size="sm"
                       onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
                       disabled={currentPage === 1}
+                      className="px-3"
+                      title="Halaman sebelumnya"
                     >
-                      ← Sebelumnya
+                      <ChevronLeft className="w-4 h-4" />
                     </Button>
                     
                     {/* Page Numbers */}
@@ -1151,8 +1167,10 @@ export default function InventoryPage() {
                       size="sm"
                       onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
                       disabled={currentPage === totalPages}
+                      className="px-3"
+                      title="Halaman selanjutnya"
                     >
-                      Selanjutnya →
+                      <ChevronRight className="w-4 h-4" />
                     </Button>
                   </div>
                 </div>
