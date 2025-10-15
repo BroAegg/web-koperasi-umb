@@ -6,20 +6,24 @@ import Link from "next/link";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { Building2, User, Mail, Phone, MapPin, Package, FileText, CheckCircle } from 'lucide-react';
+import { Building2, User, Mail, Phone, MapPin, Package, FileText, CheckCircle, Lock, Eye, EyeOff } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export default function SupplierRegisterPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
     email: '',
     phone: '',
     category: '',
     address: '',
-    description: ''
+    description: '',
+    password: '',
+    confirmPassword: ''
   });
   const [error, setError] = useState('');
 
@@ -35,18 +39,38 @@ export default function SupplierRegisterPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+
+    // Validation
+    if (!formData.password || formData.password.length < 8) {
+      setError('Password minimal 8 karakter');
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
+      setError('Password dan konfirmasi password tidak cocok');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      console.log('Submitting supplier registration:', formData);
+      console.log('Submitting supplier registration:', { ...formData, password: '[REDACTED]' });
 
-      const res = await fetch('/api/suppliers', {
+      const res = await fetch('/api/suppliers/register', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
           'Accept': 'application/json'
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          phone: formData.phone,
+          category: formData.category,
+          address: formData.address,
+          description: formData.description,
+          password: formData.password
+        }),
       });
 
       console.log('Response status:', res.status);
@@ -259,12 +283,58 @@ export default function SupplierRegisterPage() {
                     </div>
                   </div>
 
+                  <div className="border-t border-gray-200 pt-4 mt-4">
+                    <h3 className="text-sm font-semibold text-gray-900 mb-3">Keamanan Akun</h3>
+                    
+                    <div className="space-y-3">
+                      <Input
+                        label="Password"
+                        type={showPassword ? 'text' : 'password'}
+                        placeholder="Minimal 8 karakter"
+                        value={formData.password}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({...formData, password: e.target.value})}
+                        leftIcon={<Lock className="w-4 h-4 text-gray-400" />}
+                        rightIcon={
+                          <button
+                            type="button"
+                            onClick={() => setShowPassword(!showPassword)}
+                            className="text-gray-400 hover:text-gray-600 focus:outline-none"
+                          >
+                            {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        }
+                        required
+                        className="text-base"
+                      />
+
+                      <Input
+                        label="Konfirmasi Password"
+                        type={showConfirmPassword ? 'text' : 'password'}
+                        placeholder="Ulangi password"
+                        value={formData.confirmPassword}
+                        onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({...formData, confirmPassword: e.target.value})}
+                        leftIcon={<Lock className="w-4 h-4 text-gray-400" />}
+                        rightIcon={
+                          <button
+                            type="button"
+                            onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                            className="text-gray-400 hover:text-gray-600 focus:outline-none"
+                          >
+                            {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                          </button>
+                        }
+                        required
+                        className="text-base"
+                      />
+                    </div>
+                  </div>
+
                   <div className="space-y-3 pt-2">
                     <Button
                       type="submit"
                       className="w-full text-base py-3"
                       loading={isLoading}
-                      disabled={isLoading || !formData.name || !formData.email || !formData.phone || !formData.category || !formData.address}
+                      disabled={isLoading || !formData.name || !formData.email || !formData.phone || !formData.category || !formData.address || !formData.password || !formData.confirmPassword}
                     >
                       {isLoading ? 'Memproses...' : 'Daftar Sekarang'}
                     </Button>
