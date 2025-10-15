@@ -121,6 +121,7 @@ export default function InventoryPage() {
     categoryId: '',
     supplierId: '',
     supplierName: '',
+    supplierContact: '',
     sku: '',
     buyPrice: '',
     sellPrice: '',
@@ -381,6 +382,7 @@ export default function InventoryPage() {
       categoryId: '',
       supplierId: '',
       supplierName: '',
+      supplierContact: '',
       sku: '',
       buyPrice: '',
       sellPrice: '',
@@ -408,6 +410,7 @@ export default function InventoryPage() {
       categoryId: product.category.id,
       supplierId: '',
       supplierName: '',
+      supplierContact: '',
       sku: '', // Product interface doesn't have sku, set empty
       buyPrice: product.buyPrice ? formatPriceInput(product.buyPrice.toString()) : '',
       sellPrice: formatPriceInput(product.sellPrice.toString()),
@@ -1115,48 +1118,79 @@ export default function InventoryPage() {
                 </div>
 
                 {/* Supplier Autocomplete Field */}
-                <div className="relative">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Nama Supplier
-                  </label>
-                  <Input
-                    type="text"
-                    value={supplierSearch}
-                    onChange={(e) => {
-                      setSupplierSearch(e.target.value);
-                      setShowSupplierDropdown(true);
-                    }}
-                    onFocus={() => setShowSupplierDropdown(true)}
-                    placeholder="Ketik nama supplier..."
-                    leftIcon={<Search className="w-4 h-4 text-gray-400" />}
-                  />
-                  {/* Autocomplete Dropdown */}
-                  {showSupplierDropdown && supplierSearch && (
-                    <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                      {suppliers
-                        .filter(s => s.name.toLowerCase().includes(supplierSearch.toLowerCase()))
-                        .map((supplier) => (
-                          <button
-                            key={supplier.id}
-                            type="button"
-                            onClick={() => {
-                              setNewProduct({...newProduct, supplierId: supplier.id, supplierName: supplier.name});
-                              setSupplierSearch(supplier.name);
-                              setShowSupplierDropdown(false);
-                            }}
-                            className="w-full px-4 py-2 text-left hover:bg-blue-50 flex items-center justify-between"
-                          >
-                            <span className="font-medium">{supplier.name}</span>
-                            <span className="text-xs text-gray-500">{supplier.code}</span>
-                          </button>
-                        ))}
-                      {suppliers.filter(s => s.name.toLowerCase().includes(supplierSearch.toLowerCase())).length === 0 && (
-                        <div className="px-4 py-3 text-sm text-gray-500 text-center">
-                          Supplier tidak ditemukan
-                        </div>
-                      )}
-                    </div>
-                  )}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="relative">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Nama Supplier
+                    </label>
+                    <Input
+                      type="text"
+                      value={supplierSearch}
+                      onChange={(e) => {
+                        setSupplierSearch(e.target.value);
+                        setShowSupplierDropdown(true);
+                      }}
+                      onFocus={() => setShowSupplierDropdown(true)}
+                      onBlur={() => {
+                        // Delay to allow click on dropdown item
+                        setTimeout(() => setShowSupplierDropdown(false), 200);
+                      }}
+                      placeholder="Ketik nama supplier..."
+                      leftIcon={<Search className="w-4 h-4 text-gray-400" />}
+                    />
+                    {/* Autocomplete Dropdown - Only show when focused AND has input */}
+                    {showSupplierDropdown && supplierSearch.trim() && (
+                      <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                        {suppliers
+                          .filter(s => s.name.toLowerCase().includes(supplierSearch.toLowerCase()))
+                          .map((supplier) => (
+                            <button
+                              key={supplier.id}
+                              type="button"
+                              onClick={() => {
+                                setNewProduct({
+                                  ...newProduct, 
+                                  supplierId: supplier.id, 
+                                  supplierName: supplier.name,
+                                  supplierContact: supplier.phone || supplier.email || ''
+                                });
+                                setSupplierSearch(supplier.name);
+                                setShowSupplierDropdown(false);
+                              }}
+                              className="w-full px-4 py-2 text-left hover:bg-blue-50 flex flex-col gap-0.5"
+                            >
+                              <div className="flex items-center justify-between">
+                                <span className="font-medium">{supplier.name}</span>
+                                <span className="text-xs text-gray-500">{supplier.code}</span>
+                              </div>
+                              {(supplier.phone || supplier.email) && (
+                                <span className="text-xs text-gray-400">
+                                  {supplier.phone || supplier.email}
+                                </span>
+                              )}
+                            </button>
+                          ))}
+                        {suppliers.filter(s => s.name.toLowerCase().includes(supplierSearch.toLowerCase())).length === 0 && (
+                          <div className="px-4 py-3 text-sm text-gray-500 text-center">
+                            Supplier tidak ditemukan
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Info Kontak Supplier <span className="text-gray-500 font-normal">(Opsional)</span>
+                    </label>
+                    <Input
+                      type="text"
+                      value={newProduct.supplierContact || ''}
+                      onChange={(e) => setNewProduct({...newProduct, supplierContact: e.target.value})}
+                      placeholder="No. HP / Email (Opsional)"
+                      leftIcon={<span className="text-gray-400">📞</span>}
+                    />
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
