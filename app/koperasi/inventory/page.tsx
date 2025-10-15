@@ -24,7 +24,8 @@ import {
   DollarSign,
   Receipt,
   PiggyBank,
-  Calendar
+  Calendar,
+  Phone
 } from 'lucide-react';
 
 interface Product {
@@ -1188,7 +1189,7 @@ export default function InventoryPage() {
                       value={newProduct.supplierContact || ''}
                       onChange={(e) => setNewProduct({...newProduct, supplierContact: e.target.value})}
                       placeholder="No. HP / Email (Opsional)"
-                      leftIcon={<span className="text-gray-400">📞</span>}
+                      leftIcon={<Phone className="w-4 h-4 text-gray-400" />}
                     />
                   </div>
                 </div>
