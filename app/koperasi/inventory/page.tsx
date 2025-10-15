@@ -116,11 +116,21 @@ export default function InventoryPage() {
     totalOut: 0,
     totalMovements: 0,
   });
+  const [periodFinancialData, setPeriodFinancialData] = useState({
+    totalRevenue: 0,
+    totalProfit: 0,
+    totalSoldItems: 0,
+  });
   const [stockFormData, setStockFormData] = useState({
     type: 'IN' as 'IN' | 'OUT',
     quantity: '',
     note: '',
   });
+  
+  // Pagination & Filtering State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage] = useState(10);
+  const [hideOutOfStock, setHideOutOfStock] = useState(false);
 
   // Global notifications
   const { success, error, warning } = useNotification();
@@ -151,6 +161,11 @@ export default function InventoryPage() {
     fetchStockMovements();
     fetchDailySummary();
   }, [selectedDate]);
+
+  // Fetch financial data when period or date changes
+  useEffect(() => {
+    fetchPeriodFinancialData();
+  }, [financialPeriod, selectedDate]);
 
   // Price formatting helper
   const formatPriceInput = (value: string) => {
@@ -244,6 +259,32 @@ export default function InventoryPage() {
       }
     } catch (error) {
       console.error('Error fetching daily summary:', error);
+    }
+  };
+
+  const fetchPeriodFinancialData = async () => {
+    try {
+      const today = new Date().toISOString().split('T')[0];
+      const isCustomDate = selectedDate !== today;
+      
+      const url = isCustomDate 
+        ? `/api/financial/period?period=today&date=${selectedDate}`
+        : `/api/financial/period?period=${financialPeriod}`;
+      
+      const response = await fetch(url);
+      const result = await response.json();
+      
+      if (result.success) {
+        setPeriodFinancialData({
+          totalRevenue: result.data.totalRevenue,
+          totalProfit: result.data.totalProfit,
+          totalSoldItems: result.data.totalSoldItems,
+        });
+      } else {
+        console.error('Failed to fetch period financial data:', result.error);
+      }
+    } catch (error) {
+      console.error('Error fetching period financial data:', error);
     }
   };
 
@@ -521,9 +562,16 @@ export default function InventoryPage() {
       const matchesCategory = selectedCategory === "semua" || product.category.name === selectedCategory;
       const matchesOwnership = selectedOwnership === "semua" || product.ownershipType === selectedOwnership;
       const matchesCycle = selectedCycle === "semua" || product.stockCycle === selectedCycle;
-      return matchesSearch && matchesCategory && matchesOwnership && matchesCycle;
+      const matchesStock = !hideOutOfStock || product.stock > 0; // Hide out of stock filter
+      return matchesSearch && matchesCategory && matchesOwnership && matchesCycle && matchesStock;
     })
     .sort((a, b) => b.stock - a.stock); // Sort by stock: highest to lowest
+
+  // Pagination Logic
+  const totalPages = Math.ceil(filteredProducts.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedProducts = filteredProducts.slice(startIndex, endIndex);
 
   const lowStockProducts = products.filter(p => p.stock <= p.threshold);
   const totalProducts = products.length;
@@ -662,10 +710,10 @@ export default function InventoryPage() {
                   <span className="text-sm font-medium text-gray-600">Total Omzet</span>
                   <TrendingUp className="h-4 w-4 text-emerald-500" />
                 </div>
-                <p className="text-3xl font-bold text-gray-900">{formatCurrency(totalRevenue)}</p>
+                <p className="text-3xl font-bold text-gray-900">{formatCurrency(periodFinancialData.totalRevenue)}</p>
                 <div className="flex items-center gap-1">
                   <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
-                    +12% dari periode sebelumnya
+                    {periodFinancialData.totalSoldItems} produk terjual
                   </span>
                 </div>
               </div>
@@ -676,11 +724,11 @@ export default function InventoryPage() {
                   <span className="text-sm font-medium text-gray-600">Keuntungan Bersih</span>
                   <PiggyBank className="h-4 w-4 text-green-500" />
                 </div>
-                <p className="text-3xl font-bold text-emerald-600">{formatCurrency(totalProfit)}</p>
+                <p className="text-3xl font-bold text-emerald-600">{formatCurrency(periodFinancialData.totalProfit)}</p>
                 <div className="flex items-center gap-2">
                   <span className="text-xs text-gray-500">Profit Margin:</span>
                   <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
-                    {totalRevenue > 0 ? ((totalProfit / totalRevenue) * 100).toFixed(1) : 0}%
+                    {periodFinancialData.totalRevenue > 0 ? ((periodFinancialData.totalProfit / periodFinancialData.totalRevenue) * 100).toFixed(1) : 0}%
                   </span>
                 </div>
               </div>
@@ -691,7 +739,7 @@ export default function InventoryPage() {
                   <span className="text-sm font-medium text-gray-600">Produk Terjual</span>
                   <Hash className="h-4 w-4 text-blue-500" />
                 </div>
-                <p className="text-3xl font-bold text-gray-900">{totalSoldToday}</p>
+                <p className="text-3xl font-bold text-gray-900">{periodFinancialData.totalSoldItems}</p>
                 <p className="text-xs text-gray-500">
                   Item terjual periode ini
                 </p>
@@ -773,17 +821,33 @@ export default function InventoryPage() {
           <Card className="border-0 shadow-sm">
             <CardHeader className="pb-4">
               <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                <h2 className="text-lg sm:text-xl font-bold text-gray-900">Daftar Produk</h2>
+                <div>
+                  <h2 className="text-lg sm:text-xl font-bold text-gray-900">Daftar Produk</h2>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Menampilkan {filteredProducts.length} dari {products.length} produk
+                  </p>
+                </div>
                 <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                   <div className="relative">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
                     <Input
                       placeholder="Cari produk..."
                       value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
+                      onChange={(e) => {
+                        setSearchTerm(e.target.value);
+                        setCurrentPage(1); // Reset to first page on search
+                      }}
                       className="pl-10 w-full sm:w-64"
                     />
                   </div>
+                  <Button
+                    variant="outline"
+                    onClick={() => setHideOutOfStock(!hideOutOfStock)}
+                    className={hideOutOfStock ? 'bg-blue-50 border-blue-300' : ''}
+                  >
+                    <Eye className="w-4 h-4 mr-2" />
+                    {hideOutOfStock ? 'Tampilkan Semua' : 'Sembunyikan Habis'}
+                  </Button>
                   <Button
                     variant="outline"
                     onClick={() => setShowFilterModal(true)}
@@ -895,7 +959,7 @@ export default function InventoryPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {filteredProducts.map((product) => (
+                    {paginatedProducts.length > 0 ? paginatedProducts.map((product) => (
                       <TableRow key={product.id}>
                         <TableCell className="font-medium">
                           <div className="flex flex-col gap-1.5">
@@ -1022,10 +1086,77 @@ export default function InventoryPage() {
                           </div>
                         </TableCell>
                       </TableRow>
-                    ))}
+                    )) : (
+                      <TableRow>
+                        <TableCell colSpan={8} className="text-center py-12">
+                          <Package className="w-12 h-12 mx-auto mb-3 text-gray-400" />
+                          <p className="font-medium text-gray-600">Tidak ada produk ditemukan</p>
+                          <p className="text-sm text-gray-500 mt-1">
+                            {hideOutOfStock ? 'Semua produk habis atau coba ubah filter' : 'Coba ubah kata kunci pencarian atau filter'}
+                          </p>
+                        </TableCell>
+                      </TableRow>
+                    )}
                   </TableBody>
                 </Table>
               </div>
+
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-4 px-6 pb-4">
+                  <div className="text-sm text-gray-600">
+                    Halaman {currentPage} dari {totalPages} • 
+                    Menampilkan {startIndex + 1}-{Math.min(endIndex, filteredProducts.length)} dari {filteredProducts.length} produk
+                  </div>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      disabled={currentPage === 1}
+                    >
+                      ← Sebelumnya
+                    </Button>
+                    
+                    {/* Page Numbers */}
+                    <div className="flex gap-1">
+                      {Array.from({ length: totalPages }, (_, i) => i + 1)
+                        .filter(page => {
+                          // Show first page, last page, current page, and pages around current
+                          return page === 1 || 
+                                 page === totalPages || 
+                                 (page >= currentPage - 1 && page <= currentPage + 1);
+                        })
+                        .map((page, idx, arr) => {
+                          // Add ellipsis if there's a gap
+                          const showEllipsisBefore = idx > 0 && page - arr[idx - 1] > 1;
+                          return (
+                            <div key={page} className="flex items-center gap-1">
+                              {showEllipsisBefore && <span className="px-2 text-gray-400">...</span>}
+                              <Button
+                                variant={currentPage === page ? 'primary' : 'outline'}
+                                size="sm"
+                                onClick={() => setCurrentPage(page)}
+                                className="min-w-[36px]"
+                              >
+                                {page}
+                              </Button>
+                            </div>
+                          );
+                        })}
+                    </div>
+                    
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                      disabled={currentPage === totalPages}
+                    >
+                      Selanjutnya →
+                    </Button>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         </div>
