@@ -84,29 +84,32 @@ export async function DELETE(
   try {
     const { id } = await params;
 
-    // Check if product has stock movements
-    const stockMovements = await prisma.stockMovement.count({
+    // FOR DEVELOPMENT: Cascade delete stock movements and related data
+    // TODO: In production, consider soft delete or prevent deletion of products with history
+    
+    // Delete stock movements first (cascade)
+    await prisma.stockMovement.deleteMany({
       where: { productId: id },
     });
 
-    if (stockMovements > 0) {
-      return NextResponse.json(
-        {
-          success: false,
-          error: 'Tidak dapat menghapus produk yang memiliki riwayat stock movement. Hapus riwayat terlebih dahulu.',
-        },
-        { status: 400 }
-      );
-    }
+    // Delete transaction items (if any)
+    await prisma.transactionItem.deleteMany({
+      where: { productId: id },
+    });
 
-    // Delete the product
+    // Delete purchase items (if any)
+    await prisma.purchaseItem.deleteMany({
+      where: { productId: id },
+    });
+
+    // Finally, delete the product
     await prisma.product.delete({
       where: { id },
     });
 
     return NextResponse.json({
       success: true,
-      message: 'Produk berhasil dihapus',
+      message: 'Produk dan semua riwayat terkait berhasil dihapus',
     });
   } catch (error: any) {
     console.error('Error deleting product:', error);
