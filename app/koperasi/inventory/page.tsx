@@ -215,9 +215,10 @@ export default function InventoryPage() {
     success('WhatsApp Dibuka', `Pesan restock untuk ${product.name} siap dikirim`);
   };
 
-  const fetchStockMovements = async () => {
+  const fetchStockMovements = async (date?: string) => {
     try {
-      const response = await fetch(`/api/stock-movements?date=${selectedDate}&limit=20`);
+      const targetDate = date || selectedDate;
+      const response = await fetch(`/api/stock-movements?date=${targetDate}&limit=20`);
       const result = await response.json();
       
       if (result.success) {
@@ -230,9 +231,10 @@ export default function InventoryPage() {
     }
   };
 
-  const fetchDailySummary = async () => {
+  const fetchDailySummary = async (date?: string) => {
     try {
-      const response = await fetch(`/api/stock-movements/summary?date=${selectedDate}`);
+      const targetDate = date || selectedDate;
+      const response = await fetch(`/api/stock-movements/summary?date=${targetDate}`);
       const result = await response.json();
       
       if (result.success) {
@@ -351,10 +353,14 @@ export default function InventoryPage() {
         setShowStockModal(false);
         setSelectedProduct(null);
         
-        // Refresh data
+        // Set tanggal ke hari ini dan refresh data
+        const today = new Date().toISOString().split('T')[0];
+        setSelectedDate(today);
+        
+        // Refresh data dengan tanggal hari ini
         fetchProducts();
-        fetchStockMovements();
-        fetchDailySummary();
+        fetchStockMovements(today);
+        fetchDailySummary(today);
         
         success('Stock Movement Berhasil', result.message);
       } else {
@@ -409,7 +415,15 @@ export default function InventoryPage() {
         resetProductForm();
         setShowAddModal(false);
         setEditingProduct(null);
-        fetchProducts(); // Refresh list
+        
+        // Set tanggal ke hari ini untuk melihat stock movement baru
+        const today = new Date().toISOString().split('T')[0];
+        setSelectedDate(today);
+        
+        // Refresh data dengan tanggal hari ini
+        fetchProducts(); // Refresh product list
+        fetchStockMovements(today); // Fetch stock movements untuk hari ini
+        fetchDailySummary(today); // Fetch summary untuk hari ini
         
         const action = editingProduct ? 'diperbarui' : 'ditambahkan';
         success(`Produk Berhasil ${action.charAt(0).toUpperCase() + action.slice(1)}`, 
