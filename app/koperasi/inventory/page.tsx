@@ -114,6 +114,9 @@ export default function InventoryPage() {
     stock: '0',
     threshold: '5',
     unit: 'pcs',
+    ownershipType: 'TOKO' as 'TOKO' | 'TITIPAN',
+    stockCycle: 'HARIAN' as 'HARIAN' | 'MINGGUAN' | 'DUA_MINGGUAN',
+    isConsignment: false,
   });
 
   useEffect(() => {
@@ -324,6 +327,9 @@ export default function InventoryPage() {
       stock: '0',
       threshold: '5',
       unit: 'pcs',
+      ownershipType: 'TOKO' as 'TOKO' | 'TITIPAN',
+      stockCycle: 'HARIAN' as 'HARIAN' | 'MINGGUAN' | 'DUA_MINGGUAN',
+      isConsignment: false,
     });
     setPriceError('');
   };
@@ -345,6 +351,9 @@ export default function InventoryPage() {
       stock: product.stock.toString(),
       threshold: product.threshold.toString(),
       unit: product.unit,
+      ownershipType: product.ownershipType || 'TOKO',
+      stockCycle: product.stockCycle || 'HARIAN',
+      isConsignment: product.isConsignment || false,
     }); 
     setShowAddModal(true);
   };
@@ -731,6 +740,7 @@ export default function InventoryPage() {
                       <TableHead className="hidden sm:table-cell">Kategori</TableHead>
                       <TableHead className="hidden md:table-cell">Harga Beli</TableHead>
                       <TableHead className="hidden md:table-cell">Harga Jual</TableHead>
+                      <TableHead className="hidden lg:table-cell">Margin</TableHead>
                       <TableHead>Stok</TableHead>
                       <TableHead className="hidden lg:table-cell">Terjual</TableHead>
                       <TableHead className="text-center">Aksi</TableHead>
@@ -779,6 +789,23 @@ export default function InventoryPage() {
                         </TableCell>
                         <TableCell className="hidden md:table-cell">
                           {formatCurrency(product.sellPrice)}
+                        </TableCell>
+                        <TableCell className="hidden lg:table-cell">
+                          {(() => {
+                            const cost = product.avgCost || product.buyPrice || 0;
+                            const margin = product.sellPrice - cost;
+                            const marginPercent = cost > 0 ? ((margin / cost) * 100) : 0;
+                            return (
+                              <div className="flex flex-col">
+                                <span className={`font-medium ${margin > 0 ? 'text-green-600' : 'text-gray-500'}`}>
+                                  {formatCurrency(margin)}
+                                </span>
+                                <span className="text-xs text-gray-500">
+                                  {marginPercent.toFixed(1)}%
+                                </span>
+                              </div>
+                            );
+                          })()}
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
@@ -1138,6 +1165,54 @@ export default function InventoryPage() {
                       placeholder="Minimum stok alert"
                       leftIcon={<AlertTriangle className="w-4 h-4 text-gray-400" />}
                     />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Jenis Kepemilikan *
+                    </label>
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setNewProduct({...newProduct, ownershipType: 'TOKO', isConsignment: false})}
+                        className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                          newProduct.ownershipType === 'TOKO'
+                            ? 'bg-blue-600 text-white shadow-md'
+                            : 'bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100'
+                        }`}
+                      >
+                        Toko
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setNewProduct({...newProduct, ownershipType: 'TITIPAN', isConsignment: true})}
+                        className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
+                          newProduct.ownershipType === 'TITIPAN'
+                            ? 'bg-purple-600 text-white shadow-md'
+                            : 'bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100'
+                        }`}
+                      >
+                        Titipan
+                      </button>
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Siklus Stok *
+                    </label>
+                    <select
+                      value={newProduct.stockCycle}
+                      onChange={(e) => setNewProduct({...newProduct, stockCycle: e.target.value as 'HARIAN' | 'MINGGUAN' | 'DUA_MINGGUAN'})}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      required
+                    >
+                      <option value="HARIAN">Harian</option>
+                      <option value="MINGGUAN">Mingguan</option>
+                      <option value="DUA_MINGGUAN">Dua Mingguan</option>
+                    </select>
                   </div>
                 </div>
 
@@ -1513,6 +1588,31 @@ export default function InventoryPage() {
                     <div>
                       <label className="text-sm text-gray-600">Satuan</label>
                       <p className="font-medium">{selectedProduct.unit}</p>
+                    </div>
+                    <div>
+                      <label className="text-sm text-gray-600">Jenis Kepemilikan</label>
+                      <div className="mt-1">
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded text-xs font-medium ${
+                          selectedProduct.ownershipType === 'TOKO' 
+                            ? 'bg-blue-50 text-blue-700 border border-blue-200' 
+                            : 'bg-purple-50 text-purple-700 border border-purple-200'
+                        }`}>
+                          {selectedProduct.ownershipType === 'TOKO' ? 'Toko' : 'Titipan'}
+                        </span>
+                      </div>
+                    </div>
+                    <div>
+                      <label className="text-sm text-gray-600">Siklus Stok</label>
+                      <div className="mt-1">
+                        <span className={`inline-flex items-center px-2.5 py-1 rounded text-xs font-medium ${
+                          selectedProduct.stockCycle === 'HARIAN' ? 'bg-orange-50 text-orange-700 border border-orange-200' :
+                          selectedProduct.stockCycle === 'MINGGUAN' ? 'bg-green-50 text-green-700 border border-green-200' :
+                          'bg-teal-50 text-teal-700 border border-teal-200'
+                        }`}>
+                          {selectedProduct.stockCycle === 'HARIAN' ? 'Harian' :
+                           selectedProduct.stockCycle === 'MINGGUAN' ? 'Mingguan' : 'Dua Mingguan'}
+                        </span>
+                      </div>
                     </div>
                   </div>
                 </div>
