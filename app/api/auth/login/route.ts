@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     }
 
     // First try to find User account (Admin, SuperAdmin)
-    const user = await prisma.user.findUnique({ where: { email } });
+    const user = await prisma.users.findUnique({ where: { email } });
     console.log('User found:', !!user);
     
     if (user) {
