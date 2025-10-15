@@ -197,6 +197,7 @@ export default function SupplierRegisterPage() {
                 )}
 
                 <form onSubmit={handleSubmit} className="space-y-4">
+                  {/* 1. Nama Lengkap / Nama Bisnis */}
                   <Input
                     label="Nama Lengkap / Nama Bisnis"
                     type="text"
@@ -208,6 +209,7 @@ export default function SupplierRegisterPage() {
                     className="text-base"
                   />
 
+                  {/* 2. Email */}
                   <Input
                     label="Email"
                     type="email"
@@ -219,6 +221,7 @@ export default function SupplierRegisterPage() {
                     className="text-base"
                   />
 
+                  {/* 3. Nomor Telepon */}
                   <Input
                     label="Nomor Telepon"
                     type="tel"
@@ -230,6 +233,7 @@ export default function SupplierRegisterPage() {
                     className="text-base"
                   />
 
+                  {/* 4. Kategori Produk */}
                   <div className="space-y-2">
                     <label className="block text-sm font-medium text-gray-700">
                       Kategori Produk
@@ -250,39 +254,7 @@ export default function SupplierRegisterPage() {
                     </div>
                   </div>
 
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">
-                      Alamat Lengkap
-                    </label>
-                    <div className="relative">
-                      <MapPin className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                      <textarea
-                        value={formData.address}
-                        onChange={(e) => setFormData({...formData, address: e.target.value})}
-                        placeholder="Masukkan alamat lengkap"
-                        required
-                        rows={3}
-                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base resize-none"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-700">
-                      Deskripsi (Opsional)
-                    </label>
-                    <div className="relative">
-                      <FileText className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
-                      <textarea
-                        value={formData.description}
-                        onChange={(e) => setFormData({...formData, description: e.target.value})}
-                        placeholder="Ceritakan tentang bisnis Anda..."
-                        rows={3}
-                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base resize-none"
-                      />
-                    </div>
-                  </div>
-
+                  {/* 5. Keamanan Akun */}
                   <div className="border-t border-gray-200 pt-4 mt-4">
                     <h3 className="text-sm font-semibold text-gray-900 mb-3">Keamanan Akun</h3>
                     
@@ -325,6 +297,41 @@ export default function SupplierRegisterPage() {
                         }
                         required
                         className="text-base"
+                      />
+                    </div>
+                  </div>
+
+                  {/* 6. Alamat Lengkap */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Alamat Lengkap
+                    </label>
+                    <div className="relative">
+                      <MapPin className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                      <textarea
+                        value={formData.address}
+                        onChange={(e) => setFormData({...formData, address: e.target.value})}
+                        placeholder="Masukkan alamat lengkap"
+                        required
+                        rows={3}
+                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base resize-none"
+                      />
+                    </div>
+                  </div>
+
+                  {/* 7. Deskripsi */}
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">
+                      Deskripsi (Opsional)
+                    </label>
+                    <div className="relative">
+                      <FileText className="absolute left-3 top-3 w-4 h-4 text-gray-400" />
+                      <textarea
+                        value={formData.description}
+                        onChange={(e) => setFormData({...formData, description: e.target.value})}
+                        placeholder="Ceritakan tentang bisnis Anda..."
+                        rows={3}
+                        className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-base resize-none"
                       />
                     </div>
                   </div>
