@@ -218,16 +218,19 @@ export default function InventoryPage() {
   const fetchStockMovements = async (date?: string) => {
     try {
       const targetDate = date || selectedDate;
+      console.log('📡 Fetching stock movements for date:', targetDate);
       const response = await fetch(`/api/stock-movements?date=${targetDate}&limit=20`);
       const result = await response.json();
+      console.log('📥 Stock movements response:', result);
       
       if (result.success) {
+        console.log('✅ Setting stockMovements:', result.data.length, 'items');
         setStockMovements(result.data);
       } else {
-        console.error('Failed to fetch stock movements:', result.error);
+        console.error('❌ Failed to fetch stock movements:', result.error);
       }
     } catch (error) {
-      console.error('Error fetching stock movements:', error);
+      console.error('❌ Error fetching stock movements:', error);
     }
   };
 
@@ -346,8 +349,11 @@ export default function InventoryPage() {
       });
 
       const result = await response.json();
+      console.log('✅ Stock Movement API Response:', result);
 
       if (result.success) {
+        console.log('📦 Stock movement created, refreshing data...');
+        
         // Reset form
         setStockFormData({ type: 'IN', quantity: '', note: '' });
         setShowStockModal(false);
@@ -355,12 +361,15 @@ export default function InventoryPage() {
         
         // Set tanggal ke hari ini dan refresh data
         const today = new Date().toISOString().split('T')[0];
+        console.log('📅 Setting date to today:', today);
         setSelectedDate(today);
         
         // Refresh data dengan tanggal hari ini
-        fetchProducts();
-        fetchStockMovements(today);
-        fetchDailySummary(today);
+        console.log('🔄 Fetching all data...');
+        await fetchProducts();
+        await fetchStockMovements(today);
+        await fetchDailySummary(today);
+        console.log('✅ All data refreshed!');
         
         success('Stock Movement Berhasil', result.message);
       } else {
@@ -409,8 +418,11 @@ export default function InventoryPage() {
       });
 
       const result = await response.json();
+      console.log('✅ Product API Response:', result);
 
       if (result.success) {
+        console.log('📦 Product created/updated, refreshing stock movements...');
+        
         // Reset form
         resetProductForm();
         setShowAddModal(false);
@@ -418,12 +430,17 @@ export default function InventoryPage() {
         
         // Set tanggal ke hari ini untuk melihat stock movement baru
         const today = new Date().toISOString().split('T')[0];
+        console.log('📅 Setting date to today:', today);
         setSelectedDate(today);
         
         // Refresh data dengan tanggal hari ini
-        fetchProducts(); // Refresh product list
-        fetchStockMovements(today); // Fetch stock movements untuk hari ini
-        fetchDailySummary(today); // Fetch summary untuk hari ini
+        console.log('🔄 Fetching products...');
+        await fetchProducts(); // Refresh product list
+        console.log('🔄 Fetching stock movements for today...');
+        await fetchStockMovements(today); // Fetch stock movements untuk hari ini
+        console.log('🔄 Fetching daily summary...');
+        await fetchDailySummary(today); // Fetch summary untuk hari ini
+        console.log('✅ All data refreshed!');
         
         const action = editingProduct ? 'diperbarui' : 'ditambahkan';
         success(`Produk Berhasil ${action.charAt(0).toUpperCase() + action.slice(1)}`, 
@@ -535,13 +552,29 @@ export default function InventoryPage() {
   
   // Consignment Payments: Total nilai produk konsinyasi yang MASUK hari ini (nilai TETAP)
   // Hanya hitung movement IN (quantity > 0), TIDAK terpengaruh oleh produk keluar
+  console.log('🔍 DEBUG Consignment Calculation:');
+  console.log('Total stockMovements:', stockMovements.length);
+  console.log('Selected Date:', selectedDate);
+  console.log('All movements:', stockMovements.map(m => ({
+    id: m.id,
+    type: m.movementType,
+    quantity: m.quantity,
+    unitCost: m.unitCost,
+    date: m.date || m.createdAt,
+  })));
+  
   const consignmentInMovements = stockMovements.filter(m => m.movementType === 'CONSIGNMENT_IN' && m.quantity > 0);
+  console.log('Filtered CONSIGNMENT_IN movements:', consignmentInMovements.length);
   
   const consignmentPayments = consignmentInMovements.reduce((sum, m) => {
     // Gunakan unitCost dari movement, atau fallback ke product
     const unitCost = m.unitCost || 0;
-    return sum + (unitCost * Math.abs(m.quantity));
+    const itemTotal = unitCost * Math.abs(m.quantity);
+    console.log(`  - Movement ${m.id}: ${m.quantity} x ${unitCost} = ${itemTotal}`);
+    return sum + itemTotal;
   }, 0);
+  
+  console.log('💰 Total Consignment Payments:', consignmentPayments);
   
   const totalRevenue = products.reduce((sum, p) => sum + (p.sellPrice * p.soldToday), 0);
   const totalProfit = products.reduce((sum, p) => {
