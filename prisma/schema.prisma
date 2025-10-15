@@ -31,8 +31,9 @@ model User {
 }
 
 enum Role {
+  SUPER_ADMIN
   ADMIN
-  STAFF
+  SUPPLIER
   USER
 }
 

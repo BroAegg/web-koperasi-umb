@@ -19,9 +19,48 @@ export default function LoginPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    // Simulate API call
-    await new Promise(resolve => setTimeout(resolve, 2000));
-    setIsLoading(false);
+    try {
+      console.log('Attempting login with:', { email: formData.email });
+      
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 
+          'Content-Type': 'application/json',
+          'Accept': 'application/json'
+        },
+        body: JSON.stringify(formData),
+        cache: 'no-store'
+      });
+
+      console.log('Response status:', res.status);
+      
+      if (!res.ok) {
+        const errorText = await res.text();
+        console.error('Login failed:', errorText);
+        throw new Error(`HTTP error! status: ${res.status}`);
+      }
+
+      const data = await res.json();
+      console.log('Login response:', { success: data.success, error: data.error });
+
+      if (!data.success) {
+        alert(data.error || 'Gagal login');
+        setIsLoading(false);
+        return;
+      }
+
+      // Save token
+      localStorage.setItem('token', data.data.token);
+      console.log('Token saved, redirecting...');
+      
+      // redirect to koperasi dashboard
+      window.location.href = '/koperasi/dashboard';
+    } catch (err) {
+      console.error('Login error:', err);
+      alert('Terjadi kesalahan saat login. Silakan cek console untuk detail.');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (

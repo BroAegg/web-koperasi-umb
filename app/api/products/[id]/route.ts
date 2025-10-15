@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { requireRole } from '@/lib/auth';
 
 // PUT - Update product
 export async function PUT(
@@ -64,6 +65,12 @@ export async function DELETE(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
+  // Role based access
+  const check = await requireRole('SUPER_ADMIN', 'ADMIN')(request);
+  if (check && (check as any).status !== 200) {
+    const res = (check as any).body || { success: false, error: 'Unauthorized' };
+    return NextResponse.json(res, { status: (check as any).status || 401 });
+  }
   try {
     const { id } = params;
 

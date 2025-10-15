@@ -1,10 +1,35 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Role } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
+import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
 async function main() {
   console.log('🌱 Starting database seeding...');
+
+  // Create core users: superadmin, admin, supplier
+  const passwordPlain = 'Password123!';
+  const hashed = await bcrypt.hash(passwordPlain, 10);
+
+  const superAdmin = await prisma.user.upsert({
+    where: { email: 'superadmin@koperasi.com' },
+    update: { password: hashed, name: 'Super Admin', role: Role.SUPER_ADMIN },
+    create: { email: 'superadmin@koperasi.com', name: 'Super Admin', password: hashed, role: Role.SUPER_ADMIN },
+  });
+
+  const admin = await prisma.user.upsert({
+    where: { email: 'admin@koperasi.com' },
+    update: { password: hashed, name: 'Admin User', role: Role.ADMIN },
+    create: { email: 'admin@koperasi.com', name: 'Admin User', password: hashed, role: Role.ADMIN },
+  });
+
+  const supplier = await prisma.user.upsert({
+    where: { email: 'supplier@koperasi.com' },
+    update: { password: hashed, name: 'Supplier User', role: Role.SUPPLIER },
+    create: { email: 'supplier@koperasi.com', name: 'Supplier User', password: hashed, role: Role.SUPPLIER },
+  });
+
+  console.log('✅ Core users (superadmin/admin/supplier) ensured. Default password for all:', 'Password123!');
 
   // Create categories
   const categories = await Promise.all([

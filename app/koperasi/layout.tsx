@@ -1,5 +1,5 @@
 "use client";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -18,6 +18,19 @@ const navItems = [
 export default function KoperasiLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [user, setUser] = useState<any>(null);
+  useEffect(() => {
+    const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+    if (!token) return;
+    fetch('/api/auth/me', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.json())
+      .then(d => {
+        if (d.success) setUser(d.data);
+      })
+      .catch(() => {});
+  }, []);
 
   const SidebarContent = () => (
     <div className="h-full flex flex-col">
@@ -27,22 +40,30 @@ export default function KoperasiLayout({ children }: { children: React.ReactNode
       </div>
 
       <nav className="space-y-1 px-6 flex-1">
-        {navItems.map(({ href, label, icon: Icon }) => {
-          const active = pathname.startsWith(href);
-          return (
-            <Link
-              key={href}
-              href={href}
-              onClick={() => setSidebarOpen(false)}
-              className={`flex items-center gap-3 px-3 py-3 rounded-lg font-medium transition-colors ${
-                active ? "bg-blue-50 text-blue-700 border-r-2 border-blue-700" : "text-gray-700 hover:bg-blue-50 hover:text-blue-700"
-              }`}
-            >
-              <Icon size={20} className="flex-shrink-0" /> 
-              <span className="truncate">{label}</span>
-            </Link>
-          );
-        })}
+        {navItems
+          .filter(item => {
+            if (!user) return true;
+            if (user.role === 'SUPER_ADMIN') return true;
+            if (user.role === 'ADMIN') return !item.href.startsWith('/koperasi/super-admin');
+            if (user.role === 'SUPPLIER') return item.href.startsWith('/koperasi/supplier') || item.href.includes('broadcast');
+            return true;
+          })
+          .map(({ href, label, icon: Icon }) => {
+            const active = pathname.startsWith(href);
+            return (
+              <Link
+                key={href}
+                href={href}
+                onClick={() => setSidebarOpen(false)}
+                className={`flex items-center gap-3 px-3 py-3 rounded-lg font-medium transition-colors ${
+                  active ? "bg-blue-50 text-blue-700 border-r-2 border-blue-700" : "text-gray-700 hover:bg-blue-50 hover:text-blue-700"
+                }`}
+              >
+                <Icon size={20} className="flex-shrink-0" /> 
+                <span className="truncate">{label}</span>
+              </Link>
+            );
+          })}
       </nav>
 
       <div className="border-t border-gray-200 space-y-1 px-6 py-6 mt-auto">
@@ -55,7 +76,7 @@ export default function KoperasiLayout({ children }: { children: React.ReactNode
           <span>Settings</span>
         </Link>
         <button 
-          onClick={() => setSidebarOpen(false)}
+          onClick={() => { localStorage.removeItem('token'); window.location.href = '/'; }}
           className="flex items-center gap-3 w-full text-left px-3 py-3 text-red-600 hover:bg-red-50 rounded-lg font-medium transition-colors"
         >
           <LogOut size={18} className="flex-shrink-0" /> 
@@ -140,8 +161,8 @@ export default function KoperasiLayout({ children }: { children: React.ReactNode
               </Button>
               <div className="flex items-center gap-3 pl-3 border-l border-gray-200">
                 <div className="text-right">
-                  <p className="text-sm font-medium text-gray-900">Admin User</p>
-                  <p className="text-xs text-gray-500">admin@umb.ac.id</p>
+                  <p className="text-sm font-medium text-gray-900">{user?.name || 'Guest'}</p>
+                  <p className="text-xs text-gray-500">{user?.email || 'not-logged-in'}</p>
                 </div>
                 <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
                   <User size={16} className="text-blue-600" />
