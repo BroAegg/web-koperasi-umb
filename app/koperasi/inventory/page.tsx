@@ -74,8 +74,10 @@ interface Supplier {
 interface StockMovement {
   id: string;
   productId: string;
-  type: "IN" | "OUT" | "ADJUSTMENT";
+  movementType?: 'PURCHASE_IN' | 'CONSIGNMENT_IN' | 'SALE_OUT' | 'RETURN_IN' | 'RETURN_OUT' | 'EXPIRED_OUT' | 'ADJUSTMENT';
+  type: "IN" | "OUT" | "ADJUSTMENT"; // Legacy field
   quantity: number;
+  unitCost?: number;
   note: string;
   date: string;
   createdAt: string;
@@ -516,12 +518,19 @@ export default function InventoryPage() {
   
   // Financial metrics calculations
   const totalSoldToday = products.reduce((sum, p) => sum + p.soldToday, 0);
-  const consignmentPayments = products.reduce((sum, p) => {
-    if (p.ownershipType === 'TITIPAN' && p.buyPrice) {
-      return sum + (p.buyPrice * p.stock * 0.3); // 30% consignment fee
-    }
-    return sum;
-  }, 0);
+  
+  // Consignment Payments: Total nilai produk konsinyasi yang MASUK hari ini
+  const consignmentPayments = stockMovements
+    .filter(m => m.movementType === 'CONSIGNMENT_IN')
+    .reduce((sum, m) => {
+      // Find product to get unit cost
+      const product = products.find(p => p.id === m.productId);
+      if (product && m.unitCost) {
+        return sum + (m.unitCost * m.quantity);
+      }
+      return sum;
+    }, 0);
+  
   const totalRevenue = products.reduce((sum, p) => sum + (p.sellPrice * p.soldToday), 0);
   const totalProfit = products.reduce((sum, p) => {
     const cost = p.avgCost || p.buyPrice || 0;
