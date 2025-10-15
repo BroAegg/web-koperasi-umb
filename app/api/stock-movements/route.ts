@@ -137,41 +137,104 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Create stock movement
-    const stockMovement = await prisma.stockMovement.create({
-      data: {
-        productId,
-        movementType,
-        quantity: quantityValue,
-        note: note || '',
-      },
-      include: {
-        product: {
-          select: {
-            id: true,
-            name: true,
-            unit: true,
+    // Use Prisma transaction to ensure atomicity
+    const result = await prisma.$transaction(async (tx) => {
+      // Get product details for transaction
+      const productDetails = await tx.product.findUnique({
+        where: { id: productId },
+        select: {
+          id: true,
+          name: true,
+          unit: true,
+          sellPrice: true,
+          avgCost: true,
+          buyPrice: true,
+        },
+      });
+
+      if (!productDetails) {
+        throw new Error('Product not found in transaction');
+      }
+
+      // Create stock movement
+      const stockMovement = await tx.stockMovement.create({
+        data: {
+          productId,
+          movementType: movementType as any, // Type assertion for enum
+          quantity: quantityValue,
+          unitCost: product.avgCost || product.buyPrice,
+          note: note || '',
+        },
+      });
+
+      // Update product stock (quantity is already signed)
+      const stockChange = quantityValue;
+      const updatedProduct = await tx.product.update({
+        where: { id: productId },
+        data: {
+          stock: {
+            increment: stockChange,
           },
         },
-      },
-    });
+      });
 
-    // Update product stock (quantity is already signed)
-    const stockChange = quantityValue;
-    const updatedProduct = await prisma.product.update({
-      where: { id: productId },
-      data: {
-        stock: {
-          increment: stockChange,
-        },
-      },
+      // If it's a sale (OUT movement), create a Transaction record
+      let transaction = null;
+      if (type.toUpperCase() === 'OUT') {
+        const saleQuantity = parseInt(quantity);
+        const unitPrice = productDetails.sellPrice;
+        const totalAmount = Number(unitPrice) * saleQuantity;
+        const cogsPerUnit = productDetails.avgCost || productDetails.buyPrice || unitPrice;
+        const totalCogs = Number(cogsPerUnit) * saleQuantity;
+        const grossProfit = totalAmount - totalCogs;
+
+        // Create transaction
+        transaction = await tx.transaction.create({
+          data: {
+            type: 'SALE',
+            totalAmount,
+            paymentMethod: 'CASH', // Default for manual stock out
+            status: 'COMPLETED',
+            note: note || 'Penjualan manual via stock movement',
+          },
+        });
+
+        // Create transaction item
+        await tx.transactionItem.create({
+          data: {
+            transactionId: transaction.id,
+            productId,
+            quantity: saleQuantity,
+            unitPrice,
+            totalPrice: totalAmount,
+            cogsPerUnit,
+            totalCogs,
+            grossProfit,
+          },
+        });
+
+        // Update stock movement with reference
+        await tx.stockMovement.update({
+          where: { id: stockMovement.id },
+          data: {
+            referenceType: 'SALE' as any,
+            referenceId: transaction.id,
+          },
+        });
+      }
+
+      return { stockMovement, updatedProduct, transaction, productDetails };
     });
 
     return NextResponse.json({
       success: true,
-      data: stockMovement,
-      updatedStock: updatedProduct.stock,
-      message: `Stock ${type.toLowerCase() === 'in' ? 'masuk' : 'keluar'} berhasil dicatat`,
+      data: {
+        ...result.stockMovement,
+        product: result.productDetails,
+      },
+      updatedStock: result.updatedProduct.stock,
+      transaction: result.transaction,
+      message: `Stock ${type.toLowerCase() === 'in' ? 'masuk' : 'keluar'} berhasil dicatat${result.transaction ? ' dan transaksi penjualan tercatat' : ''}`,
     }, { status: 201 });
   } catch (error) {
     console.error('Error creating stock movement:', error);

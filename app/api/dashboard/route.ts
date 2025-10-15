@@ -108,7 +108,8 @@ export async function GET() {
       totalSimpanan: Number(totalSimpananSum),
       lowStockProductsList: lowStockProductsList.map(product => ({
         ...product,
-        buyPrice: Number(product.buyPrice),
+        buyPrice: product.buyPrice ? Number(product.buyPrice) : null,
+        avgCost: product.avgCost ? Number(product.avgCost) : null,
         sellPrice: Number(product.sellPrice),
       })),
       recentActivities: recentActivities.map(member => ({
