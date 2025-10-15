@@ -218,19 +218,16 @@ export default function InventoryPage() {
   const fetchStockMovements = async (date?: string) => {
     try {
       const targetDate = date || selectedDate;
-      console.log('📡 Fetching stock movements for date:', targetDate);
       const response = await fetch(`/api/stock-movements?date=${targetDate}&limit=20`);
       const result = await response.json();
-      console.log('📥 Stock movements response:', result);
       
       if (result.success) {
-        console.log('✅ Setting stockMovements:', result.data.length, 'items');
         setStockMovements(result.data);
       } else {
-        console.error('❌ Failed to fetch stock movements:', result.error);
+        console.error('Failed to fetch stock movements:', result.error);
       }
     } catch (error) {
-      console.error('❌ Error fetching stock movements:', error);
+      console.error('Error fetching stock movements:', error);
     }
   };
 
@@ -349,11 +346,8 @@ export default function InventoryPage() {
       });
 
       const result = await response.json();
-      console.log('✅ Stock Movement API Response:', result);
 
       if (result.success) {
-        console.log('📦 Stock movement created, refreshing data...');
-        
         // Reset form
         setStockFormData({ type: 'IN', quantity: '', note: '' });
         setShowStockModal(false);
@@ -361,15 +355,12 @@ export default function InventoryPage() {
         
         // Set tanggal ke hari ini dan refresh data
         const today = new Date().toISOString().split('T')[0];
-        console.log('📅 Setting date to today:', today);
         setSelectedDate(today);
         
         // Refresh data dengan tanggal hari ini
-        console.log('🔄 Fetching all data...');
         await fetchProducts();
         await fetchStockMovements(today);
         await fetchDailySummary(today);
-        console.log('✅ All data refreshed!');
         
         success('Stock Movement Berhasil', result.message);
       } else {
@@ -418,11 +409,8 @@ export default function InventoryPage() {
       });
 
       const result = await response.json();
-      console.log('✅ Product API Response:', result);
 
       if (result.success) {
-        console.log('📦 Product created/updated, refreshing stock movements...');
-        
         // Reset form
         resetProductForm();
         setShowAddModal(false);
@@ -430,17 +418,12 @@ export default function InventoryPage() {
         
         // Set tanggal ke hari ini untuk melihat stock movement baru
         const today = new Date().toISOString().split('T')[0];
-        console.log('📅 Setting date to today:', today);
         setSelectedDate(today);
         
         // Refresh data dengan tanggal hari ini
-        console.log('🔄 Fetching products...');
         await fetchProducts(); // Refresh product list
-        console.log('🔄 Fetching stock movements for today...');
         await fetchStockMovements(today); // Fetch stock movements untuk hari ini
-        console.log('🔄 Fetching daily summary...');
         await fetchDailySummary(today); // Fetch summary untuk hari ini
-        console.log('✅ All data refreshed!');
         
         const action = editingProduct ? 'diperbarui' : 'ditambahkan';
         success(`Produk Berhasil ${action.charAt(0).toUpperCase() + action.slice(1)}`, 
@@ -552,29 +535,13 @@ export default function InventoryPage() {
   
   // Consignment Payments: Total nilai produk konsinyasi yang MASUK hari ini (nilai TETAP)
   // Hanya hitung movement IN (quantity > 0), TIDAK terpengaruh oleh produk keluar
-  console.log('🔍 DEBUG Consignment Calculation:');
-  console.log('Total stockMovements:', stockMovements.length);
-  console.log('Selected Date:', selectedDate);
-  console.log('All movements:', stockMovements.map(m => ({
-    id: m.id,
-    type: m.movementType,
-    quantity: m.quantity,
-    unitCost: m.unitCost,
-    date: m.date || m.createdAt,
-  })));
-  
   const consignmentInMovements = stockMovements.filter(m => m.movementType === 'CONSIGNMENT_IN' && m.quantity > 0);
-  console.log('Filtered CONSIGNMENT_IN movements:', consignmentInMovements.length);
   
   const consignmentPayments = consignmentInMovements.reduce((sum, m) => {
     // Gunakan unitCost dari movement, atau fallback ke product
     const unitCost = m.unitCost || 0;
-    const itemTotal = unitCost * Math.abs(m.quantity);
-    console.log(`  - Movement ${m.id}: ${m.quantity} x ${unitCost} = ${itemTotal}`);
-    return sum + itemTotal;
+    return sum + (unitCost * Math.abs(m.quantity));
   }, 0);
-  
-  console.log('💰 Total Consignment Payments:', consignmentPayments);
   
   const totalRevenue = products.reduce((sum, p) => sum + (p.sellPrice * p.soldToday), 0);
   const totalProfit = products.reduce((sum, p) => {
@@ -665,12 +632,24 @@ export default function InventoryPage() {
             {/* Period Display */}
             <div className="mt-2">
               <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
-                {financialPeriod === 'today' ? 'Hari Ini' :
-                 financialPeriod === '7days' ? '7 Hari Terakhir' :
-                 financialPeriod === '1month' ? '30 Hari Terakhir' :
-                 financialPeriod === '3months' ? '3 Bulan Terakhir' :
-                 financialPeriod === '6months' ? '6 Bulan Terakhir' :
-                 '1 Tahun Terakhir'}
+                {(() => {
+                  const today = new Date().toISOString().split('T')[0];
+                  const isToday = selectedDate === today;
+                  
+                  if (financialPeriod === 'today' && isToday) return 'Hari Ini';
+                  if (financialPeriod === '7days') return '7 Hari Terakhir';
+                  if (financialPeriod === '1month') return '30 Hari Terakhir';
+                  if (financialPeriod === '3months') return '3 Bulan Terakhir';
+                  if (financialPeriod === '6months') return '6 Bulan Terakhir';
+                  if (financialPeriod === '1year') return '1 Tahun Terakhir';
+                  
+                  // Custom date selected
+                  return new Date(selectedDate).toLocaleDateString('id-ID', { 
+                    day: 'numeric', 
+                    month: 'short', 
+                    year: 'numeric' 
+                  });
+                })()}
               </span>
             </div>
           </CardHeader>
@@ -2088,52 +2067,89 @@ export default function InventoryPage() {
               <div className="space-y-3">
                 <h4 className="font-semibold text-gray-900 mb-3">Riwayat Movement</h4>
                 {stockMovements.length > 0 ? (
-                  stockMovements.map((movement) => (
-                    <div key={movement.id} className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors">
-                      <div className={`p-3 rounded-full shrink-0 ${
-                        movement.type === 'IN' 
-                          ? 'bg-green-100 text-green-600' 
-                          : 'bg-red-100 text-red-600'
-                      }`}>
-                        {movement.type === 'IN' ? (
-                          <Plus className="w-5 h-5" />
-                        ) : (
-                          <Minus className="w-5 h-5" />
-                        )}
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="flex-1">
-                            <p className="font-semibold text-gray-900">{movement.product.name}</p>
-                            <p className="text-sm text-gray-600 mt-1">
-                              <span className={`font-medium ${movement.type === 'IN' ? 'text-green-600' : 'text-red-600'}`}>
-                                {movement.type === 'IN' ? '+' : '-'}{movement.quantity}
-                              </span>
-                              {' '}{movement.product.unit}
-                            </p>
-                            {movement.note && (
-                              <p className="text-sm text-gray-500 mt-1">{movement.note}</p>
-                            )}
-                          </div>
-                          <div className="text-right shrink-0">
-                            <p className="text-xs text-gray-500">
-                              {new Date(movement.createdAt).toLocaleDateString('id-ID', {
-                                day: '2-digit',
-                                month: 'short',
-                                year: 'numeric'
-                              })}
-                            </p>
-                            <p className="text-xs text-gray-400">
-                              {new Date(movement.createdAt).toLocaleTimeString('id-ID', {
-                                hour: '2-digit',
-                                minute: '2-digit'
-                              })}
-                            </p>
+                  stockMovements.map((movement) => {
+                    // Find product details from products list for profit calculation
+                    const product = products.find(p => p.id === movement.productId);
+                    const costPrice = product?.avgCost || product?.buyPrice || 0;
+                    const sellPrice = product?.sellPrice || 0;
+                    const profitPerUnit = sellPrice - costPrice;
+                    const profitMargin = costPrice > 0 ? (profitPerUnit / costPrice) * 100 : 0;
+                    const totalProfit = profitPerUnit * Math.abs(movement.quantity);
+                    
+                    return (
+                      <div key={movement.id} className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors">
+                        <div className={`p-3 rounded-full shrink-0 ${
+                          movement.type === 'IN' 
+                            ? 'bg-green-100 text-green-600' 
+                            : 'bg-red-100 text-red-600'
+                        }`}>
+                          {movement.type === 'IN' ? (
+                            <Plus className="w-5 h-5" />
+                          ) : (
+                            <Minus className="w-5 h-5" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-start justify-between gap-4">
+                            <div className="flex-1">
+                              <p className="font-semibold text-gray-900">{movement.product.name}</p>
+                              <div className="flex items-center gap-3 mt-1">
+                                <p className="text-sm text-gray-600">
+                                  <span className={`font-medium ${movement.type === 'IN' ? 'text-green-600' : 'text-red-600'}`}>
+                                    {movement.type === 'IN' ? '+' : '-'}{Math.abs(movement.quantity)}
+                                  </span>
+                                  {' '}{movement.product.unit}
+                                </p>
+                                {product && movement.type === 'OUT' && profitPerUnit > 0 && (
+                                  <div className="flex items-center gap-2">
+                                    <span className="text-xs text-gray-400">•</span>
+                                    <div className="flex items-center gap-1">
+                                      <DollarSign className="w-3 h-3 text-emerald-600" />
+                                      <span className="text-xs font-semibold text-emerald-600">
+                                        {formatCurrency(totalProfit)}
+                                      </span>
+                                      <span className="text-xs text-gray-500">
+                                        ({profitMargin.toFixed(1)}% margin)
+                                      </span>
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                              {movement.note && (
+                                <p className="text-sm text-gray-500 mt-1">{movement.note}</p>
+                              )}
+                              {product && (
+                                <div className="flex items-center gap-3 mt-2 text-xs text-gray-500">
+                                  <span>Harga Beli: {formatCurrency(costPrice)}</span>
+                                  <span>•</span>
+                                  <span>Harga Jual: {formatCurrency(sellPrice)}</span>
+                                  <span>•</span>
+                                  <span className="font-medium text-emerald-600">
+                                    Laba/unit: {formatCurrency(profitPerUnit)}
+                                  </span>
+                                </div>
+                              )}
+                            </div>
+                            <div className="text-right shrink-0">
+                              <p className="text-xs text-gray-500">
+                                {new Date(movement.createdAt).toLocaleDateString('id-ID', {
+                                  day: '2-digit',
+                                  month: 'short',
+                                  year: 'numeric'
+                                })}
+                              </p>
+                              <p className="text-xs text-gray-400">
+                                {new Date(movement.createdAt).toLocaleTimeString('id-ID', {
+                                  hour: '2-digit',
+                                  minute: '2-digit'
+                                })}
+                              </p>
+                            </div>
                           </div>
                         </div>
                       </div>
-                    </div>
-                  ))
+                    );
+                  })
                 ) : (
                   <div className="text-center py-12 text-gray-500">
                     <Package className="w-12 h-12 mx-auto mb-3 opacity-50" />
