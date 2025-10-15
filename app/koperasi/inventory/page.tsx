@@ -519,17 +519,15 @@ export default function InventoryPage() {
   // Financial metrics calculations
   const totalSoldToday = products.reduce((sum, p) => sum + p.soldToday, 0);
   
-  // Consignment Payments: Total nilai produk konsinyasi yang MASUK hari ini
-  const consignmentPayments = stockMovements
-    .filter(m => m.movementType === 'CONSIGNMENT_IN')
-    .reduce((sum, m) => {
-      // Find product to get unit cost
-      const product = products.find(p => p.id === m.productId);
-      if (product && m.unitCost) {
-        return sum + (m.unitCost * m.quantity);
-      }
-      return sum;
-    }, 0);
+  // Consignment Payments: Total nilai produk konsinyasi yang MASUK hari ini (nilai TETAP)
+  // Hanya hitung movement IN (quantity > 0), TIDAK terpengaruh oleh produk keluar
+  const consignmentInMovements = stockMovements.filter(m => m.movementType === 'CONSIGNMENT_IN' && m.quantity > 0);
+  
+  const consignmentPayments = consignmentInMovements.reduce((sum, m) => {
+    // Gunakan unitCost dari movement, atau fallback ke product
+    const unitCost = m.unitCost || 0;
+    return sum + (unitCost * Math.abs(m.quantity));
+  }, 0);
   
   const totalRevenue = products.reduce((sum, p) => sum + (p.sellPrice * p.soldToday), 0);
   const totalProfit = products.reduce((sum, p) => {
