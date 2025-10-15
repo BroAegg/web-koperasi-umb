@@ -34,7 +34,8 @@ interface Product {
     id: string;
     name: string;
   };
-  buyPrice: number;
+  buyPrice: number | null;
+  avgCost: number | null;
   sellPrice: number;
   stock: number;
   threshold: number;
@@ -42,6 +43,9 @@ interface Product {
   soldToday: number;
   totalSold: number;
   profit: number;
+  ownershipType?: 'TOKO' | 'TITIPAN';
+  stockCycle?: 'HARIAN' | 'MINGGUAN' | 'DUA_MINGGUAN';
+  isConsignment?: boolean;
 }
 
 interface Category {
@@ -68,6 +72,8 @@ interface StockMovement {
 export default function InventoryPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("semua");
+  const [selectedOwnership, setSelectedOwnership] = useState<'semua' | 'TOKO' | 'TITIPAN'>('semua');
+  const [selectedCycle, setSelectedCycle] = useState<'semua' | 'HARIAN' | 'MINGGUAN' | 'DUA_MINGGUAN'>('semua');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedRange, setSelectedRange] = useState<any>(null);
   const [financialPeriod, setFinancialPeriod] = useState<'today' | '7days' | '1month' | '3months' | '6months' | '1year'>('today');
@@ -333,7 +339,7 @@ export default function InventoryPage() {
       description: '', // Product interface doesn't have description, set empty
       categoryId: product.category.id,
       sku: '', // Product interface doesn't have sku, set empty
-      buyPrice: product.buyPrice.toString(),
+      buyPrice: product.buyPrice ? product.buyPrice.toString() : '',
       sellPrice: product.sellPrice.toString(),
       stock: product.stock.toString(),
       threshold: product.threshold.toString(),
@@ -372,20 +378,30 @@ export default function InventoryPage() {
     .filter(product => {
       const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase());
       const matchesCategory = selectedCategory === "semua" || product.category.name === selectedCategory;
-      return matchesSearch && matchesCategory;
+      const matchesOwnership = selectedOwnership === "semua" || product.ownershipType === selectedOwnership;
+      const matchesCycle = selectedCycle === "semua" || product.stockCycle === selectedCycle;
+      return matchesSearch && matchesCategory && matchesOwnership && matchesCycle;
     })
     .sort((a, b) => b.stock - a.stock); // Sort by stock: highest to lowest
 
   const lowStockProducts = products.filter(p => p.stock <= p.threshold);
   const totalProducts = products.length;
-  const totalStockValue = products.reduce((sum, p) => sum + (p.buyPrice * p.stock), 0);
+  const totalStockValue = products.reduce((sum, p) => sum + ((p.avgCost || p.buyPrice || 0) * p.stock), 0);
   const todayProfit = products.reduce((sum, p) => sum + (p.profit * p.soldToday), 0);
   
   // Financial metrics calculations
   const totalSoldToday = products.reduce((sum, p) => sum + p.soldToday, 0);
-  const consignmentPayments = products.reduce((sum, p) => sum + (p.buyPrice * p.stock * 0.3), 0); // Assuming 30% consignment
+  const consignmentPayments = products.reduce((sum, p) => {
+    if (p.ownershipType === 'TITIPAN' && p.buyPrice) {
+      return sum + (p.buyPrice * p.stock * 0.3); // 30% consignment fee
+    }
+    return sum;
+  }, 0);
   const totalRevenue = products.reduce((sum, p) => sum + (p.sellPrice * p.soldToday), 0);
-  const totalProfit = products.reduce((sum, p) => sum + ((p.sellPrice - p.buyPrice) * p.soldToday), 0);
+  const totalProfit = products.reduce((sum, p) => {
+    const cost = p.avgCost || p.buyPrice || 0;
+    return sum + ((p.sellPrice - cost) * p.soldToday);
+  }, 0);
 
   const categoryOptions = ["semua", ...categories.map(c => c.name)];
 
@@ -619,6 +635,25 @@ export default function InventoryPage() {
                       <option key={cat} value={cat}>{cat === "semua" ? "Semua Kategori" : cat}</option>
                     ))}
                   </select>
+                  <select
+                    value={selectedOwnership}
+                    onChange={(e) => setSelectedOwnership(e.target.value as 'semua' | 'TOKO' | 'TITIPAN')}
+                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                  >
+                    <option value="semua">Semua Jenis</option>
+                    <option value="TOKO">🏪 Toko</option>
+                    <option value="TITIPAN">🎁 Titipan</option>
+                  </select>
+                  <select
+                    value={selectedCycle}
+                    onChange={(e) => setSelectedCycle(e.target.value as 'semua' | 'HARIAN' | 'MINGGUAN' | 'DUA_MINGGUAN')}
+                    className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                  >
+                    <option value="semua">Semua Siklus</option>
+                    <option value="HARIAN">📅 Harian</option>
+                    <option value="MINGGUAN">📅 Mingguan</option>
+                    <option value="DUA_MINGGUAN">📅 Dua Mingguan</option>
+                  </select>
                 </div>
               </div>
             </CardHeader>
@@ -640,8 +675,31 @@ export default function InventoryPage() {
                     {filteredProducts.map((product) => (
                       <TableRow key={product.id}>
                         <TableCell className="font-medium">
-                          <div className="flex flex-col">
+                          <div className="flex flex-col gap-1.5">
                             <span className="font-medium">{product.name}</span>
+                            <div className="flex flex-wrap gap-1.5">
+                              {/* Ownership Badge */}
+                              {product.ownershipType && (
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                                  product.ownershipType === 'TOKO' 
+                                    ? 'bg-blue-100 text-blue-700' 
+                                    : 'bg-purple-100 text-purple-700'
+                                }`}>
+                                  {product.ownershipType === 'TOKO' ? '🏪 Toko' : '🎁 Titipan'}
+                                </span>
+                              )}
+                              {/* Stock Cycle Badge */}
+                              {product.stockCycle && (
+                                <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                                  product.stockCycle === 'HARIAN' ? 'bg-orange-100 text-orange-700' :
+                                  product.stockCycle === 'MINGGUAN' ? 'bg-blue-100 text-blue-700' :
+                                  'bg-green-100 text-green-700'
+                                }`}>
+                                  {product.stockCycle === 'HARIAN' ? '📅 Harian' :
+                                   product.stockCycle === 'MINGGUAN' ? '📅 Mingguan' : '📅 Dua Mingguan'}
+                                </span>
+                              )}
+                            </div>
                             <div className="sm:hidden text-xs text-gray-500 mt-1">
                               {product.category.name} • {formatCurrency(product.sellPrice)}
                             </div>
@@ -651,7 +709,8 @@ export default function InventoryPage() {
                           {product.category.name}
                         </TableCell>
                         <TableCell className="hidden md:table-cell">
-                          {formatCurrency(product.buyPrice)}
+                          {product.buyPrice ? formatCurrency(product.buyPrice) : 
+                           <span className="text-gray-400 text-sm">-</span>}
                         </TableCell>
                         <TableCell className="hidden md:table-cell">
                           {formatCurrency(product.sellPrice)}
@@ -1243,8 +1302,17 @@ export default function InventoryPage() {
                   <div className="space-y-3">
                     <div>
                       <label className="text-sm text-gray-600">Harga Beli</label>
-                      <p className="font-medium">{formatCurrency(selectedProduct.buyPrice)}</p>
+                      <p className="font-medium">
+                        {selectedProduct.buyPrice ? formatCurrency(selectedProduct.buyPrice) : 
+                         <span className="text-gray-400">Tidak ada (Konsinyasi)</span>}
+                      </p>
                     </div>
+                    {selectedProduct.avgCost && (
+                      <div>
+                        <label className="text-sm text-gray-600">Rata-rata Biaya (avgCost)</label>
+                        <p className="font-medium text-blue-600">{formatCurrency(selectedProduct.avgCost)}</p>
+                      </div>
+                    )}
                     <div>
                       <label className="text-sm text-gray-600">Harga Jual</label>
                       <p className="font-medium">{formatCurrency(selectedProduct.sellPrice)}</p>
@@ -1252,7 +1320,7 @@ export default function InventoryPage() {
                     <div>
                       <label className="text-sm text-gray-600">Keuntungan per Unit</label>
                       <p className="font-medium text-green-600">
-                        {formatCurrency(selectedProduct.sellPrice - selectedProduct.buyPrice)}
+                        {formatCurrency(selectedProduct.sellPrice - (selectedProduct.avgCost || selectedProduct.buyPrice || 0))}
                       </p>
                     </div>
                   </div>
