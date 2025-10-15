@@ -403,11 +403,13 @@ export default function FinancialPage() {
                           setSelectedDate(e.target.value);
                           setFinancialPeriod('today'); // Reset to today when manual date is selected
                         }}
-                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                        className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                        title="Pilih tanggal"
                       />
                       <button 
                         type="button"
-                        className="px-2.5 py-1.5 border-l border-blue-100 text-gray-600 hover:bg-blue-50 transition-colors pointer-events-none"
+                        className="px-2.5 py-1.5 border-l border-blue-100 text-gray-600 hover:bg-blue-50 transition-colors"
+                        title="Pilih tanggal"
                       >
                         <Calendar className="h-3.5 w-3.5" />
                       </button>
@@ -416,15 +418,24 @@ export default function FinancialPage() {
                 </div>
               </div>
               
-              {/* Period Display */}
+              {/* Period Display - Show custom date or period label */}
               <div className="mt-2">
                 <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
-                  {financialPeriod === 'today' ? 'Hari Ini' :
-                   financialPeriod === '7days' ? '7 Hari Terakhir' :
-                   financialPeriod === '1month' ? '30 Hari Terakhir' :
-                   financialPeriod === '3months' ? '3 Bulan Terakhir' :
-                   financialPeriod === '6months' ? '6 Bulan Terakhir' :
-                   '1 Tahun Terakhir'}
+                  {(() => {
+                    const today = new Date().toISOString().split('T')[0];
+                    const isCustomDate = selectedDate !== today;
+                    
+                    if (isCustomDate) {
+                      return `📅 ${formatDate(new Date(selectedDate))}`;
+                    }
+                    
+                    return financialPeriod === 'today' ? '📅 Hari Ini' :
+                           financialPeriod === '7days' ? '📅 7 Hari Terakhir' :
+                           financialPeriod === '1month' ? '📅 30 Hari Terakhir' :
+                           financialPeriod === '3months' ? '📅 3 Bulan Terakhir' :
+                           financialPeriod === '6months' ? '📅 6 Bulan Terakhir' :
+                           '📅 1 Tahun Terakhir';
+                  })()}
                 </span>
               </div>
             </CardHeader>
@@ -602,97 +613,103 @@ export default function FinancialPage() {
               </Button>
             </div>
           ) : (
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Tipe & Deskripsi</TableHead>
-                  <TableHead>Kategori</TableHead>
-                  <TableHead>Jumlah</TableHead>
-                  <TableHead>Metode Bayar</TableHead>
-                  <TableHead>Waktu</TableHead>
-                  <TableHead>Aksi</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredTransactions.map((transaction) => (
-                  <TableRow key={transaction.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <div className={`p-2 rounded-full ${getTransactionTypeColor(transaction.type)}`}>
-                          {getTransactionTypeIcon(transaction.type)}
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow className="bg-gray-50">
+                    <TableHead className="font-semibold text-gray-900">Tipe & Deskripsi</TableHead>
+                    <TableHead className="font-semibold text-gray-900">Kategori</TableHead>
+                    <TableHead className="font-semibold text-gray-900">Jumlah</TableHead>
+                    <TableHead className="font-semibold text-gray-900">Metode Bayar</TableHead>
+                    <TableHead className="font-semibold text-gray-900">Waktu</TableHead>
+                    <TableHead className="font-semibold text-gray-900 text-center">Aksi</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredTransactions.map((transaction) => (
+                    <TableRow 
+                      key={transaction.id}
+                      className="hover:bg-gray-50 transition-colors"
+                    >
+                      <TableCell className="py-4">
+                        <div className="flex items-center gap-3">
+                          <div className={`p-2 rounded-full ${getTransactionTypeColor(transaction.type)}`}>
+                            {getTransactionTypeIcon(transaction.type)}
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-900">{transaction.description}</p>
+                            <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium mt-1 ${getTransactionTypeColor(transaction.type)}`}>
+                              {transaction.type === 'SALE' ? 'Penjualan' :
+                               transaction.type === 'INCOME' ? 'Pemasukan' :
+                               transaction.type === 'PURCHASE' ? 'Pembelian' : 
+                               transaction.type === 'EXPENSE' ? 'Pengeluaran' : 'Retur'}
+                            </span>
+                          </div>
                         </div>
-                        <div>
-                          <p className="font-medium text-gray-900">{transaction.description}</p>
-                          <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium mt-1 ${getTransactionTypeColor(transaction.type)}`}>
-                            {transaction.type === 'SALE' ? 'Penjualan' :
-                             transaction.type === 'INCOME' ? 'Pemasukan' :
-                             transaction.type === 'PURCHASE' ? 'Pembelian' : 
-                             transaction.type === 'EXPENSE' ? 'Pengeluaran' : 'Retur'}
+                      </TableCell>
+                      <TableCell className="py-4">
+                        <span className="text-gray-700 font-medium">{transaction.category || '-'}</span>
+                      </TableCell>
+                      <TableCell className="py-4">
+                        <span className={`font-bold text-base ${
+                          transaction.type === 'SALE' || transaction.type === 'INCOME' 
+                            ? 'text-emerald-600' 
+                            : 'text-red-600'
+                        }`}>
+                          {transaction.type === 'SALE' || transaction.type === 'INCOME' ? '+' : '-'}
+                          {formatCurrency(transaction.amount)}
+                        </span>
+                      </TableCell>
+                      <TableCell className="py-4">
+                        <div className="flex items-center gap-2">
+                          {getPaymentMethodIcon(transaction.paymentMethod)}
+                          <span className="text-gray-700 font-medium">
+                            {transaction.paymentMethod === 'CASH' ? 'Tunai' :
+                             transaction.paymentMethod === 'TRANSFER' ? 'Transfer' : 'Kredit'}
                           </span>
                         </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-gray-600">{transaction.category || '-'}</span>
-                    </TableCell>
-                    <TableCell>
-                      <span className={`font-bold ${
-                        transaction.type === 'SALE' || transaction.type === 'INCOME' 
-                          ? 'text-green-600' 
-                          : 'text-red-600'
-                      }`}>
-                        {transaction.type === 'SALE' || transaction.type === 'INCOME' ? '+' : '-'}
-                        {formatCurrency(transaction.amount)}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        {getPaymentMethodIcon(transaction.paymentMethod)}
-                        <span className="text-gray-600">
-                          {transaction.paymentMethod === 'CASH' ? 'Tunai' :
-                           transaction.paymentMethod === 'TRANSFER' ? 'Transfer' : 'Kredit'}
+                      </TableCell>
+                      <TableCell className="py-4">
+                        <span className="text-gray-600 text-sm font-medium">
+                          {formatTime(transaction.createdAt)}
                         </span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <span className="text-gray-600 text-sm">
-                        {formatTime(transaction.createdAt)}
-                      </span>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleViewTransaction(transaction)}
-                          className="text-blue-600 hover:bg-blue-50"
-                          title="Lihat Detail"
-                        >
-                          <Eye className="w-4 h-4" />
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleEditTransaction(transaction)}
-                          className="text-amber-600 hover:bg-amber-50"
-                          title="Edit Transaksi"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button 
-                          variant="danger" 
-                          size="sm"
-                          onClick={() => handleDeleteTransaction(transaction.id)}
-                          title="Hapus Transaksi"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                      </TableCell>
+                      <TableCell className="py-4">
+                        <div className="flex items-center justify-center gap-2">
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleViewTransaction(transaction)}
+                            className="text-blue-600 hover:bg-blue-50 hover:border-blue-200 transition-colors"
+                            title="Lihat Detail"
+                          >
+                            <Eye className="w-4 h-4" />
+                          </Button>
+                          <Button 
+                            variant="outline" 
+                            size="sm"
+                            onClick={() => handleEditTransaction(transaction)}
+                            className="text-amber-600 hover:bg-amber-50 hover:border-amber-200 transition-colors"
+                            title="Edit Transaksi"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <Button 
+                            variant="danger" 
+                            size="sm"
+                            onClick={() => handleDeleteTransaction(transaction.id)}
+                            className="hover:bg-red-600 hover:text-white transition-colors"
+                            title="Hapus Transaksi"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
           )}
         </CardContent>
       </Card>
