@@ -173,6 +173,7 @@ model Product {
   name            String
   description     String?
   categoryId      String
+  supplierId      String?         // Optional supplier relation
   sku             String?         @unique
   
   // Pricing (buyPrice nullable untuk konsinyasi)
@@ -190,6 +191,9 @@ model Product {
   stockCycle      StockCycle      @default(MINGGUAN)
   isConsignment   Boolean         @default(false)
   
+  // Supplier Contact (for quick restock)
+  supplierContact String?         // Phone or email for direct contact
+  
   // Status & Lifecycle
   status          ProductStatus   @default(ACTIVE)
   isActive        Boolean         @default(true) // Backward compatibility
@@ -202,6 +206,7 @@ model Product {
   
   // Relations
   category        Category        @relation(fields: [categoryId], references: [id])
+  supplier        Supplier?       @relation(fields: [supplierId], references: [id])
   stockMovements  StockMovement[]
   transactionItems TransactionItem[]
   
@@ -292,6 +297,7 @@ model Supplier {
   updatedAt   DateTime  @updatedAt
   
   // Relations
+  products    Product[] // Products from this supplier
   purchases   Purchase[]
   
   @@map("suppliers")
