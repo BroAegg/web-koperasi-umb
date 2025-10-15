@@ -642,6 +642,85 @@ export default function InventoryPage() {
                   </Button>
                 </div>
               </div>
+
+              {/* Active Filter Chips */}
+              {(selectedCategory !== 'semua' || selectedOwnership !== 'semua' || selectedCycle !== 'semua') && (
+                <div className="flex flex-wrap items-center gap-2 mt-3 px-1">
+                  <span className="text-xs text-gray-500 font-medium">Filter Aktif:</span>
+                  
+                  {/* Category Chip */}
+                  {selectedCategory !== 'semua' && (
+                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-full text-xs font-medium border border-blue-200">
+                      <span>Kategori: {selectedCategory}</span>
+                      <button
+                        onClick={() => setSelectedCategory('semua')}
+                        className="hover:bg-blue-100 rounded-full p-0.5 transition-colors"
+                        aria-label="Hapus filter kategori"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Ownership Chip */}
+                  {selectedOwnership !== 'semua' && (
+                    <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border ${
+                      selectedOwnership === 'TOKO'
+                        ? 'bg-blue-50 text-blue-700 border-blue-200'
+                        : 'bg-purple-50 text-purple-700 border-purple-200'
+                    }`}>
+                      <span>Jenis: {selectedOwnership === 'TOKO' ? 'Toko' : 'Titipan'}</span>
+                      <button
+                        onClick={() => setSelectedOwnership('semua')}
+                        className={`rounded-full p-0.5 transition-colors ${
+                          selectedOwnership === 'TOKO' ? 'hover:bg-blue-100' : 'hover:bg-purple-100'
+                        }`}
+                        aria-label="Hapus filter jenis"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Cycle Chip */}
+                  {selectedCycle !== 'semua' && (
+                    <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border ${
+                      selectedCycle === 'HARIAN' ? 'bg-orange-50 text-orange-700 border-orange-200' :
+                      selectedCycle === 'MINGGUAN' ? 'bg-green-50 text-green-700 border-green-200' :
+                      'bg-teal-50 text-teal-700 border-teal-200'
+                    }`}>
+                      <span>Siklus: {
+                        selectedCycle === 'HARIAN' ? 'Harian' :
+                        selectedCycle === 'MINGGUAN' ? 'Mingguan' : 'Dua Mingguan'
+                      }</span>
+                      <button
+                        onClick={() => setSelectedCycle('semua')}
+                        className={`rounded-full p-0.5 transition-colors ${
+                          selectedCycle === 'HARIAN' ? 'hover:bg-orange-100' :
+                          selectedCycle === 'MINGGUAN' ? 'hover:bg-green-100' :
+                          'hover:bg-teal-100'
+                        }`}
+                        aria-label="Hapus filter siklus"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  )}
+
+                  {/* Clear All Filters Button */}
+                  <button
+                    onClick={() => {
+                      setSelectedCategory('semua');
+                      setSelectedOwnership('semua');
+                      setSelectedCycle('semua');
+                    }}
+                    className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-full transition-colors"
+                  >
+                    <X className="w-3 h-3" />
+                    Hapus Semua
+                  </button>
+                </div>
+              )}
             </CardHeader>
             <CardContent className="p-0">
               <div className="overflow-x-auto">
