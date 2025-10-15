@@ -1402,7 +1402,7 @@ export default function InventoryPage() {
                       type="number"
                       value={newProduct.stock}
                       onChange={(e) => setNewProduct({...newProduct, stock: e.target.value})}
-                      placeholder="Contoh: 100"
+                      placeholder="0"
                       leftIcon={<Package className="w-4 h-4 text-gray-400" />}
                       disabled={!!editingProduct}
                       className={editingProduct ? "bg-gray-100 cursor-not-allowed" : ""}
