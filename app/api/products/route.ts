@@ -32,6 +32,7 @@ export async function GET(request: NextRequest) {
       where,
       include: {
         category: true,
+        supplier: true,
         stockMovements: {
           orderBy: { createdAt: 'desc' },
           take: 5,
@@ -96,6 +97,8 @@ export async function POST(request: NextRequest) {
       ownershipType = 'TOKO', // Default to store-owned
       stockCycle = 'MINGGUAN', // Default to weekly
       isConsignment = false,
+      supplierId,
+      supplierContact,
     } = body;
 
     if (!name || !categoryId || !sellPrice) {
@@ -148,9 +151,12 @@ export async function POST(request: NextRequest) {
         ownershipType,
         stockCycle,
         isConsignment,
+        supplierId: supplierId || null,
+        supplierContact: supplierContact || null,
       },
       include: {
         category: true,
+        supplier: true,
       },
     });
 

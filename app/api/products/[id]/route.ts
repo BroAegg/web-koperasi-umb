@@ -5,11 +5,11 @@ import { requireRole } from '@/lib/auth';
 // PUT - Update product
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const data = await request.json();
-    const { id } = params;
+    const { id } = await params;
 
     // Convert string values to appropriate types
     const productData: any = {
@@ -35,11 +35,20 @@ export async function PUT(
     if (data.stockCycle) productData.stockCycle = data.stockCycle;
     if (data.isConsignment !== undefined) productData.isConsignment = data.isConsignment;
 
+    // Include supplier fields if provided
+    if (data.supplierId !== undefined) {
+      productData.supplierId = data.supplierId || null;
+    }
+    if (data.supplierContact !== undefined) {
+      productData.supplierContact = data.supplierContact || null;
+    }
+
     const product = await prisma.product.update({
       where: { id },
       data: productData,
       include: {
         category: true,
+        supplier: true,
       },
     });
 
@@ -63,7 +72,7 @@ export async function PUT(
 // DELETE - Delete product
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   // Role based access
   const check = await requireRole('SUPER_ADMIN', 'ADMIN')(request);
@@ -72,7 +81,7 @@ export async function DELETE(
     return NextResponse.json(res, { status: (check as any).status || 401 });
   }
   try {
-    const { id } = params;
+    const { id } = await params;
 
     // Check if product has stock movements
     const stockMovements = await prisma.stockMovement.count({
@@ -124,15 +133,16 @@ export async function DELETE(
 // GET - Get single product
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const { id } = params;
+    const { id } = await params;
 
     const product = await prisma.product.findUnique({
       where: { id },
       include: {
         category: true,
+        supplier: true,
       },
     });
 
