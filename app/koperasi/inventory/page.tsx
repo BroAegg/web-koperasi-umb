@@ -399,6 +399,7 @@ export default function InventoryPage() {
         // Set tanggal ke hari ini dan refresh data
         const today = new Date().toISOString().split('T')[0];
         setSelectedDate(today);
+        setFinancialPeriod('today'); // Reset period to today untuk melihat transaction baru
         
         // Refresh data dengan tanggal hari ini
         await fetchProducts();
@@ -463,6 +464,7 @@ export default function InventoryPage() {
         // Set tanggal ke hari ini untuk melihat stock movement baru
         const today = new Date().toISOString().split('T')[0];
         setSelectedDate(today);
+        setFinancialPeriod('today'); // Reset period to today untuk melihat transaction baru
         
         // Refresh data dengan tanggal hari ini
         await fetchProducts(); // Refresh product list
