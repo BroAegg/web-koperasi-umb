@@ -105,6 +105,7 @@ export interface ProductFormData {
   supplierId: string;
   supplierName?: string;
   supplierContact?: string;
+  isConsignment?: boolean; // Legacy field for compatibility
 }
 
 export interface StockFormData {

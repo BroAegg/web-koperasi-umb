@@ -3,9 +3,33 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useNotification } from '@/lib/notification-context';
 import { formatCurrency } from '@/lib/utils';
-import { Package, Plus, Download, BarChart3, AlertTriangle } from 'lucide-react';
+import { 
+  Package, 
+  Plus, 
+  Download, 
+  BarChart3, 
+  AlertTriangle,
+  DollarSign,
+  TrendingUp,
+  PiggyBank,
+  Info,
+  Hash,
+  Receipt,
+  Calendar,
+  Search,
+  Eye,
+  X,
+  ChevronLeft,
+  ChevronRight,
+  Phone,
+  Edit,
+  Trash2,
+  Minus
+} from 'lucide-react';
 
 // Import centralized types
 import { 
@@ -21,12 +45,12 @@ import {
   StockCycleFilter
 } from '@/types/inventory';
 
-// Import extracted components
-import FinancialMetricsCard from '@/components/inventory/FinancialMetricsCard';
-import ProductFilters from '@/components/inventory/ProductFilters';
+// Import extracted components (mix of named and default exports)
+import { FinancialMetricsCard } from '@/components/inventory/FinancialMetricsCard';
+import { ProductFilters } from '@/components/inventory/ProductFilters';
+import { Pagination } from '@/components/inventory/Pagination';
+import { StockMovementsList } from '@/components/inventory/StockMovementsList';
 import ProductTable from '@/components/inventory/ProductTable';
-import Pagination from '@/components/inventory/Pagination';
-import StockMovementsList from '@/components/inventory/StockMovementsList';
 import ProductModal from '@/components/inventory/ProductModal';
 import StockModal from '@/components/inventory/StockModal';
 import FilterModal from '@/components/inventory/FilterModal';
@@ -75,6 +99,32 @@ export default function InventoryPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
   const [hideOutOfStock, setHideOutOfStock] = useState(false);
+
+  // Form State (for modals)
+  const [priceError, setPriceError] = useState('');
+  const [stockFormData, setStockFormData] = useState<StockFormData>({
+    type: 'IN',
+    quantity: '',
+    note: '',
+  });
+  const [newProduct, setNewProduct] = useState<ProductFormData>({
+    name: '',
+    categoryId: '',
+    description: '',
+    sku: '',
+    buyPrice: '',
+    sellPrice: '',
+    stock: '0',
+    threshold: '5',
+    unit: 'pcs',
+    ownershipType: 'TOKO',
+    stockCycle: 'HARIAN',
+    supplierId: '',
+    supplierName: '',
+    supplierContact: '',
+  });
+  const [showSupplierDropdown, setShowSupplierDropdown] = useState(false);
+  const [selectedRange, setSelectedRange] = useState<any>(null);
 
   // Global notifications
   const { success, error, warning } = useNotification();
