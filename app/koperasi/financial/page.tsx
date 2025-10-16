@@ -31,7 +31,10 @@ import {
   Hash,
   Wallet,
   Building2,
-  Info
+  Info,
+  Package,
+  ArrowLeftRight,
+  Clock
 } from 'lucide-react';
 
 interface Transaction {
@@ -95,8 +98,11 @@ export default function FinancialPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [financialPeriod, setFinancialPeriod] = useState<'today' | '7days' | '1month' | '3months' | '6months' | '1year'>('today');
+  const [isCustomDate, setIsCustomDate] = useState(false);
   const [filterType, setFilterType] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<string | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -281,8 +287,8 @@ export default function FinancialPage() {
   };
 
   const handleViewTransaction = (transaction: Transaction) => {
-    // Future enhancement: Show detailed view with connections to inventory/member
-    success('Detail Transaksi', `Transaksi: ${transaction.description || 'Tanpa catatan'}\nJumlah: ${formatCurrency(transaction.amount)}\nTanggal: ${formatDate(new Date(transaction.date))}`);
+    setSelectedTransaction(transaction);
+    setShowDetailModal(true);
   };
 
   const handleEditTransaction = (transaction: Transaction) => {
@@ -405,17 +411,15 @@ export default function FinancialPage() {
                     {/* Display current period or custom date */}
                     <div className="px-3 py-1.5 text-xs font-medium text-gray-700 pointer-events-none">
                       {(() => {
-                        const today = new Date().toISOString().split('T')[0];
-                        const isToday = selectedDate === today;
-                        
-                        if (financialPeriod === 'today' && !isToday) {
-                          // Custom date selected
+                        if (isCustomDate) {
+                          // Custom date selected - show formatted date
                           return new Date(selectedDate).toLocaleDateString('id-ID', { 
                             day: 'numeric', 
                             month: 'short', 
                             year: 'numeric' 
                           });
                         }
+                        // Show period name
                         if (financialPeriod === 'today') return 'Hari Ini';
                         if (financialPeriod === '7days') return '7 Hari';
                         if (financialPeriod === '1month') return '1 Bulan';
@@ -426,10 +430,13 @@ export default function FinancialPage() {
                       })()}
                     </div>
                     <select
-                      value={financialPeriod}
+                      value={isCustomDate ? 'custom' : financialPeriod}
                       onChange={(e) => {
                         const newPeriod = e.target.value as any;
+                        if (newPeriod === 'custom') return; // Ignore if custom is selected
+                        
                         setFinancialPeriod(newPeriod);
+                        setIsCustomDate(false); // Clear custom date mode
                         // Reset to actual today's date when "Hari Ini" is selected
                         if (newPeriod === 'today') {
                           setSelectedDate(new Date().toISOString().split('T')[0]);
@@ -452,7 +459,7 @@ export default function FinancialPage() {
                         value={selectedDate}
                         onChange={(e) => {
                           setSelectedDate(e.target.value);
-                          setFinancialPeriod('today'); // Reset to today when manual date is selected
+                          setIsCustomDate(true); // Mark as custom date
                         }}
                         className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
                         title="Pilih tanggal"
@@ -1013,6 +1020,179 @@ export default function FinancialPage() {
                 </Button>
               </div>
             </form>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Transaction Detail Modal */}
+      {showDetailModal && selectedTransaction && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-gradient-to-r from-blue-600 to-blue-700 text-white px-6 py-4 rounded-t-xl flex justify-between items-center">
+              <div className="flex items-center gap-3">
+                <div className={`p-2 rounded-lg ${
+                  selectedTransaction.type === 'SALE' ? 'bg-green-500' :
+                  selectedTransaction.type === 'PURCHASE' ? 'bg-purple-500' :
+                  selectedTransaction.type === 'RETURN' ? 'bg-orange-500' :
+                  selectedTransaction.type === 'INCOME' ? 'bg-emerald-500' :
+                  'bg-red-500'
+                }`}>
+                  {selectedTransaction.type === 'SALE' && <ShoppingCart className="h-5 w-5" />}
+                  {selectedTransaction.type === 'PURCHASE' && <Package className="h-5 w-5" />}
+                  {selectedTransaction.type === 'RETURN' && <ArrowLeftRight className="h-5 w-5" />}
+                  {selectedTransaction.type === 'INCOME' && <TrendingUp className="h-5 w-5" />}
+                  {selectedTransaction.type === 'EXPENSE' && <TrendingDown className="h-5 w-5" />}
+                </div>
+                <div>
+                  <h3 className="text-xl font-bold">Detail Transaksi</h3>
+                  <p className="text-blue-100 text-sm">
+                    {selectedTransaction.type === 'SALE' ? 'Penjualan Produk' :
+                     selectedTransaction.type === 'PURCHASE' ? 'Pembelian/Stok Masuk' :
+                     selectedTransaction.type === 'RETURN' ? 'Retur Produk' :
+                     selectedTransaction.type === 'INCOME' ? 'Pemasukan Manual' :
+                     'Pengeluaran Manual'}
+                  </p>
+                </div>
+              </div>
+              <button 
+                onClick={() => setShowDetailModal(false)}
+                className="text-white hover:bg-white hover:bg-opacity-20 rounded-lg p-2 transition-colors"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+            
+            <div className="p-6 space-y-6">
+              {/* Transaction Amount - Prominent Display */}
+              <div className="bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl p-6 border border-blue-200">
+                <p className="text-sm font-medium text-gray-600 mb-2">Total Transaksi</p>
+                <p className={`text-4xl font-bold ${
+                  selectedTransaction.type === 'INCOME' || selectedTransaction.type === 'SALE' 
+                    ? 'text-emerald-600' 
+                    : 'text-red-600'
+                }`}>
+                  {formatCurrency(selectedTransaction.amount)}
+                </p>
+                <div className="mt-3 flex items-center gap-2 text-sm text-gray-600">
+                  <Calendar className="h-4 w-4" />
+                  <span>{formatDate(new Date(selectedTransaction.date))}</span>
+                  <span className="text-gray-400">•</span>
+                  <Clock className="h-4 w-4" />
+                  <span>{formatTime(selectedTransaction.createdAt)}</span>
+                </div>
+              </div>
+
+              {/* Transaction Details Grid */}
+              <div className="grid grid-cols-2 gap-4">
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <p className="text-xs font-medium text-gray-500 mb-1">Tipe Transaksi</p>
+                  <div className="flex items-center gap-2">
+                    <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                      selectedTransaction.type === 'SALE' ? 'bg-green-100 text-green-700' :
+                      selectedTransaction.type === 'PURCHASE' ? 'bg-purple-100 text-purple-700' :
+                      selectedTransaction.type === 'RETURN' ? 'bg-orange-100 text-orange-700' :
+                      selectedTransaction.type === 'INCOME' ? 'bg-emerald-100 text-emerald-700' :
+                      'bg-red-100 text-red-700'
+                    }`}>
+                      {selectedTransaction.type === 'SALE' ? 'Penjualan' :
+                       selectedTransaction.type === 'PURCHASE' ? 'Pembelian' :
+                       selectedTransaction.type === 'RETURN' ? 'Retur' :
+                       selectedTransaction.type === 'INCOME' ? 'Pemasukan' :
+                       'Pengeluaran'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="bg-gray-50 rounded-lg p-4">
+                  <p className="text-xs font-medium text-gray-500 mb-1">Metode Pembayaran</p>
+                  <div className="flex items-center gap-2">
+                    {['SALE', 'PURCHASE', 'RETURN'].includes(selectedTransaction.type) ? (
+                      <span className="text-gray-400 text-sm font-medium">Otomatis dari Inventory</span>
+                    ) : (
+                      <>
+                        {selectedTransaction.paymentMethod === 'CASH' && <span className="text-lg">💵</span>}
+                        {selectedTransaction.paymentMethod === 'TRANSFER' && <span className="text-lg">🏦</span>}
+                        {selectedTransaction.paymentMethod === 'CREDIT' && <span className="text-lg">💳</span>}
+                        <span className="text-sm font-semibold text-gray-700">
+                          {selectedTransaction.paymentMethod === 'CASH' ? 'Tunai' :
+                           selectedTransaction.paymentMethod === 'TRANSFER' ? 'Transfer' :
+                           'Kredit'}
+                        </span>
+                      </>
+                    )}
+                  </div>
+                </div>
+              </div>
+
+              {/* Description Section */}
+              {selectedTransaction.description && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <FileText className="h-5 w-5 text-amber-600 mt-0.5 flex-shrink-0" />
+                    <div>
+                      <p className="text-sm font-semibold text-amber-900 mb-1">Deskripsi</p>
+                      <p className="text-sm text-amber-800 leading-relaxed">{selectedTransaction.description}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Reference/Category Section */}
+              {(selectedTransaction.reference || selectedTransaction.category) && (
+                <div className="grid grid-cols-2 gap-4">
+                  {selectedTransaction.category && (
+                    <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+                      <p className="text-xs font-medium text-purple-700 mb-1">Kategori</p>
+                      <p className="text-sm font-semibold text-purple-900">{selectedTransaction.category}</p>
+                    </div>
+                  )}
+                  {selectedTransaction.reference && (
+                    <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                      <p className="text-xs font-medium text-blue-700 mb-1">Referensi</p>
+                      <p className="text-sm font-semibold text-blue-900">{selectedTransaction.reference}</p>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Auto-generated Transaction Info */}
+              {['SALE', 'PURCHASE', 'RETURN'].includes(selectedTransaction.type) && (
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <div className="flex items-start gap-3">
+                    <Info className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                      <p className="text-sm font-semibold text-blue-900 mb-2">Transaksi Otomatis dari Inventory</p>
+                      <p className="text-sm text-blue-800 leading-relaxed">
+                        {selectedTransaction.type === 'SALE' && 'Transaksi ini dibuat otomatis ketika produk keluar (terjual) dari inventory. Jumlah mencerminkan total harga jual produk.'}
+                        {selectedTransaction.type === 'PURCHASE' && 'Transaksi ini dibuat otomatis ketika produk masuk ke inventory. Jumlah mencerminkan total harga beli produk.'}
+                        {selectedTransaction.type === 'RETURN' && 'Transaksi ini dibuat otomatis ketika ada retur produk. Jumlah dikembalikan ke keuangan.'}
+                      </p>
+                      {selectedTransaction.description && (
+                        <div className="mt-3 pt-3 border-t border-blue-200">
+                          <p className="text-xs font-medium text-blue-700 mb-1">Detail Produk</p>
+                          <p className="text-sm text-blue-900 font-medium">{selectedTransaction.description}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Transaction ID */}
+              <div className="pt-4 border-t border-gray-200">
+                <p className="text-xs text-gray-500 font-mono">ID: {selectedTransaction.id}</p>
+              </div>
+            </div>
+
+            {/* Footer Actions */}
+            <div className="sticky bottom-0 bg-gray-50 px-6 py-4 rounded-b-xl border-t border-gray-200 flex justify-end gap-3">
+              <Button 
+                variant="outline" 
+                onClick={() => setShowDetailModal(false)}
+              >
+                Tutup
+              </Button>
             </div>
           </div>
         </div>

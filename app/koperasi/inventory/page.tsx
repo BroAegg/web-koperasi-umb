@@ -103,6 +103,7 @@ export default function InventoryPage() {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedRange, setSelectedRange] = useState<any>(null);
   const [financialPeriod, setFinancialPeriod] = useState<'today' | '7days' | '1month' | '3months' | '6months' | '1year'>('today');
+  const [isCustomDate, setIsCustomDate] = useState(false);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showStockModal, setShowStockModal] = useState(false);
   const [showFilterModal, setShowFilterModal] = useState(false);
@@ -665,17 +666,15 @@ export default function InventoryPage() {
                   {/* Display current period or custom date */}
                   <div className="px-3 py-1.5 text-xs font-medium text-gray-700 pointer-events-none">
                     {(() => {
-                      const today = new Date().toISOString().split('T')[0];
-                      const isToday = selectedDate === today;
-                      
-                      if (financialPeriod === 'today' && !isToday) {
-                        // Custom date selected
+                      if (isCustomDate) {
+                        // Custom date selected - show formatted date
                         return new Date(selectedDate).toLocaleDateString('id-ID', { 
                           day: 'numeric', 
                           month: 'short', 
                           year: 'numeric' 
                         });
                       }
+                      // Show period name
                       if (financialPeriod === 'today') return 'Hari Ini';
                       if (financialPeriod === '7days') return '7 Hari';
                       if (financialPeriod === '1month') return '1 Bulan';
@@ -686,10 +685,13 @@ export default function InventoryPage() {
                     })()}
                   </div>
                   <select
-                    value={financialPeriod}
+                    value={isCustomDate ? 'custom' : financialPeriod}
                     onChange={(e) => {
                       const newPeriod = e.target.value as any;
+                      if (newPeriod === 'custom') return; // Ignore if custom is selected
+                      
                       setFinancialPeriod(newPeriod);
+                      setIsCustomDate(false); // Clear custom date mode
                       // Reset to actual today's date when "Hari Ini" is selected
                       if (newPeriod === 'today') {
                         setSelectedDate(new Date().toISOString().split('T')[0]);
@@ -712,7 +714,7 @@ export default function InventoryPage() {
                       value={selectedDate}
                       onChange={(e) => {
                         setSelectedDate(e.target.value);
-                        setFinancialPeriod('today'); // Reset to today when manual date is selected
+                        setIsCustomDate(true); // Mark as custom date
                         setSelectedRange(null); // Clear any range selection
                       }}
                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
