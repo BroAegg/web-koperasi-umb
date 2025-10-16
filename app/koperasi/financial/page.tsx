@@ -150,11 +150,18 @@ export default function FinancialPage() {
 
   const fetchDailySummary = async () => {
     try {
-      const response = await fetch(`/api/financial/summary?date=${selectedDate}`);
+      const response = await fetch(`/api/financial/period?period=today`);
       const result = await response.json();
       
       if (result.success) {
-        setDailySummary(result.data);
+        // Map period API response to dailySummary format
+        setDailySummary({
+          date: selectedDate,
+          totalIncome: result.data.totalRevenue,
+          totalExpense: result.data.totalCOGS,
+          netIncome: result.data.totalProfit,
+          transactionCount: result.data.totalSoldItems,
+        });
       }
     } catch (err) {
       console.error('Error fetching daily summary:', err);
