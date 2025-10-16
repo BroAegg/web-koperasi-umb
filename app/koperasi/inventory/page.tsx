@@ -27,7 +27,8 @@ import {
   Calendar,
   Phone,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Info
 } from 'lucide-react';
 
 interface Product {
@@ -739,10 +740,33 @@ export default function InventoryPage() {
               </div>
               
               {/* Keuntungan Bersih */}
-              <div className="space-y-2 border-l border-blue-100 pl-6">
+              <div className="space-y-2 border-l border-blue-100 pl-6 relative group">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium text-gray-600">Keuntungan Bersih</span>
                   <PiggyBank className="h-4 w-4 text-green-500" />
+                  {/* Info Icon with Hover Tooltip */}
+                  <div className="relative">
+                    <Info className="h-3.5 w-3.5 text-gray-400 cursor-help" />
+                    {/* Tooltip - Shows on Hover */}
+                    <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-48 bg-gray-900 text-white text-xs rounded-lg p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none z-50 shadow-xl">
+                      <div className="space-y-1.5">
+                        <div className="flex justify-between">
+                          <span className="text-blue-300">Toko:</span>
+                          <span className="font-semibold">{formatCurrency(periodFinancialData.toko.profit)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-purple-300">Konsinyasi:</span>
+                          <span className="font-semibold">{formatCurrency(periodFinancialData.consignment.profit)}</span>
+                        </div>
+                        <div className="flex justify-between pt-1.5 border-t border-gray-700">
+                          <span className="font-medium text-emerald-300">Total:</span>
+                          <span className="font-bold">{formatCurrency(periodFinancialData.totalProfit)}</span>
+                        </div>
+                      </div>
+                      {/* Arrow */}
+                      <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-gray-900"></div>
+                    </div>
+                  </div>
                 </div>
                 <p className="text-3xl font-bold text-emerald-600">{formatCurrency(periodFinancialData.totalProfit)}</p>
                 <div className="flex items-center gap-2">
@@ -750,22 +774,6 @@ export default function InventoryPage() {
                   <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
                     {periodFinancialData.totalRevenue > 0 ? ((periodFinancialData.totalProfit / periodFinancialData.totalRevenue) * 100).toFixed(1) : 0}%
                   </span>
-                </div>
-
-                {/* Breakdown: Toko vs Konsinyasi */}
-                <div className="mt-3 text-xs text-gray-600 space-y-1">
-                  <div className="flex justify-between">
-                    <span>Toko (own):</span>
-                    <span className="font-semibold text-blue-600">{formatCurrency(periodFinancialData.toko.profit)}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span>Konsinyasi (titipan):</span>
-                    <span className="font-semibold text-purple-600">{formatCurrency(periodFinancialData.consignment.profit)}</span>
-                  </div>
-                  <div className="flex justify-between pt-1 border-t border-gray-200">
-                    <span className="font-medium">Total Profit:</span>
-                    <span className="font-bold text-emerald-600">{formatCurrency(periodFinancialData.totalProfit)}</span>
-                  </div>
                 </div>
               </div>
               
