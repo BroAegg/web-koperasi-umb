@@ -87,6 +87,10 @@ interface StockMovement {
     id: string;
     name: string;
     unit: string;
+    isConsignment?: boolean;
+    ownershipType?: 'TOKO' | 'TITIPAN';
+    avgCost?: number;
+    buyPrice?: number;
   };
 }
 
@@ -591,13 +595,19 @@ export default function InventoryPage() {
   // Financial metrics calculations
   const totalSoldToday = products.reduce((sum, p) => sum + p.soldToday, 0);
   
-  // Consignment Payments: Total nilai produk konsinyasi yang MASUK hari ini (nilai TETAP)
-  // Hanya hitung movement IN (quantity > 0), TIDAK terpengaruh oleh produk keluar
-  const consignmentInMovements = stockMovements.filter(m => m.movementType === 'CONSIGNMENT_IN' && m.quantity > 0);
+  // Consignment Payments: Total nilai konsinyasi yang harus dibayar ke consignor 
+  // HANYA hitung ketika produk TITIPAN terjual (SALE_OUT movement dengan produk isConsignment/ownershipType=TITIPAN)
+  // BUKAN ketika produk masuk (CONSIGNMENT_IN)
+  const consignmentSaleMovements = stockMovements.filter(m => 
+    m.movementType === 'SALE_OUT' && 
+    m.quantity < 0 && // OUT movement = negative quantity
+    m.product && 
+    (m.product.isConsignment || m.product.ownershipType === 'TITIPAN')
+  );
   
-  const consignmentPayments = consignmentInMovements.reduce((sum, m) => {
-    // Gunakan unitCost dari movement, atau fallback ke product
-    const unitCost = m.unitCost || 0;
+  const consignmentPayments = consignmentSaleMovements.reduce((sum, m) => {
+    // Gunakan unitCost dari movement (COGS), atau fallback ke avgCost/buyPrice
+    const unitCost = m.unitCost || m.product?.avgCost || m.product?.buyPrice || 0;
     return sum + (unitCost * Math.abs(m.quantity));
   }, 0);
   
@@ -1229,15 +1239,22 @@ export default function InventoryPage() {
             </CardHeader>
             <CardContent className="space-y-3">
               {stockMovements.length > 0 ? (
-                stockMovements.slice(0, 5).map((movement) => (
+                stockMovements.slice(0, 5).map((movement) => {
+                  // Detect IN/OUT from movementType
+                  const isIncoming = movement.movementType === 'PURCHASE_IN' || 
+                                    movement.movementType === 'CONSIGNMENT_IN' || 
+                                    movement.movementType === 'RETURN_IN' ||
+                                    movement.movementType === 'TRANSFER_IN';
+                  
+                  return (
                   <div key={movement.id} className="flex items-start justify-between gap-2 p-3 bg-gray-50 rounded-lg">
                     <div className="flex items-start gap-3 flex-1 min-w-0">
                       <div className={`p-2 rounded-full shrink-0 ${
-                        movement.type === 'IN' 
+                        isIncoming
                           ? 'bg-green-100 text-green-600' 
                           : 'bg-red-100 text-red-600'
                       }`}>
-                        {movement.type === 'IN' ? (
+                        {isIncoming ? (
                           <Plus className="w-3 h-3" />
                         ) : (
                           <Minus className="w-3 h-3" />
@@ -1248,7 +1265,7 @@ export default function InventoryPage() {
                           {movement.product.name}
                         </p>
                         <p className="text-xs text-gray-500">
-                          {movement.type === 'IN' ? 'Masuk' : 'Keluar'} {movement.quantity} {movement.product.unit}
+                          {isIncoming ? 'Masuk' : 'Keluar'} {Math.abs(movement.quantity)} {movement.product.unit}
                         </p>
                         {movement.note && (
                           <p className="text-xs text-gray-400 mt-1 truncate" title={movement.note}>
@@ -1264,7 +1281,8 @@ export default function InventoryPage() {
                       })}
                     </span>
                   </div>
-                ))
+                  );
+                })
               ) : (
                 <div className="text-center py-8 text-gray-500">
                   <Package className="w-8 h-8 mx-auto mb-2 opacity-50" />
