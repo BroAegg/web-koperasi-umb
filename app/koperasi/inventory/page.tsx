@@ -327,22 +327,26 @@ export default function InventoryPage() {
     }
   };
 
-  const handleStockMovement = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!stockFormData.quantity || !selectedProduct) {
+  // Adapted handler for StockModal component
+  const handleStockSubmit = async (formData: StockFormData) => {
+    if (!selectedProduct) {
+      warning('Produk Tidak Dipilih', 'Silakan pilih produk terlebih dahulu');
+      return;
+    }
+
+    if (!formData.quantity) {
       warning('Form Tidak Lengkap', 'Jumlah wajib diisi');
       return;
     }
 
-    const quantity = parseInt(stockFormData.quantity);
+    const quantity = parseInt(formData.quantity);
     if (quantity <= 0) {
       warning('Jumlah Tidak Valid', 'Jumlah harus lebih dari 0');
       return;
     }
 
     // Check stock for OUT movements
-    if (stockFormData.type === 'OUT' && quantity > selectedProduct.stock) {
+    if (formData.type === 'OUT' && quantity > selectedProduct.stock) {
       warning('Stok Tidak Cukup', `Stok tersedia: ${selectedProduct.stock} ${selectedProduct.unit || 'pcs'}`);
       return;
     }
@@ -357,17 +361,16 @@ export default function InventoryPage() {
         },
         body: JSON.stringify({
           productId: selectedProduct.id,
-          type: stockFormData.type,
+          type: formData.type,
           quantity,
-          note: stockFormData.note,
+          note: formData.note,
         }),
       });
 
       const result = await response.json();
 
       if (result.success) {
-        // Reset form
-        setStockFormData({ type: 'IN', quantity: '', note: '' });
+        // Close modal and reset
         setShowStockModal(false);
         setSelectedProduct(null);
         
@@ -392,6 +395,11 @@ export default function InventoryPage() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleStockModalClose = () => {
+    setShowStockModal(false);
+    setSelectedProduct(null);
   };
 
   const handleAddProduct = async (e: React.FormEvent) => {
@@ -1397,298 +1405,31 @@ export default function InventoryPage() {
       )}
 
       {/* Stock Movement Modal */}
-      {showStockModal && selectedProduct && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md max-h-[90vh] overflow-hidden">
-            {/* Modal Header */}
-            <div className="bg-gradient-to-r from-green-600 to-green-700 px-6 py-4 text-white">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-xl font-bold">Update Stok Produk</h3>
-                  <p className="text-green-100 text-sm mt-1">Kelola stok masuk dan keluar produk</p>
-                </div>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => {
-                    setShowStockModal(false);
-                    setSelectedProduct(null);
-                    setStockFormData({ type: 'IN', quantity: '', note: '' });
-                  }}
-                  className="bg-white/10 border-white/20 text-white hover:bg-white/20"
-                >
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
+      <StockModal
+        isOpen={showStockModal}
+        product={selectedProduct}
+        onClose={handleStockModalClose}
+        onSubmit={handleStockSubmit}
+        isSubmitting={isSubmitting}
+      />
 
-            {/* Modal Content */}
-            <div className="p-6">
-              <div className="mb-6">
-                <div className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg">
-                  <div className="p-2 rounded-full bg-blue-100">
-                    <Package className="w-4 h-4 text-blue-600" />
-                  </div>
-                  <div>
-                    <p className="font-medium text-gray-900">{selectedProduct.name}</p>
-                    <p className="text-sm text-gray-500">
-                      Stok saat ini: {selectedProduct.stock} {selectedProduct.unit}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
-              <form onSubmit={handleStockMovement} className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Tipe Movement *
-                  </label>
-                  <select
-                    value={stockFormData.type}
-                    onChange={(e) => setStockFormData({ ...stockFormData, type: e.target.value as 'IN' | 'OUT' })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                    required
-                  >
-                    <option value="IN">Stock Masuk</option>
-                    <option value="OUT">Stock Keluar</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Jumlah {stockFormData.type === 'IN' ? 'Masuk' : 'Keluar'} *
-                  </label>
-                  <div className="relative">
-                    <Input
-                      type="number"
-                      value={stockFormData.quantity}
-                      onChange={(e) => setStockFormData({ ...stockFormData, quantity: e.target.value })}
-                      placeholder="0"
-                      min="1"
-                      required
-                      className="pr-16"
-                    />
-                    <span className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 text-sm">
-                      {selectedProduct.unit}
-                    </span>
-                  </div>
-                  {stockFormData.type === 'OUT' && (
-                    <p className="text-xs text-gray-500 mt-1">
-                      Maksimal: {selectedProduct.stock} {selectedProduct.unit}
-                    </p>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Catatan <span className="text-gray-500 font-normal">(Opsional)</span>
-                  </label>
-                  <textarea
-                    value={stockFormData.note}
-                    onChange={(e) => setStockFormData({ ...stockFormData, note: e.target.value })}
-                    placeholder="Tambahkan catatan..."
-                    rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent"
-                  />
-                </div>
-
-                <div className="flex gap-3 pt-4 border-t">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      setShowStockModal(false);
-                      setSelectedProduct(null);
-                      setStockFormData({ type: 'IN', quantity: '', note: '' });
-                    }}
-                    className="flex-1"
-                    disabled={isSubmitting}
-                  >
-                    Batal
-                  </Button>
-                  <Button
-                    type="submit"
-                    disabled={isSubmitting}
-                    className={`flex-1 ${
-                      stockFormData.type === 'IN' 
-                        ? 'bg-green-600 hover:bg-green-700' 
-                        : 'bg-red-600 hover:bg-red-700'
-                    }`}
-                  >
-                    {isSubmitting ? (
-                      'Menyimpan...'
-                    ) : (
-                      <>
-                        {stockFormData.type === 'IN' ? (
-                          <Plus className="w-4 h-4 mr-2" />
-                        ) : (
-                          <Minus className="w-4 h-4 mr-2" />
-                        )}
-                        {stockFormData.type === 'IN' ? 'Tambah Stock' : 'Kurangi Stock'}
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Filter Modal - Clean & Organized */}
-      {showFilterModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-md">
-            {/* Modal Header */}
-            <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 text-white">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-xl font-bold">Filter Produk</h3>
-                  <p className="text-blue-100 text-sm mt-1">Atur filter untuk pencarian produk</p>
-                </div>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => setShowFilterModal(false)}
-                  className="bg-white/10 border-white/20 text-white hover:bg-white/20"
-                >
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-
-            {/* Modal Content */}
-            <div className="p-6 space-y-6">
-              {/* Category Filter */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Kategori Produk
-                </label>
-                <select
-                  value={selectedCategory}
-                  onChange={(e) => setSelectedCategory(e.target.value)}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm bg-white"
-                >
-                  {categoryOptions.map(cat => (
-                    <option key={cat} value={cat}>
-                      {cat === "semua" ? "Semua Kategori" : cat}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Ownership Type Filter */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Jenis Kepemilikan
-                </label>
-                <div className="grid grid-cols-3 gap-2">
-                  <button
-                    onClick={() => setSelectedOwnership('semua')}
-                    className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                      selectedOwnership === 'semua'
-                        ? 'bg-blue-600 text-white shadow-md'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    Semua
-                  </button>
-                  <button
-                    onClick={() => setSelectedOwnership('TOKO')}
-                    className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                      selectedOwnership === 'TOKO'
-                        ? 'bg-blue-600 text-white shadow-md'
-                        : 'bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100'
-                    }`}
-                  >
-                    Toko
-                  </button>
-                  <button
-                    onClick={() => setSelectedOwnership('TITIPAN')}
-                    className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                      selectedOwnership === 'TITIPAN'
-                        ? 'bg-purple-600 text-white shadow-md'
-                        : 'bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100'
-                    }`}
-                  >
-                    Titipan
-                  </button>
-                </div>
-              </div>
-
-              {/* Stock Cycle Filter */}
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Siklus Stok
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    onClick={() => setSelectedCycle('semua')}
-                    className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                      selectedCycle === 'semua'
-                        ? 'bg-blue-600 text-white shadow-md'
-                        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-                    }`}
-                  >
-                    Semua
-                  </button>
-                  <button
-                    onClick={() => setSelectedCycle('HARIAN')}
-                    className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                      selectedCycle === 'HARIAN'
-                        ? 'bg-orange-600 text-white shadow-md'
-                        : 'bg-orange-50 text-orange-700 border border-orange-200 hover:bg-orange-100'
-                    }`}
-                  >
-                    Harian
-                  </button>
-                  <button
-                    onClick={() => setSelectedCycle('MINGGUAN')}
-                    className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                      selectedCycle === 'MINGGUAN'
-                        ? 'bg-green-600 text-white shadow-md'
-                        : 'bg-green-50 text-green-700 border border-green-200 hover:bg-green-100'
-                    }`}
-                  >
-                    Mingguan
-                  </button>
-                  <button
-                    onClick={() => setSelectedCycle('DUA_MINGGUAN')}
-                    className={`px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                      selectedCycle === 'DUA_MINGGUAN'
-                        ? 'bg-teal-600 text-white shadow-md'
-                        : 'bg-teal-50 text-teal-700 border border-teal-200 hover:bg-teal-100'
-                    }`}
-                  >
-                    Dua Mingguan
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Modal Footer */}
-            <div className="px-6 py-4 bg-gray-50 flex gap-3 rounded-b-xl">
-              <Button
-                variant="outline"
-                onClick={() => {
-                  setSelectedCategory('semua');
-                  setSelectedOwnership('semua');
-                  setSelectedCycle('semua');
-                }}
-                className="flex-1"
-              >
-                Reset Filter
-              </Button>
-              <Button
-                onClick={() => setShowFilterModal(false)}
-                className="flex-1 bg-blue-600 hover:bg-blue-700"
-              >
-                Terapkan Filter
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
+      {/* Filter Modal */}
+      <FilterModal
+        isOpen={showFilterModal}
+        categories={categories}
+        selectedCategory={selectedCategory}
+        selectedOwnership={selectedOwnership}
+        selectedCycle={selectedCycle}
+        onCategoryChange={setSelectedCategory}
+        onOwnershipChange={setSelectedOwnership}
+        onCycleChange={setSelectedCycle}
+        onReset={() => {
+          setSelectedCategory('semua');
+          setSelectedOwnership('semua');
+          setSelectedCycle('semua');
+        }}
+        onClose={() => setShowFilterModal(false)}
+      />
 
       {/* Product Detail Modal */}
       {selectedProduct && !showStockModal && (
