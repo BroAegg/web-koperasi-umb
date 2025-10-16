@@ -127,7 +127,7 @@ export default function InventoryPage() {
     totalProfit: 0,
     totalSoldItems: 0,
     toko: { revenue: 0, cogs: 0, profit: 0 },
-    consignment: { grossRevenue: 0, feeTotal: 0, netToKoperasi: 0 },
+    consignment: { grossRevenue: 0, cogs: 0, profit: 0, feeTotal: 0 },
   });
   const [stockFormData, setStockFormData] = useState({
     type: 'IN' as 'IN' | 'OUT',
@@ -288,7 +288,7 @@ export default function InventoryPage() {
           totalProfit: result.data.totalProfit,
           totalSoldItems: result.data.totalSoldItems,
           toko: result.data.toko || { revenue: 0, cogs: 0, profit: 0 },
-          consignment: result.data.consignment || { grossRevenue: 0, feeTotal: 0, netToKoperasi: 0 },
+          consignment: result.data.consignment || { grossRevenue: 0, cogs: 0, profit: 0, feeTotal: 0 },
         });
       } else {
         console.error('Failed to fetch period financial data:', result.error);
@@ -756,15 +756,15 @@ export default function InventoryPage() {
                 <div className="mt-3 text-xs text-gray-600 space-y-1">
                   <div className="flex justify-between">
                     <span>Toko (own):</span>
-                    <span className="font-semibold">{formatCurrency(periodFinancialData.toko.profit)}</span>
+                    <span className="font-semibold text-blue-600">{formatCurrency(periodFinancialData.toko.profit)}</span>
                   </div>
                   <div className="flex justify-between">
-                    <span>Konsinyasi (gross):</span>
-                    <span className="font-semibold">{formatCurrency(periodFinancialData.consignment.grossRevenue)}</span>
+                    <span>Konsinyasi (titipan):</span>
+                    <span className="font-semibold text-purple-600">{formatCurrency(periodFinancialData.consignment.profit)}</span>
                   </div>
-                  <div className="flex justify-between">
-                    <span>Konsinyasi (fee to consignor):</span>
-                    <span className="font-semibold text-gray-700">-{formatCurrency(periodFinancialData.consignment.feeTotal)}</span>
+                  <div className="flex justify-between pt-1 border-t border-gray-200">
+                    <span className="font-medium">Total Profit:</span>
+                    <span className="font-bold text-emerald-600">{formatCurrency(periodFinancialData.totalProfit)}</span>
                   </div>
                 </div>
               </div>
@@ -1240,11 +1240,9 @@ export default function InventoryPage() {
             <CardContent className="space-y-3">
               {stockMovements.length > 0 ? (
                 stockMovements.slice(0, 5).map((movement) => {
-                  // Detect IN/OUT from movementType
-                  const isIncoming = movement.movementType === 'PURCHASE_IN' || 
-                                    movement.movementType === 'CONSIGNMENT_IN' || 
-                                    movement.movementType === 'RETURN_IN' ||
-                                    movement.movementType === 'TRANSFER_IN';
+                  // Detect IN/OUT from movementType: check if ends with "_IN" or is positive quantity
+                  const isIncoming = movement.movementType?.includes('_IN') || 
+                                    (movement.quantity > 0 && movement.movementType !== 'SALE_OUT');
                   
                   return (
                   <div key={movement.id} className="flex items-start justify-between gap-2 p-3 bg-gray-50 rounded-lg">

@@ -104,9 +104,10 @@ export async function GET(request: NextRequest) {
     let tokoRevenue = 0;
     let tokoCOGS = 0;
 
-    // Consignment breakdown (gross revenue and fees paid to consignors)
+    // Consignment breakdown (gross revenue and profit from consignment sales)
     let consignmentGrossRevenue = 0;
-    let consignmentFeeTotal = 0; // amount paid to consignors or fee portion (not koperasi profit)
+    let consignmentCOGS = 0;
+    let consignmentFeeTotal = 0; // placeholder for future: actual fee paid to consignors (if tracked separately)
 
     transactionItems.forEach(item => {
       if (item.transaction.type === 'SALE') {
@@ -120,14 +121,11 @@ export async function GET(request: NextRequest) {
         const isConsignment = item.product?.isConsignment || item.product?.ownershipType === 'TITIPAN';
 
         if (isConsignment) {
-          // For consignment, koperasi typically earns only the fee (consignmentFee)
-          // We try to read fee from related consignment_sales if present. Fallback: assume fee = 0
+          // Consignment product sold: koperasi earns margin profit (sellPrice - COGS)
+          // COGS = amount paid to consignor (buyPrice/avgCost)
+          // Profit = sellPrice - COGS goes to koperasi
           consignmentGrossRevenue += itemRevenue;
-
-          // Attempt to read fee amount from consignment_sales relation (if loaded)
-          // Note: transactionItem relation to consignment_sales exists but not included here. We'll conservatively
-          // treat consignmentFee as 0 unless consignment_sales records are queried elsewhere.
-          // The financial UI can query `consignment_sales` or `settlements` for detailed per-consignor payouts.
+          consignmentCOGS += itemCOGS;
         } else {
           // Store-owned product: full revenue and COGS count towards toko profit
           tokoRevenue += itemRevenue;
@@ -137,9 +135,9 @@ export async function GET(request: NextRequest) {
     });
 
     const tokoProfit = tokoRevenue - tokoCOGS;
-    const consignmentNetToKoperasi = 0; // placeholder: actual koperasi earning from consignment is (consignmentGrossRevenue - consignmentFeeTotal)
+    const consignmentProfit = consignmentGrossRevenue - consignmentCOGS; // Koperasi profit from consignment sales
 
-    const totalProfit = tokoProfit + consignmentNetToKoperasi; // conservative: consignment contribution handled separately
+    const totalProfit = tokoProfit + consignmentProfit; // Total profit includes both TOKO and TITIPAN margins
     const profitMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
 
     return NextResponse.json({
@@ -164,8 +162,9 @@ export async function GET(request: NextRequest) {
         },
         consignment: {
           grossRevenue: consignmentGrossRevenue,
-          feeTotal: consignmentFeeTotal,
-          netToKoperasi: consignmentNetToKoperasi,
+          cogs: consignmentCOGS,
+          profit: consignmentProfit,
+          feeTotal: consignmentFeeTotal, // placeholder for future consignor fee tracking
         },
       },
     });

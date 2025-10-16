@@ -83,8 +83,9 @@ interface DailySummary {
   };
   consignment?: {
     grossRevenue: number;
+    cogs: number;
+    profit: number;
     feeTotal: number;
-    netToKoperasi: number;
   };
 }
 
@@ -172,7 +173,7 @@ export default function FinancialPage() {
           netIncome: result.data.totalProfit,
           transactionCount: result.data.totalSoldItems,
           toko: result.data.toko || { revenue: 0, cogs: 0, profit: 0 },
-          consignment: result.data.consignment || { grossRevenue: 0, feeTotal: 0, netToKoperasi: 0 },
+          consignment: result.data.consignment || { grossRevenue: 0, cogs: 0, profit: 0, feeTotal: 0 },
         });
       }
     } catch (err) {
@@ -508,15 +509,15 @@ export default function FinancialPage() {
                     <div className="mt-3 text-xs text-gray-600 space-y-1">
                       <div className="flex justify-between">
                         <span>Toko (own):</span>
-                        <span className="font-semibold">{formatCurrency(dailySummary.toko?.profit || 0)}</span>
+                        <span className="font-semibold text-blue-600">{formatCurrency(dailySummary.toko?.profit || 0)}</span>
                       </div>
                       <div className="flex justify-between">
-                        <span>Konsinyasi (gross):</span>
-                        <span className="font-semibold">{formatCurrency(dailySummary.consignment?.grossRevenue || 0)}</span>
+                        <span>Konsinyasi (titipan):</span>
+                        <span className="font-semibold text-purple-600">{formatCurrency(dailySummary.consignment?.profit || 0)}</span>
                       </div>
-                      <div className="flex justify-between">
-                        <span>Konsinyasi (fee to consignor):</span>
-                        <span className="font-semibold text-gray-700">-{formatCurrency(dailySummary.consignment?.feeTotal || 0)}</span>
+                      <div className="flex justify-between pt-1 border-t border-gray-200">
+                        <span className="font-medium">Total Profit:</span>
+                        <span className="font-bold text-emerald-600">{formatCurrency(dailySummary.netIncome)}</span>
                       </div>
                     </div>
                 </div>
