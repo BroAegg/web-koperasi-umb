@@ -868,349 +868,49 @@ export default function InventoryPage() {
                     Menampilkan {filteredProducts.length} dari {products.length} produk
                   </p>
                 </div>
-                <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
-                  <div className="relative">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                    <Input
-                      placeholder="Cari produk..."
-                      value={searchTerm}
-                      onChange={(e) => {
-                        setSearchTerm(e.target.value);
-                        setCurrentPage(1); // Reset to first page on search
-                      }}
-                      className="pl-10 w-full sm:w-64"
-                    />
-                  </div>
-                  <Button
-                    variant="outline"
-                    onClick={() => setHideOutOfStock(!hideOutOfStock)}
-                    className={hideOutOfStock ? 'bg-blue-50 border-blue-300' : ''}
-                  >
-                    <Eye className="w-4 h-4 mr-2" />
-                    {hideOutOfStock ? 'Tampilkan Semua' : 'Sembunyikan Habis'}
-                  </Button>
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowFilterModal(true)}
-                    className="relative"
-                  >
-                    <BarChart3 className="w-4 h-4 mr-2" />
-                    Filter
-                    {(selectedCategory !== 'semua' || selectedOwnership !== 'semua' || selectedCycle !== 'semua') && (
-                      <span className="absolute -top-1 -right-1 bg-blue-600 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-                        {[selectedCategory !== 'semua', selectedOwnership !== 'semua', selectedCycle !== 'semua'].filter(Boolean).length}
-                      </span>
-                    )}
-                  </Button>
-                </div>
+                
+                {/* Use ProductFilters Component */}
+                <ProductFilters
+                  searchTerm={searchTerm}
+                  onSearchChange={(value) => {
+                    setSearchTerm(value);
+                    setCurrentPage(1);
+                  }}
+                  hideOutOfStock={hideOutOfStock}
+                  onToggleOutOfStock={() => setHideOutOfStock(!hideOutOfStock)}
+                  selectedCategory={selectedCategory}
+                  selectedOwnership={selectedOwnership}
+                  selectedCycle={selectedCycle}
+                  onCategoryChange={setSelectedCategory}
+                  onOwnershipChange={setSelectedOwnership}
+                  onCycleChange={setSelectedCycle}
+                  onShowFilterModal={() => setShowFilterModal(true)}
+                  totalProducts={products.length}
+                  filteredCount={filteredProducts.length}
+                />
               </div>
-
-              {/* Active Filter Chips */}
-              {(selectedCategory !== 'semua' || selectedOwnership !== 'semua' || selectedCycle !== 'semua') && (
-                <div className="flex flex-wrap items-center gap-2 mt-3 px-1">
-                  <span className="text-xs text-gray-500 font-medium">Filter Aktif:</span>
-                  
-                  {/* Category Chip */}
-                  {selectedCategory !== 'semua' && (
-                    <div className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 rounded-full text-xs font-medium border border-blue-200">
-                      <span>Kategori: {selectedCategory}</span>
-                      <button
-                        onClick={() => setSelectedCategory('semua')}
-                        className="hover:bg-blue-100 rounded-full p-0.5 transition-colors"
-                        aria-label="Hapus filter kategori"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Ownership Chip */}
-                  {selectedOwnership !== 'semua' && (
-                    <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border ${
-                      selectedOwnership === 'TOKO'
-                        ? 'bg-blue-50 text-blue-700 border-blue-200'
-                        : 'bg-purple-50 text-purple-700 border-purple-200'
-                    }`}>
-                      <span>Jenis: {selectedOwnership === 'TOKO' ? 'Toko' : 'Titipan'}</span>
-                      <button
-                        onClick={() => setSelectedOwnership('semua')}
-                        className={`rounded-full p-0.5 transition-colors ${
-                          selectedOwnership === 'TOKO' ? 'hover:bg-blue-100' : 'hover:bg-purple-100'
-                        }`}
-                        aria-label="Hapus filter jenis"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Cycle Chip */}
-                  {selectedCycle !== 'semua' && (
-                    <div className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border ${
-                      selectedCycle === 'HARIAN' ? 'bg-orange-50 text-orange-700 border-orange-200' :
-                      selectedCycle === 'MINGGUAN' ? 'bg-green-50 text-green-700 border-green-200' :
-                      'bg-teal-50 text-teal-700 border-teal-200'
-                    }`}>
-                      <span>Siklus: {
-                        selectedCycle === 'HARIAN' ? 'Harian' :
-                        selectedCycle === 'MINGGUAN' ? 'Mingguan' : 'Dua Mingguan'
-                      }</span>
-                      <button
-                        onClick={() => setSelectedCycle('semua')}
-                        className={`rounded-full p-0.5 transition-colors ${
-                          selectedCycle === 'HARIAN' ? 'hover:bg-orange-100' :
-                          selectedCycle === 'MINGGUAN' ? 'hover:bg-green-100' :
-                          'hover:bg-teal-100'
-                        }`}
-                        aria-label="Hapus filter siklus"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
-                    </div>
-                  )}
-
-                  {/* Clear All Filters Button */}
-                  <button
-                    onClick={() => {
-                      setSelectedCategory('semua');
-                      setSelectedOwnership('semua');
-                      setSelectedCycle('semua');
-                    }}
-                    className="inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium text-gray-600 hover:text-gray-800 hover:bg-gray-100 rounded-full transition-colors"
-                  >
-                    <X className="w-3 h-3" />
-                    Hapus Semua
-                  </button>
-                </div>
-              )}
             </CardHeader>
             <CardContent className="p-0">
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead className="w-[200px]">Produk</TableHead>
-                      <TableHead className="hidden sm:table-cell">Kategori</TableHead>
-                      <TableHead className="hidden md:table-cell">Harga Beli</TableHead>
-                      <TableHead className="hidden md:table-cell">Harga Jual</TableHead>
-                      <TableHead className="hidden lg:table-cell">Margin</TableHead>
-                      <TableHead>Stok</TableHead>
-                      <TableHead className="hidden lg:table-cell">Terjual</TableHead>
-                      <TableHead className="text-center">Aksi</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {paginatedProducts.length > 0 ? paginatedProducts.map((product) => (
-                      <TableRow 
-                        key={product.id}
-                        className={product.stock === 0 ? 'bg-gray-50 opacity-60 hover:opacity-80 transition-opacity' : ''}
-                      >
-                        <TableCell className="font-medium">
-                          <div className="flex flex-col gap-1.5">
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium">{product.name}</span>
-                              {product.stock === 0 && (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-gray-200 text-gray-700 border border-gray-300">
-                                  HABIS
-                                </span>
-                              )}
-                            </div>
-                            <div className="flex flex-wrap gap-1.5">
-                              {/* Ownership Badge - Clean, No Emoji */}
-                              {product.ownershipType && (
-                                <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                                  product.ownershipType === 'TOKO' 
-                                    ? 'bg-blue-50 text-blue-700 border border-blue-200' 
-                                    : 'bg-purple-50 text-purple-700 border border-purple-200'
-                                }`}>
-                                  {product.ownershipType === 'TOKO' ? 'Toko' : 'Titipan'}
-                                </span>
-                              )}
-                              {/* Stock Cycle Badge - Clean, No Emoji */}
-                              {product.stockCycle && (
-                                <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-                                  product.stockCycle === 'HARIAN' ? 'bg-orange-50 text-orange-700 border border-orange-200' :
-                                  product.stockCycle === 'MINGGUAN' ? 'bg-green-50 text-green-700 border border-green-200' :
-                                  'bg-teal-50 text-teal-700 border border-teal-200'
-                                }`}>
-                                  {product.stockCycle === 'HARIAN' ? 'Harian' :
-                                   product.stockCycle === 'MINGGUAN' ? 'Mingguan' : 'Dua Mingguan'}
-                                </span>
-                              )}
-                            </div>
-                            <div className="sm:hidden text-xs text-gray-500 mt-1">
-                              {product.category.name} • {formatCurrency(product.sellPrice)}
-                            </div>
-                          </div>
-                        </TableCell>
-                        <TableCell className="hidden sm:table-cell text-gray-600">
-                          {product.category.name}
-                        </TableCell>
-                        <TableCell className="hidden md:table-cell">
-                          {product.buyPrice ? formatCurrency(product.buyPrice) : 
-                           <span className="text-gray-400 text-sm">-</span>}
-                        </TableCell>
-                        <TableCell className="hidden md:table-cell">
-                          {formatCurrency(product.sellPrice)}
-                        </TableCell>
-                        <TableCell className="hidden lg:table-cell">
-                          {(() => {
-                            const cost = product.avgCost || product.buyPrice || 0;
-                            const margin = product.sellPrice - cost;
-                            const marginPercent = cost > 0 ? ((margin / cost) * 100) : 0;
-                            return (
-                              <div className="flex flex-col">
-                                <span className={`font-medium ${margin > 0 ? 'text-green-600' : 'text-gray-500'}`}>
-                                  {formatCurrency(margin)}
-                                </span>
-                                <span className="text-xs text-gray-500">
-                                  {marginPercent.toFixed(1)}%
-                                </span>
-                              </div>
-                            );
-                          })()}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center gap-2">
-                            <span className={`font-medium ${
-                              product.stock <= product.threshold 
-                                ? 'text-red-600' 
-                                : product.stock <= product.threshold * 1.5 
-                                  ? 'text-amber-600' 
-                                  : 'text-green-600'
-                            }`}>
-                              {product.stock}
-                            </span>
-                            {product.stock <= product.threshold && (
-                              <AlertTriangle className="w-4 h-4 text-red-500" />
-                            )}
-                          </div>
-                        </TableCell>
-                        <TableCell className="hidden lg:table-cell text-gray-600">
-                          {product.soldToday}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex items-center justify-center gap-1">
-                            {/* View Button */}
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleViewProduct(product)}
-                              className="p-1.5 text-blue-600 hover:bg-blue-50"
-                              title="Lihat Detail"
-                            >
-                              <Eye className="w-3 h-3" />
-                            </Button>
-                            
-                            {/* Edit Button */}
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleEditProduct(product)}
-                              className="p-1.5 text-amber-600 hover:bg-amber-50"
-                              title="Edit Produk"
-                            >
-                              <Edit className="w-3 h-3" />
-                            </Button>
-                            
-                            {/* Stock Update Button */}
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleStockUpdate(product)}
-                              className="p-1.5 text-green-600 hover:bg-green-50"
-                              title="Update Stok"
-                            >
-                              <Package className="w-3 h-3" />
-                            </Button>
-                            
-                            {/* Delete Button */}
-                            <Button
-                              size="sm"
-                              variant="danger"
-                              onClick={() => handleDeleteProduct(product.id)}
-                              className="p-1.5"
-                              title="Hapus Produk"
-                            >
-                              <Trash2 className="w-3 h-3" />
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    )) : (
-                      <TableRow>
-                        <TableCell colSpan={8} className="text-center py-12">
-                          <Package className="w-12 h-12 mx-auto mb-3 text-gray-400" />
-                          <p className="font-medium text-gray-600">Tidak ada produk ditemukan</p>
-                          <p className="text-sm text-gray-500 mt-1">
-                            {hideOutOfStock ? 'Semua produk habis atau coba ubah filter' : 'Coba ubah kata kunci pencarian atau filter'}
-                          </p>
-                        </TableCell>
-                      </TableRow>
-                    )}
-                  </TableBody>
-                </Table>
-              </div>
+              {/* Use ProductTable Component */}
+              <ProductTable
+                products={paginatedProducts}
+                hideOutOfStock={hideOutOfStock}
+                onView={handleViewProduct}
+                onEdit={handleEditProduct}
+                onStockUpdate={handleStockUpdate}
+                onDelete={handleDeleteProduct}
+              />
 
-              {/* Pagination Controls */}
+              {/* Use Pagination Component */}
               {totalPages > 1 && (
-                <div className="flex flex-col sm:flex-row items-center justify-between gap-4 mt-4 px-6 pb-4">
-                  <div className="text-sm text-gray-600">
-                    Halaman {currentPage} dari {totalPages} • 
-                    Menampilkan {startIndex + 1}-{Math.min(endIndex, filteredProducts.length)} dari {filteredProducts.length} produk
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                      disabled={currentPage === 1}
-                      className="px-3"
-                      title="Halaman sebelumnya"
-                    >
-                      <ChevronLeft className="w-4 h-4" />
-                    </Button>
-                    
-                    {/* Page Numbers */}
-                    <div className="flex gap-1">
-                      {Array.from({ length: totalPages }, (_, i) => i + 1)
-                        .filter(page => {
-                          // Show first page, last page, current page, and pages around current
-                          return page === 1 || 
-                                 page === totalPages || 
-                                 (page >= currentPage - 1 && page <= currentPage + 1);
-                        })
-                        .map((page, idx, arr) => {
-                          // Add ellipsis if there's a gap
-                          const showEllipsisBefore = idx > 0 && page - arr[idx - 1] > 1;
-                          return (
-                            <div key={page} className="flex items-center gap-1">
-                              {showEllipsisBefore && <span className="px-2 text-gray-400">...</span>}
-                              <Button
-                                variant={currentPage === page ? 'primary' : 'outline'}
-                                size="sm"
-                                onClick={() => setCurrentPage(page)}
-                                className="min-w-[36px]"
-                              >
-                                {page}
-                              </Button>
-                            </div>
-                          );
-                        })}
-                    </div>
-                    
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                      disabled={currentPage === totalPages}
-                      className="px-3"
-                      title="Halaman selanjutnya"
-                    >
-                      <ChevronRight className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </div>
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={setCurrentPage}
+                  startIndex={startIndex}
+                  endIndex={endIndex}
+                  totalItems={filteredProducts.length}
+                />
               )}
             </CardContent>
           </Card>
