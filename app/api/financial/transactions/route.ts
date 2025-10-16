@@ -113,6 +113,26 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Block inventory-linked transaction types (SALE, PURCHASE, RETURN)
+    // These should only be created automatically from inventory operations
+    if (['SALE', 'PURCHASE', 'RETURN'].includes(type.toUpperCase())) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Transaksi SALE, PURCHASE, dan RETURN hanya bisa dibuat otomatis dari halaman Inventory. Gunakan tipe INCOME atau EXPENSE untuk pencatatan manual.' 
+        },
+        { status: 400 }
+      );
+    }
+
+    // Only allow INCOME and EXPENSE for manual creation
+    if (!['INCOME', 'EXPENSE'].includes(type.toUpperCase())) {
+      return NextResponse.json(
+        { success: false, error: 'Tipe transaksi harus INCOME atau EXPENSE' },
+        { status: 400 }
+      );
+    }
+
     if (amount <= 0) {
       return NextResponse.json(
         { success: false, error: 'Amount must be greater than 0' },

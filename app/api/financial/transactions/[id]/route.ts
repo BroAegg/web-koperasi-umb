@@ -88,6 +88,25 @@ export async function PUT(
       );
     }
 
+    // Block editing of inventory-linked transactions (SALE, PURCHASE, RETURN)
+    if (['SALE', 'PURCHASE', 'RETURN'].includes(existingTransaction.type)) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Transaksi yang dibuat otomatis dari Inventory tidak dapat diedit. Hanya transaksi INCOME dan EXPENSE yang bisa diedit.' 
+        },
+        { status: 403 }
+      );
+    }
+
+    // Validation for type change
+    if (type && !['INCOME', 'EXPENSE'].includes(type.toUpperCase())) {
+      return NextResponse.json(
+        { success: false, error: 'Tipe transaksi harus INCOME atau EXPENSE' },
+        { status: 400 }
+      );
+    }
+
     const transaction = await prisma.transaction.update({
       where: { id },
       data: {
@@ -144,6 +163,17 @@ export async function DELETE(
       return NextResponse.json(
         { success: false, error: 'Transaction not found' },
         { status: 404 }
+      );
+    }
+
+    // Block deleting of inventory-linked transactions (SALE, PURCHASE, RETURN)
+    if (['SALE', 'PURCHASE', 'RETURN'].includes(existingTransaction.type)) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Transaksi yang dibuat otomatis dari Inventory tidak dapat dihapus. Hanya transaksi INCOME dan EXPENSE yang bisa dihapus.' 
+        },
+        { status: 403 }
       );
     }
 

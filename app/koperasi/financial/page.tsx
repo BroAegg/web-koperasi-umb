@@ -355,7 +355,7 @@ export default function FinancialPage() {
           </Button>
           <Button size="sm" onClick={() => setShowAddModal(true)}>
             <Plus className="w-4 h-4 mr-2" />
-            Tambah Transaksi
+            Catat Pemasukan/Pengeluaran
           </Button>
         </div>
       </div>
@@ -609,7 +609,7 @@ export default function FinancialPage() {
               <p className="text-gray-500">Belum ada transaksi pada tanggal ini</p>
               <Button className="mt-4" onClick={() => setShowAddModal(true)}>
                 <Plus className="w-4 h-4 mr-2" />
-                Tambah Transaksi Pertama
+                Catat Pemasukan/Pengeluaran Pertama
               </Button>
             </div>
           ) : (
@@ -638,12 +638,20 @@ export default function FinancialPage() {
                           </div>
                           <div>
                             <p className="font-medium text-gray-900">{transaction.description}</p>
-                            <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium mt-1 ${getTransactionTypeColor(transaction.type)}`}>
-                              {transaction.type === 'SALE' ? 'Penjualan' :
-                               transaction.type === 'INCOME' ? 'Pemasukan' :
-                               transaction.type === 'PURCHASE' ? 'Pembelian' : 
-                               transaction.type === 'EXPENSE' ? 'Pengeluaran' : 'Retur'}
-                            </span>
+                            <div className="flex items-center gap-2 mt-1 flex-wrap">
+                              <span className={`inline-block px-2 py-0.5 rounded-full text-xs font-medium ${getTransactionTypeColor(transaction.type)}`}>
+                                {transaction.type === 'SALE' ? 'Penjualan' :
+                                 transaction.type === 'INCOME' ? 'Pemasukan' :
+                                 transaction.type === 'PURCHASE' ? 'Pembelian' : 
+                                 transaction.type === 'EXPENSE' ? 'Pengeluaran' : 'Retur'}
+                              </span>
+                              {/* Source indicator badge */}
+                              {['SALE', 'PURCHASE', 'RETURN'].includes(transaction.type) && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-gray-200 text-gray-700">
+                                  Otomatis
+                                </span>
+                              )}
+                            </div>
                           </div>
                         </div>
                       </TableCell>
@@ -685,24 +693,34 @@ export default function FinancialPage() {
                           >
                             <Eye className="w-4 h-4" />
                           </Button>
-                          <Button 
-                            variant="outline" 
-                            size="sm"
-                            onClick={() => handleEditTransaction(transaction)}
-                            className="text-amber-600 hover:bg-amber-50 hover:border-amber-200 transition-colors"
-                            title="Edit Transaksi"
-                          >
-                            <Edit className="w-4 h-4" />
-                          </Button>
-                          <Button 
-                            variant="danger" 
-                            size="sm"
-                            onClick={() => handleDeleteTransaction(transaction.id)}
-                            className="hover:bg-red-600 hover:text-white transition-colors"
-                            title="Hapus Transaksi"
-                          >
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
+                          
+                          {/* Only show edit/delete for INCOME and EXPENSE (manual transactions) */}
+                          {['INCOME', 'EXPENSE'].includes(transaction.type) ? (
+                            <>
+                              <Button 
+                                variant="outline" 
+                                size="sm"
+                                onClick={() => handleEditTransaction(transaction)}
+                                className="text-amber-600 hover:bg-amber-50 hover:border-amber-200 transition-colors"
+                                title="Edit Transaksi"
+                              >
+                                <Edit className="w-4 h-4" />
+                              </Button>
+                              <Button 
+                                variant="danger" 
+                                size="sm"
+                                onClick={() => handleDeleteTransaction(transaction.id)}
+                                className="hover:bg-red-600 hover:text-white transition-colors"
+                                title="Hapus Transaksi"
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </>
+                          ) : (
+                            <span className="text-xs text-gray-500 px-3 py-1 bg-gray-100 rounded-md">
+                              Dari Inventory
+                            </span>
+                          )}
                         </div>
                       </TableCell>
                     </TableRow>
@@ -723,10 +741,10 @@ export default function FinancialPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-xl font-bold">
-                    {editingTransaction ? 'Update Transaksi' : 'Tambah Transaksi Baru'}
+                    {editingTransaction ? 'Update Pemasukan/Pengeluaran' : 'Catat Pemasukan/Pengeluaran'}
                   </h3>
                   <p className="text-blue-100 text-sm mt-1">
-                    {editingTransaction ? 'Perbarui data transaksi keuangan' : 'Catat transaksi keuangan baru untuk pencatatan yang akurat'}
+                    {editingTransaction ? 'Perbarui data pemasukan atau pengeluaran' : 'Catat pemasukan lain (bunga, denda) atau pengeluaran (gaji, listrik, ATK)'}
                   </p>
                 </div>
                 <Button 
@@ -757,6 +775,14 @@ export default function FinancialPage() {
             <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
 
             <form onSubmit={handleAddTransaction} className="space-y-6">
+              {/* Info Message */}
+              <div className="p-3 rounded-lg border border-blue-200 bg-blue-50">
+                <p className="text-sm text-blue-800">
+                  <strong>ℹ️ Info:</strong> Transaksi <strong>Penjualan & Pembelian</strong> tercatat otomatis dari halaman Inventory. 
+                  Di sini Anda hanya bisa mencatat <strong>Pemasukan Lain</strong> (bunga, denda, biaya admin) dan <strong>Pengeluaran</strong> (gaji, listrik, ATK).
+                </p>
+              </div>
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -768,9 +794,7 @@ export default function FinancialPage() {
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     required
                   >
-                    <option value="SALE">Penjualan</option>
                     <option value="INCOME">Pemasukan Lain</option>
-                    <option value="PURCHASE">Pembelian</option>
                     <option value="EXPENSE">Pengeluaran</option>
                   </select>
                 </div>
