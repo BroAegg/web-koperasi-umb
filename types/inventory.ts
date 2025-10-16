@@ -3,10 +3,13 @@
 export interface Product {
   id: string;
   name: string;
+  categoryId: string;
   category: {
     id: string;
     name: string;
   };
+  description?: string;
+  sku?: string;
   buyPrice: number | null;
   avgCost: number | null;
   sellPrice: number;
@@ -90,6 +93,8 @@ export interface DailySummary {
 export interface ProductFormData {
   name: string;
   categoryId: string;
+  description?: string;
+  sku?: string;
   buyPrice: string;
   sellPrice: string;
   stock: string;
@@ -98,6 +103,8 @@ export interface ProductFormData {
   ownershipType: 'TOKO' | 'TITIPAN';
   stockCycle: 'HARIAN' | 'MINGGUAN' | 'DUA_MINGGUAN';
   supplierId: string;
+  supplierName?: string;
+  supplierContact?: string;
 }
 
 export interface StockFormData {
