@@ -661,11 +661,41 @@ export default function InventoryPage() {
               {/* Period Dropdown & Calendar */}
               <div className="flex items-center gap-2">
                 <span className="text-xs text-gray-600 font-medium hidden sm:inline">Periode:</span>
-                <div className="flex items-center rounded-lg border border-blue-200 bg-white shadow-sm overflow-hidden">
+                <div className="flex items-center rounded-lg border border-blue-200 bg-white shadow-sm overflow-hidden relative">
+                  {/* Display current period or custom date */}
+                  <div className="px-3 py-1.5 text-xs font-medium text-gray-700 pointer-events-none">
+                    {(() => {
+                      const today = new Date().toISOString().split('T')[0];
+                      const isToday = selectedDate === today;
+                      
+                      if (financialPeriod === 'today' && !isToday) {
+                        // Custom date selected
+                        return new Date(selectedDate).toLocaleDateString('id-ID', { 
+                          day: 'numeric', 
+                          month: 'short', 
+                          year: 'numeric' 
+                        });
+                      }
+                      if (financialPeriod === 'today') return 'Hari Ini';
+                      if (financialPeriod === '7days') return '7 Hari';
+                      if (financialPeriod === '1month') return '1 Bulan';
+                      if (financialPeriod === '3months') return '3 Bulan';
+                      if (financialPeriod === '6months') return '6 Bulan';
+                      if (financialPeriod === '1year') return '1 Tahun';
+                      return 'Hari Ini';
+                    })()}
+                  </div>
                   <select
                     value={financialPeriod}
-                    onChange={(e) => setFinancialPeriod(e.target.value as any)}
-                    className="px-3 py-1.5 text-xs font-medium bg-white border-none outline-none appearance-none cursor-pointer text-gray-700"
+                    onChange={(e) => {
+                      const newPeriod = e.target.value as any;
+                      setFinancialPeriod(newPeriod);
+                      // Reset to actual today's date when "Hari Ini" is selected
+                      if (newPeriod === 'today') {
+                        setSelectedDate(new Date().toISOString().split('T')[0]);
+                      }
+                    }}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
                   >
                     <option value="today">Hari Ini</option>
                     <option value="7days">7 Hari</option>
@@ -755,7 +785,7 @@ export default function InventoryPage() {
                           <span className="font-semibold">{formatCurrency(periodFinancialData.toko.profit)}</span>
                         </div>
                         <div className="flex justify-between">
-                          <span className="text-purple-300">Konsinyasi:</span>
+                          <span className="text-purple-300">Titipan:</span>
                           <span className="font-semibold">{formatCurrency(periodFinancialData.consignment.profit)}</span>
                         </div>
                         <div className="flex justify-between pt-1.5 border-t border-gray-700">
