@@ -76,6 +76,16 @@ interface DailySummary {
   totalExpense: number;
   netIncome: number;
   transactionCount: number;
+  toko?: {
+    revenue: number;
+    cogs: number;
+    profit: number;
+  };
+  consignment?: {
+    grossRevenue: number;
+    feeTotal: number;
+    netToKoperasi: number;
+  };
 }
 
 export default function FinancialPage() {
@@ -161,6 +171,8 @@ export default function FinancialPage() {
           totalExpense: result.data.totalCOGS,
           netIncome: result.data.totalProfit,
           transactionCount: result.data.totalSoldItems,
+          toko: result.data.toko || { revenue: 0, cogs: 0, profit: 0 },
+          consignment: result.data.consignment || { grossRevenue: 0, feeTotal: 0, netToKoperasi: 0 },
         });
       }
     } catch (err) {
@@ -492,6 +504,21 @@ export default function FinancialPage() {
                   <p className="text-xs text-gray-500">
                     {dailySummary.transactionCount} transaksi periode ini
                   </p>
+                    {/* Breakdown */}
+                    <div className="mt-3 text-xs text-gray-600 space-y-1">
+                      <div className="flex justify-between">
+                        <span>Toko (own):</span>
+                        <span className="font-semibold">{formatCurrency(dailySummary.toko?.profit || 0)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Konsinyasi (gross):</span>
+                        <span className="font-semibold">{formatCurrency(dailySummary.consignment?.grossRevenue || 0)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Konsinyasi (fee to consignor):</span>
+                        <span className="font-semibold text-gray-700">-{formatCurrency(dailySummary.consignment?.feeTotal || 0)}</span>
+                      </div>
+                    </div>
                 </div>
               </div>
             </CardContent>

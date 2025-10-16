@@ -122,6 +122,8 @@ export default function InventoryPage() {
     totalRevenue: 0,
     totalProfit: 0,
     totalSoldItems: 0,
+    toko: { revenue: 0, cogs: 0, profit: 0 },
+    consignment: { grossRevenue: 0, feeTotal: 0, netToKoperasi: 0 },
   });
   const [stockFormData, setStockFormData] = useState({
     type: 'IN' as 'IN' | 'OUT',
@@ -281,6 +283,8 @@ export default function InventoryPage() {
           totalRevenue: result.data.totalRevenue,
           totalProfit: result.data.totalProfit,
           totalSoldItems: result.data.totalSoldItems,
+          toko: result.data.toko || { revenue: 0, cogs: 0, profit: 0 },
+          consignment: result.data.consignment || { grossRevenue: 0, feeTotal: 0, netToKoperasi: 0 },
         });
       } else {
         console.error('Failed to fetch period financial data:', result.error);
@@ -736,6 +740,22 @@ export default function InventoryPage() {
                   <span className="text-xs font-semibold text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
                     {periodFinancialData.totalRevenue > 0 ? ((periodFinancialData.totalProfit / periodFinancialData.totalRevenue) * 100).toFixed(1) : 0}%
                   </span>
+                </div>
+
+                {/* Breakdown: Toko vs Konsinyasi */}
+                <div className="mt-3 text-xs text-gray-600 space-y-1">
+                  <div className="flex justify-between">
+                    <span>Toko (own):</span>
+                    <span className="font-semibold">{formatCurrency(periodFinancialData.toko.profit)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Konsinyasi (gross):</span>
+                    <span className="font-semibold">{formatCurrency(periodFinancialData.consignment.grossRevenue)}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Konsinyasi (fee to consignor):</span>
+                    <span className="font-semibold text-gray-700">-{formatCurrency(periodFinancialData.consignment.feeTotal)}</span>
+                  </div>
                 </div>
               </div>
               
