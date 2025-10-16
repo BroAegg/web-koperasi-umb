@@ -402,16 +402,15 @@ export default function InventoryPage() {
     setSelectedProduct(null);
   };
 
-  const handleAddProduct = async (e: React.FormEvent) => {
-    e.preventDefault();
-    
-    if (!newProduct.name || !newProduct.categoryId || !newProduct.buyPrice || !newProduct.sellPrice) {
+  // Adapted handler for ProductModal component
+  const handleProductSubmit = async (formData: ProductFormData) => {
+    if (!formData.name || !formData.categoryId || !formData.buyPrice || !formData.sellPrice) {
       warning('Form Tidak Lengkap', 'Nama, kategori, harga beli, dan harga jual wajib diisi');
       return;
     }
 
     // Validate price comparison
-    if (!validatePrices(newProduct.buyPrice, newProduct.sellPrice)) {
+    if (!validatePrices(formData.buyPrice, formData.sellPrice)) {
       return;
     }
 
@@ -423,9 +422,9 @@ export default function InventoryPage() {
       
       // Parse formatted prices back to numbers
       const productData = {
-        ...newProduct,
-        buyPrice: parsePriceInput(newProduct.buyPrice),
-        sellPrice: parsePriceInput(newProduct.sellPrice),
+        ...formData,
+        buyPrice: parsePriceInput(formData.buyPrice),
+        sellPrice: parsePriceInput(formData.sellPrice),
       };
       
       const response = await fetch(url, {
@@ -439,8 +438,7 @@ export default function InventoryPage() {
       const result = await response.json();
 
       if (result.success) {
-        // Reset form
-        resetProductForm();
+        // Close modal and reset
         setShowAddModal(false);
         setEditingProduct(null);
         
@@ -457,7 +455,7 @@ export default function InventoryPage() {
         
         const action = editingProduct ? 'diperbarui' : 'ditambahkan';
         success(`Produk Berhasil ${action.charAt(0).toUpperCase() + action.slice(1)}`, 
-               `${newProduct.name} telah ${action}`);
+               `${formData.name} telah ${action}`);
       } else {
         const action = editingProduct ? 'memperbarui' : 'menambahkan';
         error(`Gagal ${action.charAt(0).toUpperCase() + action.slice(1)} Produk`, 
@@ -469,6 +467,11 @@ export default function InventoryPage() {
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const handleProductModalClose = () => {
+    setShowAddModal(false);
+    setEditingProduct(null);
   };
 
   const resetProductForm = () => {
@@ -1043,366 +1046,15 @@ export default function InventoryPage() {
       </div>
 
       {/* Add/Edit Product Modal */}
-      {showAddModal && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
-            {/* Modal Header */}
-            <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-6 py-4 text-white">
-              <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-xl font-bold">
-                    {editingProduct ? 'Update Produk' : 'Tambah Produk Baru'}
-                  </h3>
-                  <p className="text-blue-100 text-sm mt-1">
-                    {editingProduct ? 'Perbarui informasi produk inventori' : 'Tambahkan produk baru ke inventori koperasi'}
-                  </p>
-                </div>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => {
-                    setShowAddModal(false);
-                    setEditingProduct(null);
-                    resetProductForm();
-                  }}
-                  className="bg-white/10 border-white/20 text-white hover:bg-white/20"
-                >
-                  <X className="w-4 h-4" />
-                </Button>
-              </div>
-            </div>
-
-            {/* Modal Content */}
-            <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
-              <form onSubmit={handleAddProduct} className="space-y-6">
-                {/* PRIORITY 1: Jenis Kepemilikan - Paling Atas */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Jenis Kepemilikan *
-                  </label>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setNewProduct({...newProduct, ownershipType: 'TOKO', isConsignment: false})}
-                      className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${
-                        newProduct.ownershipType === 'TOKO'
-                          ? 'bg-blue-600 text-white shadow-md'
-                          : 'bg-blue-50 text-blue-700 border border-blue-200 hover:bg-blue-100'
-                      }`}
-                    >
-                      Toko
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setNewProduct({...newProduct, ownershipType: 'TITIPAN', isConsignment: true})}
-                      className={`px-4 py-3 rounded-lg text-sm font-medium transition-all ${
-                        newProduct.ownershipType === 'TITIPAN'
-                          ? 'bg-purple-600 text-white shadow-md'
-                          : 'bg-purple-50 text-purple-700 border border-purple-200 hover:bg-purple-100'
-                      }`}
-                    >
-                      Titipan
-                    </button>
-                  </div>
-                </div>
-
-                {/* Supplier Autocomplete Field */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="relative">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Nama Supplier
-                    </label>
-                    <Input
-                      type="text"
-                      value={newProduct.supplierName || ''}
-                      onChange={(e) => {
-                        setNewProduct({...newProduct, supplierName: e.target.value});
-                        setShowSupplierDropdown(true);
-                      }}
-                      onFocus={() => setShowSupplierDropdown(true)}
-                      onBlur={() => {
-                        // Delay to allow click on dropdown item
-                        setTimeout(() => setShowSupplierDropdown(false), 200);
-                      }}
-                      placeholder="Ketik nama supplier..."
-                      leftIcon={<Search className="w-4 h-4 text-gray-400" />}
-                    />
-                    {/* Autocomplete Dropdown - Only show when focused AND has input */}
-                    {showSupplierDropdown && newProduct.supplierName && newProduct.supplierName.trim() && (
-                      <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
-                        {suppliers
-                          .filter(s => s.name.toLowerCase().includes(newProduct.supplierName!.toLowerCase()))
-                          .map((supplier) => (
-                            <button
-                              key={supplier.id}
-                              type="button"
-                              onClick={() => {
-                                setNewProduct({
-                                  ...newProduct, 
-                                  supplierId: supplier.id, 
-                                  supplierName: supplier.name,
-                                  supplierContact: supplier.phone || supplier.email || ''
-                                });
-                                setShowSupplierDropdown(false);
-                              }}
-                              className="w-full px-4 py-2 text-left hover:bg-blue-50 flex flex-col gap-0.5"
-                            >
-                              <div className="flex items-center justify-between">
-                                <span className="font-medium">{supplier.name}</span>
-                                <span className="text-xs text-gray-500">{supplier.code}</span>
-                              </div>
-                              {(supplier.phone || supplier.email) && (
-                                <span className="text-xs text-gray-400">
-                                  {supplier.phone || supplier.email}
-                                </span>
-                              )}
-                            </button>
-                          ))}
-                        {suppliers.filter(s => s.name.toLowerCase().includes(newProduct.supplierName!.toLowerCase())).length === 0 && (
-                          <div className="px-4 py-3 text-sm text-gray-500 text-center">
-                            Supplier tidak ditemukan
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Info Kontak Supplier <span className="text-gray-500 font-normal">(Opsional)</span>
-                    </label>
-                    <Input
-                      type="text"
-                      value={newProduct.supplierContact || ''}
-                      onChange={(e) => setNewProduct({...newProduct, supplierContact: e.target.value})}
-                      placeholder="No. HP / Email (Opsional)"
-                      leftIcon={<Phone className="w-4 h-4 text-gray-400" />}
-                    />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Nama Produk *
-                    </label>
-                    <Input
-                      type="text"
-                      value={newProduct.name}
-                      onChange={(e) => setNewProduct({...newProduct, name: e.target.value})}
-                      placeholder="Masukkan nama produk"
-                      leftIcon={<Package className="w-4 h-4 text-gray-400" />}
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Kategori *
-                    </label>
-                    <select
-                      value={newProduct.categoryId}
-                      onChange={(e) => setNewProduct({...newProduct, categoryId: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      required
-                    >
-                      <option value="">Pilih kategori</option>
-                      {categories.map((category) => (
-                        <option key={category.id} value={category.id}>
-                          {category.name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Deskripsi <span className="text-gray-500 font-normal">(Opsional)</span>
-                  </label>
-                  <textarea
-                    value={newProduct.description}
-                    onChange={(e) => setNewProduct({...newProduct, description: e.target.value})}
-                    placeholder="Deskripsi produk..."
-                    rows={3}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  />
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      SKU <span className="text-gray-500 font-normal">(Opsional)</span>
-                    </label>
-                    <Input
-                      type="text"
-                      value={newProduct.sku}
-                      onChange={(e) => setNewProduct({...newProduct, sku: e.target.value})}
-                      placeholder="SKU produk"
-                      leftIcon={<Hash className="w-4 h-4 text-gray-400" />}
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Satuan
-                    </label>
-                    <select
-                      value={newProduct.unit}
-                      onChange={(e) => setNewProduct({...newProduct, unit: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    >
-                      <option value="pcs">Pcs</option>
-                      <option value="kg">Kg</option>
-                      <option value="liter">Liter</option>
-                      <option value="pack">Pack</option>
-                      <option value="box">Box</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Harga Beli *
-                    </label>
-                    <Input
-                      type="text"
-                      value={newProduct.buyPrice}
-                      onChange={(e) => {
-                        const formatted = formatPriceInput(e.target.value);
-                        setNewProduct({...newProduct, buyPrice: formatted});
-                        validatePrices(formatted, newProduct.sellPrice);
-                      }}
-                      placeholder="0"
-                      leftIcon={<span className="text-sm font-medium text-gray-500">Rp</span>}
-                      required
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Harga Jual *
-                    </label>
-                    <Input
-                      type="text"
-                      value={newProduct.sellPrice}
-                      onChange={(e) => {
-                        const formatted = formatPriceInput(e.target.value);
-                        setNewProduct({...newProduct, sellPrice: formatted});
-                        validatePrices(newProduct.buyPrice, formatted);
-                      }}
-                      placeholder="0"
-                      leftIcon={<span className="text-sm font-medium text-gray-500">Rp</span>}
-                      className={priceError ? 'border-red-300 focus:ring-red-500' : ''}
-                      required
-                    />
-                    {priceError && (
-                      <p className="text-red-500 text-xs mt-1">{priceError}</p>
-                    )}
-                  </div>
-                </div>
-
-                {/* Live Margin Display */}
-                {newProduct.buyPrice && newProduct.sellPrice && !priceError && (
-                  <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm font-medium text-gray-700">Margin Keuntungan:</span>
-                      <div className="text-right">
-                        <p className="text-lg font-bold text-green-600">
-                          Rp {formatPriceInput(calculateMargin(newProduct.buyPrice, newProduct.sellPrice).margin.toString())}
-                        </p>
-                        <p className="text-xs text-gray-600">
-                          {calculateMargin(newProduct.buyPrice, newProduct.sellPrice).marginPercent.toFixed(1)}% profit
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                )}
-
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Stok Awal {editingProduct && <span className="text-xs text-gray-500">(Gunakan Update Stok untuk mengubah)</span>}
-                    </label>
-                    <Input
-                      type="number"
-                      value={newProduct.stock}
-                      onChange={(e) => setNewProduct({...newProduct, stock: e.target.value})}
-                      placeholder="0"
-                      leftIcon={<Package className="w-4 h-4 text-gray-400" />}
-                      disabled={!!editingProduct}
-                      className={editingProduct ? "bg-gray-100 cursor-not-allowed" : ""}
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Minimum Stok
-                    </label>
-                    <Input
-                      type="number"
-                      value={newProduct.threshold}
-                      onChange={(e) => setNewProduct({...newProduct, threshold: e.target.value})}
-                      placeholder="Minimum stok alert"
-                      leftIcon={<AlertTriangle className="w-4 h-4 text-gray-400" />}
-                    />
-                  </div>
-                </div>
-
-                {/* Siklus Stok */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Siklus Stok *
-                  </label>
-                  <select
-                    value={newProduct.stockCycle}
-                    onChange={(e) => setNewProduct({...newProduct, stockCycle: e.target.value as 'HARIAN' | 'MINGGUAN' | 'DUA_MINGGUAN'})}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    required
-                  >
-                    <option value="HARIAN">Harian</option>
-                    <option value="MINGGUAN">Mingguan</option>
-                    <option value="DUA_MINGGUAN">Dua Mingguan</option>
-                  </select>
-                </div>
-
-                <div className="flex gap-3 pt-6 border-t">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      setShowAddModal(false);
-                      setEditingProduct(null);
-                      resetProductForm();
-                    }}
-                    className="flex-1"
-                    disabled={isSubmitting}
-                  >
-                    Batal
-                  </Button>
-                  <Button
-                    type="submit"
-                    disabled={isSubmitting || !!priceError}
-                    className="flex-1"
-                  >
-                    {isSubmitting ? (
-                      'Menyimpan...'
-                    ) : (
-                      <>
-                        {editingProduct ? (
-                          <Edit className="w-4 h-4 mr-2" />
-                        ) : (
-                          <Plus className="w-4 h-4 mr-2" />
-                        )}
-                        {editingProduct ? 'Update Produk' : 'Tambah Produk'}
-                      </>
-                    )}
-                  </Button>
-                </div>
-              </form>
-            </div>
-          </div>
-        </div>
-      )}
+      <ProductModal
+        isOpen={showAddModal}
+        product={editingProduct}
+        categories={categories}
+        suppliers={suppliers}
+        onClose={handleProductModalClose}
+        onSubmit={handleProductSubmit}
+        isSubmitting={isSubmitting}
+      />
 
       {/* Stock Movement Modal */}
       <StockModal
