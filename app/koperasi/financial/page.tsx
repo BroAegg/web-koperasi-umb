@@ -1156,24 +1156,72 @@ export default function FinancialPage() {
                 </div>
               )}
 
+              {/* Product Items - For SALE/PURCHASE/RETURN */}
+              {['SALE', 'PURCHASE', 'RETURN'].includes(selectedTransaction.type) && selectedTransaction.items && selectedTransaction.items.length > 0 && (
+                <div className="bg-white border border-gray-200 rounded-lg overflow-hidden">
+                  <div className="bg-gradient-to-r from-gray-50 to-gray-100 px-4 py-3 border-b border-gray-200">
+                    <div className="flex items-center gap-2">
+                      <Package className="h-4 w-4 text-gray-600" />
+                      <h4 className="font-semibold text-gray-800 text-sm">
+                        {selectedTransaction.type === 'SALE' ? 'Produk yang Terjual' :
+                         selectedTransaction.type === 'PURCHASE' ? 'Produk yang Dibeli' :
+                         'Produk yang Diretur'}
+                      </h4>
+                      <span className="ml-auto text-xs font-medium text-gray-600 bg-gray-200 px-2 py-0.5 rounded-full">
+                        {selectedTransaction.items.length} item
+                      </span>
+                    </div>
+                  </div>
+                  <div className="divide-y divide-gray-100">
+                    {selectedTransaction.items.map((item, index) => (
+                      <div key={item.id || index} className="px-4 py-3 hover:bg-gray-50 transition-colors">
+                        <div className="flex items-start justify-between gap-3">
+                          <div className="flex-1">
+                            <p className="font-semibold text-gray-900 text-sm">
+                              {item.product?.name || item.productName || 'Produk'}
+                            </p>
+                            <div className="flex items-center gap-3 mt-1 text-xs text-gray-600">
+                              <span className="flex items-center gap-1">
+                                <Hash className="h-3 w-3" />
+                                {item.quantity} {item.product?.unit || 'pcs'}
+                              </span>
+                              <span className="text-gray-400">×</span>
+                              <span>{formatCurrency(item.unitPrice)}</span>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <p className="font-bold text-gray-900">
+                              {formatCurrency(item.totalPrice)}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {/* Total Footer */}
+                  <div className="bg-gradient-to-r from-blue-50 to-indigo-50 px-4 py-3 border-t-2 border-blue-200">
+                    <div className="flex items-center justify-between">
+                      <span className="font-semibold text-gray-700 text-sm">Total Transaksi</span>
+                      <span className="font-bold text-blue-600 text-lg">
+                        {formatCurrency(selectedTransaction.amount)}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
               {/* Auto-generated Transaction Info */}
               {['SALE', 'PURCHASE', 'RETURN'].includes(selectedTransaction.type) && (
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <div className="flex items-start gap-3">
                     <Info className="h-5 w-5 text-blue-600 mt-0.5 flex-shrink-0" />
                     <div className="flex-1">
-                      <p className="text-sm font-semibold text-blue-900 mb-2">Transaksi Otomatis dari Inventory</p>
+                      <p className="text-sm font-semibold text-blue-900 mb-1">ℹ️ Info Transaksi Otomatis</p>
                       <p className="text-sm text-blue-800 leading-relaxed">
-                        {selectedTransaction.type === 'SALE' && 'Transaksi ini dibuat otomatis ketika produk keluar (terjual) dari inventory. Jumlah mencerminkan total harga jual produk.'}
-                        {selectedTransaction.type === 'PURCHASE' && 'Transaksi ini dibuat otomatis ketika produk masuk ke inventory. Jumlah mencerminkan total harga beli produk.'}
-                        {selectedTransaction.type === 'RETURN' && 'Transaksi ini dibuat otomatis ketika ada retur produk. Jumlah dikembalikan ke keuangan.'}
+                        {selectedTransaction.type === 'SALE' && 'Transaksi ini dibuat otomatis ketika produk keluar (terjual) dari inventory.'}
+                        {selectedTransaction.type === 'PURCHASE' && 'Transaksi ini dibuat otomatis ketika produk masuk ke inventory.'}
+                        {selectedTransaction.type === 'RETURN' && 'Transaksi ini dibuat otomatis ketika ada retur produk.'}
                       </p>
-                      {selectedTransaction.description && (
-                        <div className="mt-3 pt-3 border-t border-blue-200">
-                          <p className="text-xs font-medium text-blue-700 mb-1">Detail Produk</p>
-                          <p className="text-sm text-blue-900 font-medium">{selectedTransaction.description}</p>
-                        </div>
-                      )}
                     </div>
                   </div>
                 </div>
