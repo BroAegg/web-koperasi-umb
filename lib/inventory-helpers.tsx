@@ -42,6 +42,48 @@ export const calculateMargin = (buyPrice: string | number, sellPrice: string | n
 };
 
 /**
+ * Calculate markup percentage (margin from buy price)
+ * Formula: (Sell - Buy) / Buy × 100
+ */
+export const calculateMarkup = (buyPrice: string | number, sellPrice: string | number): number => {
+  const buy = typeof buyPrice === 'string' ? parsePrice(buyPrice) : buyPrice;
+  const sell = typeof sellPrice === 'string' ? parsePrice(sellPrice) : sellPrice;
+  if (buy <= 0) return 0;
+  return ((sell - buy) / buy) * 100;
+};
+
+/**
+ * Calculate profit percentage (margin from sell price)
+ * Formula: (Sell - Buy) / Sell × 100
+ */
+export const calculateProfit = (buyPrice: string | number, sellPrice: string | number): number => {
+  const buy = typeof buyPrice === 'string' ? parsePrice(buyPrice) : buyPrice;
+  const sell = typeof sellPrice === 'string' ? parsePrice(sellPrice) : sellPrice;
+  if (sell <= 0) return 0;
+  return ((sell - buy) / sell) * 100;
+};
+
+/**
+ * Calculate sell price from buy price and markup percentage
+ * Formula: Buy × (1 + Markup%)
+ */
+export const calculateSellFromMarkup = (buyPrice: string | number, markupPercent: number): number => {
+  const buy = typeof buyPrice === 'string' ? parsePrice(buyPrice) : buyPrice;
+  if (buy <= 0 || markupPercent < 0) return 0;
+  return Math.round(buy * (1 + markupPercent / 100));
+};
+
+/**
+ * Calculate sell price from buy price and profit percentage
+ * Formula: Buy / (1 - Profit%)
+ */
+export const calculateSellFromProfit = (buyPrice: string | number, profitPercent: number): number => {
+  const buy = typeof buyPrice === 'string' ? parsePrice(buyPrice) : buyPrice;
+  if (buy <= 0 || profitPercent < 0 || profitPercent >= 100) return 0;
+  return Math.round(buy / (1 - profitPercent / 100));
+};
+
+/**
  * Validate that sell price is greater than buy price
  */
 export const validatePrices = (buyPrice: string, sellPrice: string): string => {
