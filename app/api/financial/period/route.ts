@@ -97,6 +97,7 @@ export async function GET(request: NextRequest) {
     let totalSoldItems = 0;
     let totalExpense = 0; // Actual expenses
     const uniqueProductIds = new Set<string>(); // Track unique products sold
+    const productSalesMap = new Map<string, { name: string; quantity: number }>(); // Track product sales details
 
     // Toko (store-owned) breakdown
     let tokoRevenue = 0;
@@ -118,9 +119,20 @@ export async function GET(request: NextRequest) {
           totalCOGS += itemCOGS;
           totalSoldItems += item.quantity;
           
-          // Track unique products sold
-          if (item.productId) {
+          // Track unique products sold with details
+          if (item.productId && item.product) {
             uniqueProductIds.add(item.productId);
+            
+            // Aggregate quantities for each product
+            const existing = productSalesMap.get(item.productId);
+            if (existing) {
+              existing.quantity += item.quantity;
+            } else {
+              productSalesMap.set(item.productId, {
+                name: item.product.name,
+                quantity: item.quantity
+              });
+            }
           }
 
           // Determine ownership: product.ownershipType OR product.isConsignment
@@ -161,6 +173,10 @@ export async function GET(request: NextRequest) {
     const totalProfit = tokoProfit + consignmentProfit; // Total profit includes both TOKO and TITIPAN margins
     const profitMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
     const uniqueProductsSold = uniqueProductIds.size; // Count unique products
+    
+    // Convert productSalesMap to array for JSON response, sorted by quantity (descending)
+    const productBreakdown = Array.from(productSalesMap.values())
+      .sort((a, b) => b.quantity - a.quantity);
 
     return NextResponse.json({
       success: true,
@@ -175,6 +191,7 @@ export async function GET(request: NextRequest) {
         totalExpense, // NEW: Actual expenses (TITIPAN COGS + manual EXPENSE + TOKO PURCHASE)
         totalSoldItems,
         uniqueProductsSold, // NEW: Count of unique product types sold
+        productBreakdown, // NEW: Array of {name, quantity} for sold products
         profitMargin,
         transactionCount: transactions.length,
 

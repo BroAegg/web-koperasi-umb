@@ -195,10 +195,34 @@ export function FinancialMetricsCard({
           </div>
           
           {/* Produk Terjual */}
-          <div className="space-y-2 border-l border-blue-100 pl-6">
+          <div className="space-y-2 border-l border-blue-100 pl-6 relative group">
             <div className="flex items-center gap-2">
               <span className="text-sm font-medium text-gray-600">Produk Terjual</span>
               <TrendingUp className="h-4 w-4 text-blue-500" />
+              {/* Info Icon with Hover Tooltip */}
+              <div className="relative">
+                <Info className="h-3.5 w-3.5 text-gray-400 cursor-help" />
+                {/* Tooltip */}
+                <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-56 bg-gray-900 text-white text-xs rounded-lg p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none z-50 shadow-xl">
+                  <div className="font-semibold mb-2 text-blue-300 border-b border-gray-700 pb-1.5">
+                    Breakdown Produk Terjual
+                  </div>
+                  <div className="space-y-1.5 max-h-64 overflow-y-auto">
+                    {financialData.productBreakdown && financialData.productBreakdown.length > 0 ? (
+                      financialData.productBreakdown.map((item, index) => (
+                        <div key={index} className="flex justify-between items-start gap-2">
+                          <span className="text-gray-300 flex-1 leading-tight">{item.name}</span>
+                          <span className="font-semibold text-blue-400 whitespace-nowrap">{item.quantity} pcs</span>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-gray-400 text-center py-2">Belum ada penjualan</div>
+                    )}
+                  </div>
+                  {/* Arrow */}
+                  <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-gray-900"></div>
+                </div>
+              </div>
             </div>
             <p className="text-3xl font-bold text-blue-600">{financialData.totalSoldItems}</p>
             <div className="flex items-center gap-1 text-xs text-gray-500">
