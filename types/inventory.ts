@@ -71,6 +71,7 @@ export interface FinancialData {
   totalRevenue: number;
   totalProfit: number;
   totalSoldItems: number;
+  uniqueProductsSold: number; // NEW: Count of unique product types sold
   toko: {
     revenue: number;
     cogs: number;

@@ -96,6 +96,7 @@ export default function InventoryPage() {
     totalRevenue: 0,
     totalProfit: 0,
     totalSoldItems: 0,
+    uniqueProductsSold: 0, // NEW: Unique product count
     toko: { revenue: 0, cogs: 0, profit: 0 },
     consignment: { grossRevenue: 0, cogs: 0, profit: 0, feeTotal: 0 },
   });
@@ -276,6 +277,7 @@ export default function InventoryPage() {
           totalRevenue: result.data.totalRevenue,
           totalProfit: result.data.totalProfit,
           totalSoldItems: result.data.totalSoldItems,
+          uniqueProductsSold: result.data.uniqueProductsSold || 0, // NEW: Unique product count
           toko: result.data.toko || { revenue: 0, cogs: 0, profit: 0 },
           consignment: result.data.consignment || { grossRevenue: 0, cogs: 0, profit: 0, feeTotal: 0 },
         });
@@ -864,10 +866,11 @@ export default function InventoryPage() {
                   <span className="text-sm font-medium text-gray-600">Produk Terjual</span>
                   <Hash className="h-4 w-4 text-blue-500" />
                 </div>
-                <p className="text-3xl font-bold text-gray-900">{periodFinancialData.totalSoldItems}</p>
-                <p className="text-xs text-gray-500">
-                  Item terjual periode ini
-                </p>
+                <p className="text-3xl font-bold text-blue-600">{periodFinancialData.totalSoldItems}</p>
+                <div className="flex items-center gap-1 text-xs text-gray-500">
+                  <Package className="h-3 w-3" />
+                  <span>{periodFinancialData.uniqueProductsSold} jenis produk</span>
+                </div>
               </div>
             </div>
           </CardContent>

@@ -3,7 +3,7 @@
 'use client';
 
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
-import { TrendingUp, PiggyBank, Calendar, Info } from 'lucide-react';
+import { TrendingUp, PiggyBank, Calendar, Info, Package } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import { FinancialData, FinancialPeriod } from '@/types/inventory';
 
@@ -201,8 +201,9 @@ export function FinancialMetricsCard({
               <TrendingUp className="h-4 w-4 text-blue-500" />
             </div>
             <p className="text-3xl font-bold text-blue-600">{financialData.totalSoldItems}</p>
-            <div className="text-xs text-gray-500">
-              Rata-rata: {formatCurrency(financialData.totalSoldItems > 0 ? financialData.totalRevenue / financialData.totalSoldItems : 0)}/item
+            <div className="flex items-center gap-1 text-xs text-gray-500">
+              <Package className="h-3 w-3" />
+              <span>{financialData.uniqueProductsSold} jenis produk</span>
             </div>
           </div>
         </div>

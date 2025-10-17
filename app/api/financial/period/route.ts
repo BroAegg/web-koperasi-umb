@@ -96,6 +96,7 @@ export async function GET(request: NextRequest) {
     let totalCOGS = 0;
     let totalSoldItems = 0;
     let totalExpense = 0; // Actual expenses
+    const uniqueProductIds = new Set<string>(); // Track unique products sold
 
     // Toko (store-owned) breakdown
     let tokoRevenue = 0;
@@ -116,6 +117,11 @@ export async function GET(request: NextRequest) {
           totalRevenue += itemRevenue;
           totalCOGS += itemCOGS;
           totalSoldItems += item.quantity;
+          
+          // Track unique products sold
+          if (item.productId) {
+            uniqueProductIds.add(item.productId);
+          }
 
           // Determine ownership: product.ownershipType OR product.isConsignment
           const isConsignment = item.product?.isConsignment || item.product?.ownershipType === 'TITIPAN';
@@ -154,6 +160,7 @@ export async function GET(request: NextRequest) {
 
     const totalProfit = tokoProfit + consignmentProfit; // Total profit includes both TOKO and TITIPAN margins
     const profitMargin = totalRevenue > 0 ? (totalProfit / totalRevenue) * 100 : 0;
+    const uniqueProductsSold = uniqueProductIds.size; // Count unique products
 
     return NextResponse.json({
       success: true,
@@ -167,6 +174,7 @@ export async function GET(request: NextRequest) {
         totalCOGS,
         totalExpense, // NEW: Actual expenses (TITIPAN COGS + manual EXPENSE + TOKO PURCHASE)
         totalSoldItems,
+        uniqueProductsSold, // NEW: Count of unique product types sold
         profitMargin,
         transactionCount: transactions.length,
 
