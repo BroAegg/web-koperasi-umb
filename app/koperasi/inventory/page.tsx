@@ -97,7 +97,8 @@ export default function InventoryPage() {
     totalProfit: 0,
     totalSoldItems: 0,
     uniqueProductsSold: 0,
-    productBreakdown: [], // NEW: Product sales breakdown
+    productBreakdown: [],
+    consignmentBreakdown: [], // NEW: Consignment supplier breakdown
     toko: { revenue: 0, cogs: 0, profit: 0 },
     consignment: { grossRevenue: 0, cogs: 0, profit: 0, feeTotal: 0 },
   });
@@ -279,7 +280,8 @@ export default function InventoryPage() {
           totalProfit: result.data.totalProfit,
           totalSoldItems: result.data.totalSoldItems,
           uniqueProductsSold: result.data.uniqueProductsSold || 0,
-          productBreakdown: result.data.productBreakdown || [], // NEW: Product breakdown
+          productBreakdown: result.data.productBreakdown || [],
+          consignmentBreakdown: result.data.consignmentBreakdown || [], // NEW: Consignment breakdown
           toko: result.data.toko || { revenue: 0, cogs: 0, profit: 0 },
           consignment: result.data.consignment || { grossRevenue: 0, cogs: 0, profit: 0, feeTotal: 0 },
         });
@@ -957,8 +959,47 @@ export default function InventoryPage() {
                   Konsinyasi
                 </div>
               </div>
-              <div>
-                <h3 className="text-sm font-medium text-gray-600 mb-1">Pembayaran Konsinyasi</h3>
+              <div className="relative group">
+                <div className="flex items-center gap-2 mb-1">
+                  <h3 className="text-sm font-medium text-gray-600">Pembayaran Konsinyasi</h3>
+                  {/* Info Icon with Hover Tooltip */}
+                  <div className="relative">
+                    <Info className="h-3.5 w-3.5 text-gray-400 cursor-help" />
+                    {/* Tooltip */}
+                    <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-64 bg-gray-900 text-white text-xs rounded-lg p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none z-50 shadow-xl">
+                      <div className="font-semibold mb-2 text-purple-300 border-b border-gray-700 pb-1.5">
+                        Breakdown Konsinyasi per Supplier
+                      </div>
+                      <div className="space-y-2 max-h-64 overflow-y-auto">
+                        {periodFinancialData.consignmentBreakdown && periodFinancialData.consignmentBreakdown.length > 0 ? (
+                          periodFinancialData.consignmentBreakdown.map((item, index) => (
+                            <div key={index} className="space-y-1 pb-2 border-b border-gray-700 last:border-b-0">
+                              <div className="font-medium text-purple-300">{item.supplierName}</div>
+                              <div className="grid grid-cols-2 gap-x-2 text-[10px]">
+                                <div className="flex justify-between">
+                                  <span className="text-gray-400">Revenue:</span>
+                                  <span className="text-emerald-400 font-semibold">{formatCurrency(item.revenue)}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                  <span className="text-gray-400">Bayar:</span>
+                                  <span className="text-red-400 font-semibold">{formatCurrency(item.cogs)}</span>
+                                </div>
+                              </div>
+                              <div className="flex justify-between text-[10px] pt-0.5">
+                                <span className="text-blue-300 font-medium">Profit Koperasi:</span>
+                                <span className="text-blue-400 font-bold">{formatCurrency(item.profit)}</span>
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <div className="text-gray-400 text-center py-2">Belum ada penjualan konsinyasi</div>
+                        )}
+                      </div>
+                      {/* Arrow */}
+                      <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-gray-900"></div>
+                    </div>
+                  </div>
+                </div>
                 <p className="text-2xl font-bold text-gray-900">{formatCurrency(consignmentPayments)}</p>
                 <p className="text-xs text-gray-500 mt-1">
                   Total stock movement: {dailySummary.totalMovements}

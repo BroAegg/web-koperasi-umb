@@ -72,7 +72,8 @@ export interface FinancialData {
   totalProfit: number;
   totalSoldItems: number;
   uniqueProductsSold: number; // Count of unique product types sold
-  productBreakdown?: Array<{ name: string; quantity: number }>; // NEW: Breakdown of sold products
+  productBreakdown?: Array<{ name: string; quantity: number }>; // Breakdown of sold products
+  consignmentBreakdown?: Array<{ supplierName: string; revenue: number; cogs: number; profit: number }>; // NEW: Breakdown of consignment by supplier
   toko: {
     revenue: number;
     cogs: number;

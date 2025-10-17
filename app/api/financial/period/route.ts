@@ -84,6 +84,13 @@ export async function GET(request: NextRequest) {
                 buyPrice: true,
                 isConsignment: true,
                 ownershipType: true,
+                supplierId: true,
+                supplier: {
+                  select: {
+                    id: true,
+                    name: true,
+                  },
+                },
               },
             },
           },
@@ -98,6 +105,7 @@ export async function GET(request: NextRequest) {
     let totalExpense = 0; // Actual expenses
     const uniqueProductIds = new Set<string>(); // Track unique products sold
     const productSalesMap = new Map<string, { name: string; quantity: number }>(); // Track product sales details
+    const consignmentSupplierMap = new Map<string, { supplierName: string; revenue: number; cogs: number; profit: number }>(); // Track consignment by supplier
 
     // Toko (store-owned) breakdown
     let tokoRevenue = 0;
@@ -143,6 +151,25 @@ export async function GET(request: NextRequest) {
             consignmentGrossRevenue += itemRevenue;
             consignmentCOGS += itemCOGS;
             totalExpense += itemCOGS; // TITIPAN COGS = expense
+            
+            // Track consignment by supplier
+            const supplierId = item.product?.supplierId || 'unknown';
+            const supplierName = item.product?.supplier?.name || 'Supplier Tidak Diketahui';
+            const itemProfit = itemRevenue - itemCOGS;
+            
+            const existingSupplier = consignmentSupplierMap.get(supplierId);
+            if (existingSupplier) {
+              existingSupplier.revenue += itemRevenue;
+              existingSupplier.cogs += itemCOGS;
+              existingSupplier.profit += itemProfit;
+            } else {
+              consignmentSupplierMap.set(supplierId, {
+                supplierName,
+                revenue: itemRevenue,
+                cogs: itemCOGS,
+                profit: itemProfit
+              });
+            }
           } else {
             // Store-owned product: revenue only, no expense at sale
             tokoRevenue += itemRevenue;
@@ -177,6 +204,10 @@ export async function GET(request: NextRequest) {
     // Convert productSalesMap to array for JSON response, sorted by quantity (descending)
     const productBreakdown = Array.from(productSalesMap.values())
       .sort((a, b) => b.quantity - a.quantity);
+    
+    // Convert consignmentSupplierMap to array for JSON response, sorted by profit (descending)
+    const consignmentBreakdown = Array.from(consignmentSupplierMap.values())
+      .sort((a, b) => b.profit - a.profit);
 
     return NextResponse.json({
       success: true,
@@ -190,8 +221,9 @@ export async function GET(request: NextRequest) {
         totalCOGS,
         totalExpense, // NEW: Actual expenses (TITIPAN COGS + manual EXPENSE + TOKO PURCHASE)
         totalSoldItems,
-        uniqueProductsSold, // NEW: Count of unique product types sold
-        productBreakdown, // NEW: Array of {name, quantity} for sold products
+        uniqueProductsSold, // Count of unique product types sold
+        productBreakdown, // Array of {name, quantity} for sold products
+        consignmentBreakdown, // NEW: Array of {supplierName, revenue, cogs, profit} for consignment suppliers
         profitMargin,
         transactionCount: transactions.length,
 
