@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { X, Plus, Edit, Package, Search, Phone, Hash, AlertTriangle } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,42 +29,73 @@ export default function ProductModal({
   onSubmit,
   isSubmitting
 }: ProductModalProps) {
-  const [formData, setFormData] = useState<ProductFormData>(
-    product ? {
-      name: product.name,
-      categoryId: product.categoryId,
-      description: product.description || '',
-      sku: product.sku || '',
-      unit: product.unit,
-      buyPrice: product.buyPrice?.toString() || '',
-      sellPrice: product.sellPrice.toString(),
-      stock: product.stock.toString(),
-      threshold: product.threshold.toString(),
-      ownershipType: product.ownershipType || 'TOKO',
-      stockCycle: product.stockCycle || 'HARIAN',
-      supplierId: product.supplierId || '',
-      supplierName: product.supplier?.name || '',
-      supplierContact: ''
-    } : {
-      name: '',
-      categoryId: '',
-      description: '',
-      sku: '',
-      unit: 'pcs',
-      buyPrice: '',
-      sellPrice: '',
-      stock: '0',
-      threshold: '5',
-      ownershipType: 'TOKO',
-      stockCycle: 'HARIAN',
-      supplierId: '',
-      supplierName: '',
-      supplierContact: ''
-    }
-  );
+  const [formData, setFormData] = useState<ProductFormData>({
+    name: '',
+    categoryId: '',
+    description: '',
+    sku: '',
+    unit: 'pcs',
+    buyPrice: '',
+    sellPrice: '',
+    stock: '',
+    threshold: '5',
+    ownershipType: 'TOKO',
+    stockCycle: 'HARIAN',
+    supplierId: '',
+    supplierName: '',
+    supplierContact: ''
+  });
 
   const [showSupplierDropdown, setShowSupplierDropdown] = useState(false);
   const [priceError, setPriceError] = useState('');
+
+  // Reset form data when modal opens/closes or product changes
+  useEffect(() => {
+    if (isOpen) {
+      // Modal is opening - set form data based on mode
+      if (product) {
+        // Edit mode: pre-fill with product data (with formatted prices)
+        const formattedBuyPrice = product.buyPrice ? formatPriceInput(product.buyPrice.toString()) : '';
+        const formattedSellPrice = formatPriceInput(product.sellPrice.toString());
+        
+        setFormData({
+          name: product.name,
+          categoryId: product.categoryId,
+          description: product.description || '',
+          sku: product.sku || '',
+          unit: product.unit,
+          buyPrice: formattedBuyPrice,
+          sellPrice: formattedSellPrice,
+          stock: product.stock.toString(),
+          threshold: product.threshold.toString(),
+          ownershipType: product.ownershipType || 'TOKO',
+          stockCycle: product.stockCycle || 'HARIAN',
+          supplierId: product.supplierId || '',
+          supplierName: product.supplier?.name || '',
+          supplierContact: ''
+        });
+      } else {
+        // Add mode: reset to empty form
+        setFormData({
+          name: '',
+          categoryId: '',
+          description: '',
+          sku: '',
+          unit: 'pcs',
+          buyPrice: '',
+          sellPrice: '',
+          stock: '',
+          threshold: '5',
+          ownershipType: 'TOKO',
+          stockCycle: 'HARIAN',
+          supplierId: '',
+          supplierName: '',
+          supplierContact: ''
+        });
+      }
+      setPriceError(''); // Clear any previous errors
+    }
+  }, [isOpen, product]);
 
   const validatePrices = (buyPrice: string, sellPrice: string) => {
     const error = validatePriceHelper(buyPrice, sellPrice);

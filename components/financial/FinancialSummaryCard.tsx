@@ -1,8 +1,9 @@
 // Financial Summary Card Component
 // Main summary card with period selector and key financial metrics
 
+import { useState, useEffect, useRef } from 'react';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
-import { DollarSign, TrendingUp, TrendingDown, Info, Calendar } from 'lucide-react';
+import { DollarSign, TrendingUp, TrendingDown, Info, Calendar, ChevronDown } from 'lucide-react';
 import { formatCurrency, formatDate } from '@/lib/utils';
 import type { DailySummary, FinancialPeriod } from '@/types/financial';
 
@@ -25,6 +26,25 @@ export function FinancialSummaryCard({
   isCustomDate,
   onCustomDateToggle
 }: FinancialSummaryCardProps) {
+  const [showPeriodDropdown, setShowPeriodDropdown] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowPeriodDropdown(false);
+      }
+    };
+    
+    if (showPeriodDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showPeriodDropdown]);
   
   const getPeriodLabel = () => {
     if (isCustomDate) {
@@ -65,6 +85,21 @@ export function FinancialSummaryCard({
     }
   };
 
+  const handlePeriodSelect = (period: FinancialPeriod) => {
+    onPeriodChange(period);
+    onCustomDateToggle(false);
+    setShowPeriodDropdown(false);
+    
+    if (period === 'today') {
+      onDateChange(new Date().toISOString().split('T')[0]);
+    }
+  };
+
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    onDateChange(e.target.value);
+    onCustomDateToggle(true);
+  };
+
   return (
     <Card className="border border-blue-200 shadow-lg hover:shadow-xl transition-all bg-gradient-to-br from-blue-50 to-indigo-50">
       <CardHeader className="border-b border-blue-100 pb-4">
@@ -82,54 +117,77 @@ export function FinancialSummaryCard({
           {/* Period Dropdown & Calendar */}
           <div className="flex items-center gap-2">
             <span className="text-xs text-gray-600 font-medium hidden sm:inline">Periode:</span>
-            <div className="flex items-center rounded-lg border border-blue-200 bg-white shadow-sm overflow-hidden relative">
-              {/* Display current period or custom date */}
-              <div className="px-3 py-1.5 text-xs font-medium text-gray-700 pointer-events-none">
-                {getPeriodLabel()}
-              </div>
-              <select
-                value={isCustomDate ? 'custom' : financialPeriod}
-                onChange={(e) => {
-                  const newPeriod = e.target.value as FinancialPeriod;
-                  if (newPeriod === 'custom' as any) return;
-                  
-                  onPeriodChange(newPeriod);
-                  onCustomDateToggle(false);
-                  
-                  if (newPeriod === 'today') {
-                    onDateChange(new Date().toISOString().split('T')[0]);
-                  }
-                }}
-                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+            
+            {/* Period Selector Button with Dropdown */}
+            <div className="relative" ref={dropdownRef}>
+              <button
+                onClick={() => setShowPeriodDropdown(!showPeriodDropdown)}
+                className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-blue-200 bg-white shadow-sm hover:bg-blue-50 transition-colors"
               >
-                <option value="today">Hari Ini</option>
-                <option value="7days">7 Hari</option>
-                <option value="1month">1 Bulan</option>
-                <option value="3months">3 Bulan</option>
-                <option value="6months">6 Bulan</option>
-                <option value="1year">1 Tahun</option>
-              </select>
+                <span className="text-xs font-medium text-gray-700">
+                  {getPeriodLabel()}
+                </span>
+                <ChevronDown className={`h-3.5 w-3.5 text-gray-500 transition-transform ${showPeriodDropdown ? 'rotate-180' : ''}`} />
+              </button>
               
-              {/* Calendar Date Input */}
-              <div className="relative">
-                <input
-                  type="date"
-                  value={selectedDate}
-                  onChange={(e) => {
-                    onDateChange(e.target.value);
-                    onCustomDateToggle(true);
-                  }}
-                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
-                  title="Pilih tanggal"
-                />
-                <button 
-                  type="button"
-                  className="px-2.5 py-1.5 border-l border-blue-100 text-gray-600 hover:bg-blue-50 transition-colors"
-                  title="Pilih tanggal"
-                >
-                  <Calendar className="h-3.5 w-3.5" />
-                </button>
-              </div>
+              {/* Dropdown Menu */}
+              {showPeriodDropdown && (
+                <div className="absolute top-full mt-1 right-0 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50 min-w-[140px]">
+                  <button
+                    onClick={() => handlePeriodSelect('today')}
+                    className={`w-full text-left px-4 py-2 text-sm hover:bg-blue-50 transition-colors ${financialPeriod === 'today' && !isCustomDate ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'}`}
+                  >
+                    Hari Ini
+                  </button>
+                  <button
+                    onClick={() => handlePeriodSelect('7days')}
+                    className={`w-full text-left px-4 py-2 text-sm hover:bg-blue-50 transition-colors ${financialPeriod === '7days' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'}`}
+                  >
+                    7 Hari
+                  </button>
+                  <button
+                    onClick={() => handlePeriodSelect('1month')}
+                    className={`w-full text-left px-4 py-2 text-sm hover:bg-blue-50 transition-colors ${financialPeriod === '1month' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'}`}
+                  >
+                    1 Bulan
+                  </button>
+                  <button
+                    onClick={() => handlePeriodSelect('3months')}
+                    className={`w-full text-left px-4 py-2 text-sm hover:bg-blue-50 transition-colors ${financialPeriod === '3months' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'}`}
+                  >
+                    3 Bulan
+                  </button>
+                  <button
+                    onClick={() => handlePeriodSelect('6months')}
+                    className={`w-full text-left px-4 py-2 text-sm hover:bg-blue-50 transition-colors ${financialPeriod === '6months' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'}`}
+                  >
+                    6 Bulan
+                  </button>
+                  <button
+                    onClick={() => handlePeriodSelect('1year')}
+                    className={`w-full text-left px-4 py-2 text-sm hover:bg-blue-50 transition-colors ${financialPeriod === '1year' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'}`}
+                  >
+                    1 Tahun
+                  </button>
+                </div>
+              )}
+            </div>
+            
+            {/* Calendar Button */}
+            <div className="relative">
+              <input
+                type="date"
+                value={selectedDate}
+                onChange={handleDateChange}
+                className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                title="Pilih tanggal"
+              />
+              <button 
+                className="px-2.5 py-1.5 rounded-lg border border-blue-200 bg-white text-gray-600 hover:bg-blue-50 transition-colors shadow-sm"
+                title="Pilih tanggal"
+              >
+                <Calendar className="h-3.5 w-3.5" />
+              </button>
             </div>
           </div>
         </div>

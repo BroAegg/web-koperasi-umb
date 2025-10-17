@@ -36,31 +36,35 @@ export function TransactionModal({
   
   const [formattedAmount, setFormattedAmount] = useState('');
 
-  // Initialize form when transaction prop changes (for editing)
+  // Initialize form when modal opens or transaction changes
   useEffect(() => {
-    if (transaction) {
-      setFormData({
-        type: transaction.type,
-        amount: transaction.amount.toString(),
-        description: transaction.description || '',
-        category: transaction.category || '',
-        paymentMethod: transaction.paymentMethod,
-        reference: transaction.reference || '',
-        date: new Date(transaction.date).toISOString().split('T')[0],
-      });
-    } else {
-      // Reset form for new transaction
-      setFormData({
-        type: 'INCOME',
-        amount: '',
-        description: '',
-        category: '',
-        paymentMethod: 'CASH',
-        reference: '',
-        date: new Date().toISOString().split('T')[0],
-      });
+    if (isOpen) {
+      if (transaction) {
+        // Edit mode: pre-fill with transaction data
+        setFormData({
+          type: transaction.type,
+          amount: transaction.amount.toString(),
+          description: transaction.description || '',
+          category: transaction.category || '',
+          paymentMethod: transaction.paymentMethod,
+          reference: transaction.reference || '',
+          date: new Date(transaction.date).toISOString().split('T')[0],
+        });
+      } else {
+        // Add mode: reset to empty form with defaults
+        setFormData({
+          type: 'INCOME',
+          amount: '',
+          description: '',
+          category: '',
+          paymentMethod: 'CASH',
+          reference: '',
+          date: new Date().toISOString().split('T')[0],
+        });
+      }
+      setFormattedAmount(''); // Clear formatted amount display
     }
-  }, [transaction]);
+  }, [isOpen, transaction]);
 
   // Format amount display
   useEffect(() => {

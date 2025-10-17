@@ -57,12 +57,6 @@ export function ProductFilters({
     <div className="space-y-4">
       {/* Header with Search and Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-        <div>
-          <h2 className="text-lg sm:text-xl font-bold text-gray-900">Daftar Produk</h2>
-          <p className="text-xs text-gray-500 mt-1">
-            Menampilkan {filteredCount} dari {totalProducts} produk
-          </p>
-        </div>
         
         <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
           {/* Search Input */}

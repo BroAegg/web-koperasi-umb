@@ -106,11 +106,11 @@ export default function FinancialPage() {
         setDailySummary({
           date: selectedDate,
           totalIncome: result.data.totalRevenue,
-          totalExpense: result.data.totalCOGS,
+          totalExpense: result.data.totalExpense, // ✅ FIXED: Use actual expense (not COGS)
           netIncome: result.data.totalProfit,
           transactionCount: result.data.totalSoldItems,
           toko: result.data.toko || { revenue: 0, cogs: 0, profit: 0 },
-          consignment: result.data.consignment || { grossRevenue: 0, cogs: 0, profit: 0, feeTotal: 0 },
+          consignment: result.data.consignment || { grossRevenue: 0, cogs: 0, profit: 0 },
         });
       }
     } catch (err) {

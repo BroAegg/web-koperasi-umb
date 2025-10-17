@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -25,6 +25,7 @@ import {
   X,
   ChevronLeft,
   ChevronRight,
+  ChevronDown,
   Phone,
   Edit,
   Trash2,
@@ -64,6 +65,7 @@ export default function InventoryPage() {
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [financialPeriod, setFinancialPeriod] = useState<FinancialPeriod>('today');
   const [isCustomDate, setIsCustomDate] = useState(false);
+  const [showPeriodDropdown, setShowPeriodDropdown] = useState(false);
   
   // Modal State
   const [showAddModal, setShowAddModal] = useState(false);
@@ -72,6 +74,9 @@ export default function InventoryPage() {
   const [showAllMovementsModal, setShowAllMovementsModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  
+  // Refs
+  const dropdownRef = useRef<HTMLDivElement>(null);
   
   // Loading State
   const [loading, setLoading] = useState(true);
@@ -114,7 +119,7 @@ export default function InventoryPage() {
     sku: '',
     buyPrice: '',
     sellPrice: '',
-    stock: '0',
+    stock: '',
     threshold: '5',
     unit: 'pcs',
     ownershipType: 'TOKO',
@@ -128,6 +133,23 @@ export default function InventoryPage() {
 
   // Global notifications
   const { success, error, warning } = useNotification();
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setShowPeriodDropdown(false);
+      }
+    };
+    
+    if (showPeriodDropdown) {
+      document.addEventListener('mousedown', handleClickOutside);
+    }
+    
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, [showPeriodDropdown]);
 
   useEffect(() => {
     fetchProducts();
@@ -638,70 +660,121 @@ export default function InventoryPage() {
               {/* Period Dropdown & Calendar */}
               <div className="flex items-center gap-2">
                 <span className="text-xs text-gray-600 font-medium hidden sm:inline">Periode:</span>
-                <div className="flex items-center rounded-lg border border-blue-200 bg-white shadow-sm overflow-hidden relative">
-                  {/* Display current period or custom date */}
-                  <div className="px-3 py-1.5 text-xs font-medium text-gray-700 pointer-events-none">
-                    {(() => {
-                      if (isCustomDate) {
-                        // Custom date selected - show formatted date
-                        return new Date(selectedDate).toLocaleDateString('id-ID', { 
-                          day: 'numeric', 
-                          month: 'short', 
-                          year: 'numeric' 
-                        });
-                      }
-                      // Show period name
-                      if (financialPeriod === 'today') return 'Hari Ini';
-                      if (financialPeriod === '7days') return '7 Hari';
-                      if (financialPeriod === '1month') return '1 Bulan';
-                      if (financialPeriod === '3months') return '3 Bulan';
-                      if (financialPeriod === '6months') return '6 Bulan';
-                      if (financialPeriod === '1year') return '1 Tahun';
-                      return 'Hari Ini';
-                    })()}
-                  </div>
-                  <select
-                    value={isCustomDate ? 'custom' : financialPeriod}
-                    onChange={(e) => {
-                      const newPeriod = e.target.value as any;
-                      if (newPeriod === 'custom') return; // Ignore if custom is selected
-                      
-                      setFinancialPeriod(newPeriod);
-                      setIsCustomDate(false); // Clear custom date mode
-                      // Reset to actual today's date when "Hari Ini" is selected
-                      if (newPeriod === 'today') {
-                        setSelectedDate(new Date().toISOString().split('T')[0]);
-                      }
-                    }}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                
+                {/* Period Selector Button with Dropdown */}
+                <div className="relative" ref={dropdownRef}>
+                  <button
+                    onClick={() => setShowPeriodDropdown(!showPeriodDropdown)}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-blue-200 bg-white shadow-sm hover:bg-blue-50 transition-colors"
                   >
-                    <option value="today">Hari Ini</option>
-                    <option value="7days">7 Hari</option>
-                    <option value="1month">1 Bulan</option>
-                    <option value="3months">3 Bulan</option>
-                    <option value="6months">6 Bulan</option>
-                    <option value="1year">1 Tahun</option>
-                  </select>
+                    <span className="text-xs font-medium text-gray-700">
+                      {(() => {
+                        if (isCustomDate) {
+                          return new Date(selectedDate).toLocaleDateString('id-ID', { 
+                            day: 'numeric', 
+                            month: 'short', 
+                            year: 'numeric' 
+                          });
+                        }
+                        if (financialPeriod === 'today') return 'Hari Ini';
+                        if (financialPeriod === '7days') return '7 Hari';
+                        if (financialPeriod === '1month') return '1 Bulan';
+                        if (financialPeriod === '3months') return '3 Bulan';
+                        if (financialPeriod === '6months') return '6 Bulan';
+                        if (financialPeriod === '1year') return '1 Tahun';
+                        return 'Hari Ini';
+                      })()}
+                    </span>
+                    <ChevronDown className={`h-3.5 w-3.5 text-gray-500 transition-transform ${showPeriodDropdown ? 'rotate-180' : ''}`} />
+                  </button>
                   
-                  {/* Calendar Date Input - Hidden behind icon */}
-                  <div className="relative">
-                    <input
-                      type="date"
-                      value={selectedDate}
-                      onChange={(e) => {
-                        setSelectedDate(e.target.value);
-                        setIsCustomDate(true); // Mark as custom date
-                        setSelectedRange(null); // Clear any range selection
-                      }}
-                      className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
-                    />
-                    <button 
-                      type="button"
-                      className="px-2.5 py-1.5 border-l border-blue-100 text-gray-600 hover:bg-blue-50 transition-colors pointer-events-none"
-                    >
-                      <Calendar className="h-3.5 w-3.5" />
-                    </button>
-                  </div>
+                  {/* Dropdown Menu */}
+                  {showPeriodDropdown && (
+                    <div className="absolute top-full mt-1 right-0 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50 min-w-[140px]">
+                      <button
+                        onClick={() => {
+                          setFinancialPeriod('today');
+                          setIsCustomDate(false);
+                          setSelectedDate(new Date().toISOString().split('T')[0]);
+                          setShowPeriodDropdown(false);
+                        }}
+                        className={`w-full text-left px-4 py-2 text-sm hover:bg-blue-50 transition-colors ${financialPeriod === 'today' && !isCustomDate ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'}`}
+                      >
+                        Hari Ini
+                      </button>
+                      <button
+                        onClick={() => {
+                          setFinancialPeriod('7days');
+                          setIsCustomDate(false);
+                          setShowPeriodDropdown(false);
+                        }}
+                        className={`w-full text-left px-4 py-2 text-sm hover:bg-blue-50 transition-colors ${financialPeriod === '7days' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'}`}
+                      >
+                        7 Hari
+                      </button>
+                      <button
+                        onClick={() => {
+                          setFinancialPeriod('1month');
+                          setIsCustomDate(false);
+                          setShowPeriodDropdown(false);
+                        }}
+                        className={`w-full text-left px-4 py-2 text-sm hover:bg-blue-50 transition-colors ${financialPeriod === '1month' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'}`}
+                      >
+                        1 Bulan
+                      </button>
+                      <button
+                        onClick={() => {
+                          setFinancialPeriod('3months');
+                          setIsCustomDate(false);
+                          setShowPeriodDropdown(false);
+                        }}
+                        className={`w-full text-left px-4 py-2 text-sm hover:bg-blue-50 transition-colors ${financialPeriod === '3months' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'}`}
+                      >
+                        3 Bulan
+                      </button>
+                      <button
+                        onClick={() => {
+                          setFinancialPeriod('6months');
+                          setIsCustomDate(false);
+                          setShowPeriodDropdown(false);
+                        }}
+                        className={`w-full text-left px-4 py-2 text-sm hover:bg-blue-50 transition-colors ${financialPeriod === '6months' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'}`}
+                      >
+                        6 Bulan
+                      </button>
+                      <button
+                        onClick={() => {
+                          setFinancialPeriod('1year');
+                          setIsCustomDate(false);
+                          setShowPeriodDropdown(false);
+                        }}
+                        className={`w-full text-left px-4 py-2 text-sm hover:bg-blue-50 transition-colors ${financialPeriod === '1year' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'}`}
+                      >
+                        1 Tahun
+                      </button>
+                    </div>
+                  )}
+                </div>
+                
+                {/* Calendar Button */}
+                <div className="relative">
+                  <input
+                    type="date"
+                    value={selectedDate}
+                    onChange={(e) => {
+                      setSelectedDate(e.target.value);
+                      setIsCustomDate(true);
+                      setSelectedRange(null);
+                    }}
+                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                    title="Pilih tanggal"
+                  />
+                  <button 
+                    className="px-2.5 py-1.5 rounded-lg border border-blue-200 bg-white text-gray-600 hover:bg-blue-50 transition-colors shadow-sm"
+                    title="Pilih tanggal"
+                  >
+                    <Calendar className="h-3.5 w-3.5" />
+                  </button>
                 </div>
               </div>
             </div>

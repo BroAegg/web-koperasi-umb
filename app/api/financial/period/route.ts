@@ -63,33 +63,29 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    // Get all transaction items within the period
-    const transactionItems = await prisma.transactionItem.findMany({
+    // Get all transactions within the period
+    const transactions = await prisma.transaction.findMany({
       where: {
-        createdAt: {
+        date: {
           gte: startDate,
           lte: endDate,
         },
-        transaction: {
-          status: 'COMPLETED',
-        },
+        status: 'COMPLETED',
       },
       include: {
-        product: {
-          select: {
-            id: true,
-            name: true,
-            sellPrice: true,
-            avgCost: true,
-            buyPrice: true,
-            isConsignment: true,
-            ownershipType: true,
-          },
-        },
-        transaction: {
-          select: {
-            status: true,
-            type: true,
+        items: {
+          include: {
+            product: {
+              select: {
+                id: true,
+                name: true,
+                sellPrice: true,
+                avgCost: true,
+                buyPrice: true,
+                isConsignment: true,
+                ownershipType: true,
+              },
+            },
           },
         },
       },
@@ -99,6 +95,7 @@ export async function GET(request: NextRequest) {
     let totalRevenue = 0;
     let totalCOGS = 0;
     let totalSoldItems = 0;
+    let totalExpense = 0; // Actual expenses
 
     // Toko (store-owned) breakdown
     let tokoRevenue = 0;
@@ -107,30 +104,48 @@ export async function GET(request: NextRequest) {
     // Consignment breakdown (gross revenue and profit from consignment sales)
     let consignmentGrossRevenue = 0;
     let consignmentCOGS = 0;
-    let consignmentFeeTotal = 0; // placeholder for future: actual fee paid to consignors (if tracked separately)
 
-    transactionItems.forEach(item => {
-      if (item.transaction.type === 'SALE') {
-        const itemRevenue = Number(item.totalPrice);
-        const itemCOGS = Number(item.totalCogs || 0);
-        totalRevenue += itemRevenue;
-        totalCOGS += itemCOGS;
-        totalSoldItems += item.quantity;
+    transactions.forEach(transaction => {
+      const amount = Number(transaction.totalAmount);
 
-        // Determine ownership: product.ownershipType OR product.isConsignment
-        const isConsignment = item.product?.isConsignment || item.product?.ownershipType === 'TITIPAN';
+      if (transaction.type === 'SALE') {
+        // Process sale items
+        transaction.items?.forEach(item => {
+          const itemRevenue = Number(item.totalPrice);
+          const itemCOGS = Number(item.totalCogs || 0);
+          totalRevenue += itemRevenue;
+          totalCOGS += itemCOGS;
+          totalSoldItems += item.quantity;
 
-        if (isConsignment) {
-          // Consignment product sold: koperasi earns margin profit (sellPrice - COGS)
-          // COGS = amount paid to consignor (buyPrice/avgCost)
-          // Profit = sellPrice - COGS goes to koperasi
-          consignmentGrossRevenue += itemRevenue;
-          consignmentCOGS += itemCOGS;
-        } else {
-          // Store-owned product: full revenue and COGS count towards toko profit
-          tokoRevenue += itemRevenue;
-          tokoCOGS += itemCOGS;
-        }
+          // Determine ownership: product.ownershipType OR product.isConsignment
+          const isConsignment = item.product?.isConsignment || item.product?.ownershipType === 'TITIPAN';
+
+          if (isConsignment) {
+            // Consignment product sold: COGS is expense (payment to consignor)
+            consignmentGrossRevenue += itemRevenue;
+            consignmentCOGS += itemCOGS;
+            totalExpense += itemCOGS; // TITIPAN COGS = expense
+          } else {
+            // Store-owned product: revenue only, no expense at sale
+            tokoRevenue += itemRevenue;
+            tokoCOGS += itemCOGS; // For profit calc, but NOT counted as expense
+          }
+        });
+      } else if (transaction.type === 'PURCHASE') {
+        // PURCHASE: expense only for TOKO products
+        transaction.items?.forEach(item => {
+          const isToko = item.product?.ownershipType === 'TOKO' || 
+                        item.product?.isConsignment === false;
+          if (isToko) {
+            totalExpense += Number(item.totalPrice || 0);
+          }
+        });
+      } else if (transaction.type === 'EXPENSE') {
+        // Manual expense transactions
+        totalExpense += amount;
+      } else if (transaction.type === 'INCOME') {
+        // Manual income transactions
+        totalRevenue += amount;
       }
     });
 
@@ -150,9 +165,10 @@ export async function GET(request: NextRequest) {
         totalRevenue,
         totalProfit,
         totalCOGS,
+        totalExpense, // NEW: Actual expenses (TITIPAN COGS + manual EXPENSE + TOKO PURCHASE)
         totalSoldItems,
         profitMargin,
-        transactionCount: transactionItems.length,
+        transactionCount: transactions.length,
 
         // new breakdown
         toko: {
@@ -164,7 +180,6 @@ export async function GET(request: NextRequest) {
           grossRevenue: consignmentGrossRevenue,
           cogs: consignmentCOGS,
           profit: consignmentProfit,
-          feeTotal: consignmentFeeTotal, // placeholder for future consignor fee tracking
         },
       },
     });
