@@ -3,6 +3,12 @@ import { X, Plus, Edit, Package, Search, Phone, Hash, AlertTriangle } from 'luci
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Product, Category, Supplier, ProductFormData } from '@/types/inventory';
+import { 
+  formatPriceInput, 
+  parsePrice, 
+  validatePrices as validatePriceHelper, 
+  calculateMargin 
+} from '@/lib/inventory-helpers';
 
 interface ProductModalProps {
   isOpen: boolean;
@@ -60,32 +66,9 @@ export default function ProductModal({
   const [showSupplierDropdown, setShowSupplierDropdown] = useState(false);
   const [priceError, setPriceError] = useState('');
 
-  const formatPriceInput = (value: string) => {
-    const numbers = value.replace(/[^0-9]/g, '');
-    return numbers ? parseInt(numbers).toLocaleString('id-ID') : '';
-  };
-
-  const parsePrice = (formatted: string): number => {
-    return parseInt(formatted.replace(/\./g, '')) || 0;
-  };
-
   const validatePrices = (buyPrice: string, sellPrice: string) => {
-    const buy = parsePrice(buyPrice);
-    const sell = parsePrice(sellPrice);
-    
-    if (buy > 0 && sell > 0 && sell <= buy) {
-      setPriceError('Harga jual harus lebih besar dari harga beli');
-    } else {
-      setPriceError('');
-    }
-  };
-
-  const calculateMargin = (buyPrice: string, sellPrice: string) => {
-    const buy = parsePrice(buyPrice);
-    const sell = parsePrice(sellPrice);
-    const margin = sell - buy;
-    const marginPercent = buy > 0 ? ((margin / buy) * 100) : 0;
-    return { margin, marginPercent };
+    const error = validatePriceHelper(buyPrice, sellPrice);
+    setPriceError(error);
   };
 
   const handleSubmit = (e: React.FormEvent) => {

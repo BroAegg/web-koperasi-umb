@@ -3,6 +3,7 @@ import { X, Plus, Minus, BarChart3, Package, Trash2, TrendingUp } from 'lucide-r
 import { Button } from '@/components/ui/button';
 import { Product, StockMovement, DailySummary } from '@/types/inventory';
 import { formatCurrency } from '@/lib/utils';
+import { calculateProfitMetrics } from '@/lib/inventory-helpers';
 
 interface AllMovementsModalProps {
   isOpen: boolean;
@@ -104,9 +105,7 @@ export default function AllMovementsModal({
                 const product = products.find(p => p.id === movement.productId);
                 const costPrice = product?.avgCost || product?.buyPrice || 0;
                 const sellPrice = product?.sellPrice || 0;
-                const profitPerUnit = sellPrice - costPrice;
-                const profitMargin = costPrice > 0 ? (profitPerUnit / costPrice) * 100 : 0;
-                const totalProfit = profitPerUnit * Math.abs(movement.quantity);
+                const { profitPerUnit, profitMargin, totalProfit } = calculateProfitMetrics(sellPrice, costPrice, movement.quantity);
                 
                 return (
                   <div key={movement.id} className="flex items-start gap-4 p-4 bg-gray-50 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors">

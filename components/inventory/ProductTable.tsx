@@ -3,6 +3,7 @@ import { Eye, Edit, Package, Trash2, AlertTriangle } from 'lucide-react';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
 import { Product } from '@/types/inventory';
+import { formatCurrency } from '@/lib/inventory-helpers';
 
 interface ProductTableProps {
   products: Product[];
@@ -21,14 +22,6 @@ export default function ProductTable({
   onStockUpdate,
   onDelete
 }: ProductTableProps) {
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
-      style: 'currency',
-      currency: 'IDR',
-      minimumFractionDigits: 0,
-    }).format(amount);
-  };
-
   return (
     <div className="overflow-x-auto">
       <Table>
