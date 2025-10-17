@@ -101,9 +101,44 @@ export async function POST(request: NextRequest) {
       supplierContact,
     } = body;
 
+    // Validate required fields
     if (!name || !categoryId || !sellPrice) {
       return NextResponse.json(
         { success: false, error: 'Missing required fields' },
+        { status: 400 }
+      );
+    }
+
+    // Validate and parse stock
+    let stockValue = 0;
+    try {
+      stockValue = parseInt(stock?.toString() || '0');
+      if (isNaN(stockValue) || stockValue < 0) {
+        stockValue = 0;
+      }
+    } catch (e) {
+      stockValue = 0;
+    }
+
+    // Validate and parse threshold
+    let thresholdValue = 5;
+    try {
+      thresholdValue = parseInt(threshold?.toString() || '5');
+      if (isNaN(thresholdValue) || thresholdValue < 0) {
+        thresholdValue = 5;
+      }
+    } catch (e) {
+      thresholdValue = 5;
+    }
+
+    // Validate category exists
+    const categoryExists = await prisma.category.findUnique({
+      where: { id: categoryId },
+    });
+
+    if (!categoryExists) {
+      return NextResponse.json(
+        { success: false, error: 'Kategori tidak ditemukan' },
         { status: 400 }
       );
     }
@@ -144,8 +179,8 @@ export async function POST(request: NextRequest) {
         buyPrice: buyPrice ? new Decimal(buyPrice) : null,
         sellPrice: new Decimal(sellPrice),
         avgCost: buyPrice ? new Decimal(buyPrice) : null, // Initial avgCost
-        stock: parseInt(stock.toString()),
-        threshold: parseInt(threshold.toString()),
+        stock: stockValue,
+        threshold: thresholdValue,
         unit,
         isActive,
         ownershipType,
@@ -161,7 +196,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Create initial stock movement if stock > 0
-    if (stock > 0) {
+    if (stockValue > 0) {
       // For consignment products, use avgCost or sellPrice * 0.7 as unit cost estimate
       let unitCostValue = buyPrice ? new Decimal(buyPrice) : null;
       if (ownershipType === 'TITIPAN' && !unitCostValue) {
@@ -189,8 +224,39 @@ export async function POST(request: NextRequest) {
         sellPrice: Number(product.sellPrice),
       },
     }, { status: 201 });
-  } catch (error) {
+  } catch (error: any) {
     console.error('Error creating product:', error);
+    
+    // Handle specific Prisma errors
+    if (error.code === 'P2002') {
+      return NextResponse.json(
+        { success: false, error: 'Produk dengan data yang sama sudah ada' },
+        { status: 409 }
+      );
+    }
+    
+    if (error.code === 'P2003') {
+      return NextResponse.json(
+        { success: false, error: 'Data relasi tidak valid (kategori atau supplier tidak ditemukan)' },
+        { status: 400 }
+      );
+    }
+    
+    if (error.code === 'P2025') {
+      return NextResponse.json(
+        { success: false, error: 'Data tidak ditemukan' },
+        { status: 404 }
+      );
+    }
+    
+    // Handle validation errors
+    if (error.name === 'PrismaClientValidationError') {
+      return NextResponse.json(
+        { success: false, error: 'Data tidak valid. Pastikan semua field diisi dengan benar.' },
+        { status: 400 }
+      );
+    }
+
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }
