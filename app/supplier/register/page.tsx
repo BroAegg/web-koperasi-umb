@@ -6,7 +6,7 @@ import Link from "next/link";
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { Building2, User, Mail, Phone, MapPin, Package, FileText, CheckCircle, Lock, Eye, EyeOff } from 'lucide-react';
+import { Building2, User, Mail, Phone, MapPin, Package, FileText, CheckCircle, Lock, Eye, EyeOff, Upload, CreditCard, Smartphone, X } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 
 export default function SupplierRegisterPage() {
@@ -23,8 +23,11 @@ export default function SupplierRegisterPage() {
     address: '',
     description: '',
     password: '',
-    confirmPassword: ''
+    confirmPassword: '',
+    paymentMethod: 'TRANSFER_BANK',
   });
+  const [paymentProof, setPaymentProof] = useState<File | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string>('');
   const [error, setError] = useState('');
 
   const categories = [
@@ -35,6 +38,33 @@ export default function SupplierRegisterPage() {
     'Snack & Makanan Ringan',
     'Lainnya'
   ];
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      setError('File harus berupa gambar (JPG, PNG, WebP)');
+      return;
+    }
+
+    // Validate file size (max 5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setError('Ukuran file maksimal 5MB');
+      return;
+    }
+
+    setPaymentProof(file);
+    setError('');
+
+    // Create preview
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      setPreviewUrl(reader.result as string);
+    };
+    reader.readAsDataURL(file);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,26 +81,31 @@ export default function SupplierRegisterPage() {
       return;
     }
 
+    if (!paymentProof) {
+      setError('Silakan upload bukti pembayaran');
+      return;
+    }
+
     setIsLoading(true);
 
     try {
-      console.log('Submitting supplier registration:', { ...formData, password: '[REDACTED]' });
+      console.log('Submitting supplier registration with payment proof');
+
+      // Create FormData for file upload
+      const formDataToSend = new FormData();
+      formDataToSend.append('name', formData.name);
+      formDataToSend.append('email', formData.email);
+      formDataToSend.append('phone', formData.phone);
+      formDataToSend.append('category', formData.category);
+      formDataToSend.append('address', formData.address);
+      formDataToSend.append('description', formData.description);
+      formDataToSend.append('password', formData.password);
+      formDataToSend.append('paymentMethod', formData.paymentMethod);
+      formDataToSend.append('paymentProof', paymentProof);
 
       const res = await fetch('/api/suppliers/register', {
         method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify({
-          name: formData.name,
-          email: formData.email,
-          phone: formData.phone,
-          category: formData.category,
-          address: formData.address,
-          description: formData.description,
-          password: formData.password
-        }),
+        body: formDataToSend, // Use FormData instead of JSON
       });
 
       console.log('Response status:', res.status);
@@ -336,14 +371,128 @@ export default function SupplierRegisterPage() {
                     </div>
                   </div>
 
+                  {/* 8. Pembayaran Biaya Pendaftaran */}
+                  <div className="border-t border-gray-200 pt-4 mt-4">
+                    <h3 className="text-sm font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                      <CreditCard className="w-5 h-5 text-blue-600" />
+                      Pembayaran Biaya Pendaftaran
+                    </h3>
+                    
+                    <div className="bg-blue-50 rounded-lg p-4 mb-4">
+                      <p className="text-sm text-gray-700 mb-2">
+                        <span className="font-semibold">Biaya Pendaftaran:</span> Rp 25.000 / bulan
+                      </p>
+                      <p className="text-xs text-gray-600">
+                        Silakan transfer ke salah satu rekening berikut dan upload bukti transfer.
+                      </p>
+                    </div>
+
+                    {/* Payment Method Selection */}
+                    <div className="space-y-3 mb-4">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Metode Pembayaran
+                      </label>
+                      
+                      <div className="space-y-2">
+                        <label className="flex items-center p-3 border-2 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
+                          style={{ borderColor: formData.paymentMethod === 'TRANSFER_BANK' ? '#3b82f6' : '#e5e7eb' }}>
+                          <input
+                            type="radio"
+                            name="paymentMethod"
+                            value="TRANSFER_BANK"
+                            checked={formData.paymentMethod === 'TRANSFER_BANK'}
+                            onChange={(e) => setFormData({...formData, paymentMethod: e.target.value})}
+                            className="w-4 h-4 text-blue-600"
+                          />
+                          <CreditCard className="w-5 h-5 ml-3 text-gray-600" />
+                          <div className="ml-3 flex-1">
+                            <p className="text-sm font-medium text-gray-900">Transfer Bank</p>
+                            <p className="text-xs text-gray-500">BRI: 1234-5678-9012-3456 a.n. Koperasi UMB</p>
+                          </div>
+                        </label>
+
+                        <label className="flex items-center p-3 border-2 rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
+                          style={{ borderColor: formData.paymentMethod === 'E_WALLET' ? '#3b82f6' : '#e5e7eb' }}>
+                          <input
+                            type="radio"
+                            name="paymentMethod"
+                            value="E_WALLET"
+                            checked={formData.paymentMethod === 'E_WALLET'}
+                            onChange={(e) => setFormData({...formData, paymentMethod: e.target.value})}
+                            className="w-4 h-4 text-blue-600"
+                          />
+                          <Smartphone className="w-5 h-5 ml-3 text-gray-600" />
+                          <div className="ml-3 flex-1">
+                            <p className="text-sm font-medium text-gray-900">E-Wallet / QRIS</p>
+                            <p className="text-xs text-gray-500">GoPay, OVO, Dana: 0812-3456-7890</p>
+                          </div>
+                        </label>
+                      </div>
+                    </div>
+
+                    {/* Payment Proof Upload */}
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium text-gray-700">
+                        Upload Bukti Transfer <span className="text-red-500">*</span>
+                      </label>
+                      
+                      <div className="flex items-center justify-center w-full">
+                        <label className="flex flex-col items-center justify-center w-full h-32 border-2 border-dashed rounded-lg cursor-pointer hover:bg-gray-50 transition-colors"
+                          style={{ borderColor: paymentProof ? '#3b82f6' : '#e5e7eb' }}>
+                          <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                            <Upload className={`w-8 h-8 mb-2 ${paymentProof ? 'text-blue-600' : 'text-gray-400'}`} />
+                            <p className="mb-1 text-sm text-gray-600">
+                              {paymentProof ? (
+                                <span className="font-medium text-blue-600">{paymentProof.name}</span>
+                              ) : (
+                                <>
+                                  <span className="font-semibold">Klik untuk upload</span> atau drag & drop
+                                </>
+                              )}
+                            </p>
+                            <p className="text-xs text-gray-500">PNG, JPG, WebP (Max 5MB)</p>
+                          </div>
+                          <input 
+                            type="file" 
+                            className="hidden" 
+                            accept="image/*"
+                            onChange={handleFileChange}
+                            required
+                          />
+                        </label>
+                      </div>
+
+                      {/* Preview Image */}
+                      {previewUrl && (
+                        <div className="mt-3 relative">
+                          <img 
+                            src={previewUrl} 
+                            alt="Preview bukti transfer" 
+                            className="w-full h-48 object-contain rounded-lg border border-gray-200"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setPaymentProof(null);
+                              setPreviewUrl('');
+                            }}
+                            className="absolute top-2 right-2 bg-red-500 text-white p-1 rounded-full hover:bg-red-600 transition-colors"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
                   <div className="space-y-3 pt-2">
                     <Button
                       type="submit"
                       className="w-full text-base py-3"
                       loading={isLoading}
-                      disabled={isLoading || !formData.name || !formData.email || !formData.phone || !formData.category || !formData.address || !formData.password || !formData.confirmPassword}
+                      disabled={isLoading || !formData.name || !formData.email || !formData.phone || !formData.category || !formData.address || !formData.password || !formData.confirmPassword || !paymentProof}
                     >
-                      {isLoading ? 'Memproses...' : 'Daftar Sekarang'}
+                      {isLoading ? 'Memproses Pendaftaran...' : 'Daftar & Kirim Bukti Pembayaran'}
                     </Button>
                   </div>
                 </form>

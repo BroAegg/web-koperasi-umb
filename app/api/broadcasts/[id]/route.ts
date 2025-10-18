@@ -10,10 +10,10 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const broadcast = await prisma.broadcast.findUnique({
+    const broadcast = await prisma.broadcasts.findUnique({
       where: { id },
       include: {
-        createdBy: {
+        users: {
           select: {
             id: true,
             name: true,
@@ -61,7 +61,7 @@ export async function PUT(
     } = body;
 
     // Check if broadcast exists
-    const existingBroadcast = await prisma.broadcast.findUnique({
+    const existingBroadcast = await prisma.broadcasts.findUnique({
       where: { id },
     });
 
@@ -85,15 +85,15 @@ export async function PUT(
     
     if (targetAudience && targetAudience !== existingBroadcast.targetAudience) {
       if (targetAudience.toUpperCase() === 'ALL') {
-        totalRecipients = await prisma.member.count({
+        totalRecipients = await prisma.members.count({
           where: { status: 'ACTIVE' },
         });
       } else if (targetAudience.toUpperCase() === 'ACTIVE_MEMBERS') {
-        totalRecipients = await prisma.member.count({
+        totalRecipients = await prisma.members.count({
           where: { status: 'ACTIVE' },
         });
       } else if (targetAudience.toUpperCase() === 'UNIT_SPECIFIC' && unitTarget) {
-        totalRecipients = await prisma.member.count({
+        totalRecipients = await prisma.members.count({
           where: { 
             status: 'ACTIVE',
             unitKerja: unitTarget,
@@ -102,7 +102,7 @@ export async function PUT(
       }
     }
 
-    const broadcast = await prisma.broadcast.update({
+    const broadcast = await prisma.broadcasts.update({
       where: { id },
       data: {
         title: title || existingBroadcast.title,
@@ -114,7 +114,7 @@ export async function PUT(
         totalRecipients,
       },
       include: {
-        createdBy: {
+        users: {
           select: {
             id: true,
             name: true,
@@ -146,7 +146,7 @@ export async function DELETE(
   try {
     const { id } = await params;
     // Check if broadcast exists
-    const existingBroadcast = await prisma.broadcast.findUnique({
+    const existingBroadcast = await prisma.broadcasts.findUnique({
       where: { id },
     });
 
@@ -165,7 +165,7 @@ export async function DELETE(
       );
     }
 
-    await prisma.broadcast.delete({
+    await prisma.broadcasts.delete({
       where: { id },
     });
 

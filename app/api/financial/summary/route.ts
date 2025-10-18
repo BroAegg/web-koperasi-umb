@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
     endDate.setDate(endDate.getDate() + 1);
 
     // Get transactions for the specified date
-    const transactions = await prisma.transaction.findMany({
+    const transactions = await prisma.transactions.findMany({
       where: {
         createdAt: {
           gte: startDate,
@@ -30,9 +30,9 @@ export async function GET(request: NextRequest) {
         status: 'COMPLETED',
       },
       include: {
-        items: {
+        transaction_items: {
           include: {
-            product: {
+            products: {
               select: {
                 ownershipType: true,
                 isConsignment: true,
@@ -57,10 +57,10 @@ export async function GET(request: NextRequest) {
         // SALE: Count COGS as expense ONLY for TITIPAN products
         // (because we pay the consignor when item is sold)
         // TOKO products: expense already counted on PURCHASE
-        if (transaction.items && transaction.items.length > 0) {
-          transaction.items.forEach(item => {
-            const isTitipan = item.product?.ownershipType === 'TITIPAN' || 
-                             item.product?.isConsignment === true;
+        if (transaction.transaction_items && transaction.transaction_items.length > 0) {
+          transaction.transaction_items.forEach(item => {
+            const isTitipan = item.products?.ownershipType === 'TITIPAN' || 
+                             item.products?.isConsignment === true;
             if (isTitipan) {
               // For consignment: COGS is payment to consignor (expense)
               totalExpense += Number(item.totalCogs || 0);
@@ -75,11 +75,11 @@ export async function GET(request: NextRequest) {
         // PURCHASE: Count as expense ONLY for TOKO products
         // (our capital/modal spent to buy inventory)
         // TITIPAN products: not our money, no expense until sold
-        if (transaction.items && transaction.items.length > 0) {
-          transaction.items.forEach(item => {
-            const isToko = item.product?.ownershipType === 'TOKO' || 
-                          item.product?.isConsignment === false ||
-                          !item.product?.isConsignment;
+        if (transaction.transaction_items && transaction.transaction_items.length > 0) {
+          transaction.transaction_items.forEach(item => {
+            const isToko = item.products?.ownershipType === 'TOKO' || 
+                          item.products?.isConsignment === false ||
+                          !item.products?.isConsignment;
             if (isToko) {
               // For store-owned: Purchase cost is our expense (modal)
               totalExpense += Number(item.totalPrice || 0);
@@ -104,7 +104,7 @@ export async function GET(request: NextRequest) {
     const weekStartDate = new Date(startDate);
     weekStartDate.setDate(weekStartDate.getDate() - 6);
 
-    const weeklyTransactions = await prisma.transaction.findMany({
+    const weeklyTransactions = await prisma.transactions.findMany({
       where: {
         createdAt: {
           gte: weekStartDate,
@@ -113,9 +113,9 @@ export async function GET(request: NextRequest) {
         status: 'COMPLETED',
       },
       include: {
-        items: {
+        transaction_items: {
           include: {
-            product: {
+            products: {
               select: {
                 ownershipType: true,
                 isConsignment: true,
@@ -134,10 +134,10 @@ export async function GET(request: NextRequest) {
       
       if (transaction.type === 'SALE') {
         weeklyIncome += amount;
-        if (transaction.items && transaction.items.length > 0) {
-          transaction.items.forEach(item => {
-            const isTitipan = item.product?.ownershipType === 'TITIPAN' || 
-                             item.product?.isConsignment === true;
+        if (transaction.transaction_items && transaction.transaction_items.length > 0) {
+          transaction.transaction_items.forEach(item => {
+            const isTitipan = item.products?.ownershipType === 'TITIPAN' || 
+                             item.products?.isConsignment === true;
             if (isTitipan) {
               weeklyExpense += Number(item.totalCogs || 0);
             }
@@ -146,11 +146,11 @@ export async function GET(request: NextRequest) {
       } else if (transaction.type === 'INCOME') {
         weeklyIncome += amount;
       } else if (transaction.type === 'PURCHASE') {
-        if (transaction.items && transaction.items.length > 0) {
-          transaction.items.forEach(item => {
-            const isToko = item.product?.ownershipType === 'TOKO' || 
-                          item.product?.isConsignment === false ||
-                          !item.product?.isConsignment;
+        if (transaction.transaction_items && transaction.transaction_items.length > 0) {
+          transaction.transaction_items.forEach(item => {
+            const isToko = item.products?.ownershipType === 'TOKO' || 
+                          item.products?.isConsignment === false ||
+                          !item.products?.isConsignment;
             if (isToko) {
               weeklyExpense += Number(item.totalPrice || 0);
             }
@@ -167,7 +167,7 @@ export async function GET(request: NextRequest) {
     const monthStartDate = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
     const monthEndDate = new Date(startDate.getFullYear(), startDate.getMonth() + 1, 1);
 
-    const monthlyTransactions = await prisma.transaction.findMany({
+    const monthlyTransactions = await prisma.transactions.findMany({
       where: {
         createdAt: {
           gte: monthStartDate,
@@ -176,9 +176,9 @@ export async function GET(request: NextRequest) {
         status: 'COMPLETED',
       },
       include: {
-        items: {
+        transaction_items: {
           include: {
-            product: {
+            products: {
               select: {
                 ownershipType: true,
                 isConsignment: true,
@@ -197,10 +197,10 @@ export async function GET(request: NextRequest) {
       
       if (transaction.type === 'SALE') {
         monthlyIncome += amount;
-        if (transaction.items && transaction.items.length > 0) {
-          transaction.items.forEach(item => {
-            const isTitipan = item.product?.ownershipType === 'TITIPAN' || 
-                             item.product?.isConsignment === true;
+        if (transaction.transaction_items && transaction.transaction_items.length > 0) {
+          transaction.transaction_items.forEach(item => {
+            const isTitipan = item.products?.ownershipType === 'TITIPAN' || 
+                             item.products?.isConsignment === true;
             if (isTitipan) {
               monthlyExpense += Number(item.totalCogs || 0);
             }
@@ -209,11 +209,11 @@ export async function GET(request: NextRequest) {
       } else if (transaction.type === 'INCOME') {
         monthlyIncome += amount;
       } else if (transaction.type === 'PURCHASE') {
-        if (transaction.items && transaction.items.length > 0) {
-          transaction.items.forEach(item => {
-            const isToko = item.product?.ownershipType === 'TOKO' || 
-                          item.product?.isConsignment === false ||
-                          !item.product?.isConsignment;
+        if (transaction.transaction_items && transaction.transaction_items.length > 0) {
+          transaction.transaction_items.forEach(item => {
+            const isToko = item.products?.ownershipType === 'TOKO' || 
+                          item.products?.isConsignment === false ||
+                          !item.products?.isConsignment;
             if (isToko) {
               monthlyExpense += Number(item.totalPrice || 0);
             }

@@ -34,7 +34,7 @@ export async function PUT(request: NextRequest) {
 
     // Check if email is already taken by another user
     if (email !== user.email) {
-      const existingUser = await prisma.user.findUnique({
+      const existingUser = await prisma.users.findUnique({
         where: { email },
       });
 
@@ -47,7 +47,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Update user profile
-    const updatedUser = await prisma.user.update({
+    const updatedUser = await prisma.users.update({
       where: { id: user.id },
       data: {
         name,

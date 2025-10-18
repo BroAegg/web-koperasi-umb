@@ -3,81 +3,158 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useNotification } from '@/lib/notification-context';
 import { formatCurrency } from '@/lib/utils';
-import { Package, Plus, Download, BarChart3, AlertTriangle } from 'lucide-react';
-
-// Import centralized types
 import { 
-  Product, 
-  Category, 
-  Supplier, 
-  StockMovement,
-  ProductFormData,
-  StockFormData,
-  FinancialData,
-  FinancialPeriod,
-  OwnershipFilter,
-  StockCycleFilter
-} from '@/types/inventory';
+  Package, 
+  Plus, 
+  Minus, 
+  TrendingUp, 
+  AlertTriangle, 
+  Search,
+  Download,
+  Eye,
+  Edit,
+  Trash2,
+  BarChart3,
+  X,
+  Hash,
+  DollarSign,
+  Receipt,
+  PiggyBank,
+  Calendar,
+  Phone,
+  ChevronLeft,
+  ChevronRight
+} from 'lucide-react';
 
-// Import extracted components
-import FinancialMetricsCard from '@/components/inventory/FinancialMetricsCard';
-import ProductFilters from '@/components/inventory/ProductFilters';
-import ProductTable from '@/components/inventory/ProductTable';
-import Pagination from '@/components/inventory/Pagination';
-import StockMovementsList from '@/components/inventory/StockMovementsList';
-import ProductModal from '@/components/inventory/ProductModal';
-import StockModal from '@/components/inventory/StockModal';
-import FilterModal from '@/components/inventory/FilterModal';
+interface Product {
+  id: string;
+  name: string;
+  category: {
+    id: string;
+    name: string;
+  };
+  buyPrice: number | null;
+  avgCost: number | null;
+  sellPrice: number;
+  stock: number;
+  threshold: number;
+  unit: string;
+  soldToday: number;
+  totalSold: number;
+  profit: number;
+  ownershipType?: 'TOKO' | 'TITIPAN';
+  stockCycle?: 'HARIAN' | 'MINGGUAN' | 'DUA_MINGGUAN';
+  isConsignment?: boolean;
+  supplierId?: string | null;
+  supplier?: {
+    id: string;
+    name: string;
+    phone?: string;
+    email?: string;
+  };
+  supplierContact?: string;
+}
+
+interface Category {
+  id: string;
+  name: string;
+  description?: string;
+}
+
+interface Supplier {
+  id: string;
+  name: string;
+  code: string;
+  phone?: string;
+  email?: string;
+}
+
+interface StockMovement {
+  id: string;
+  productId: string;
+  movementType?: 'PURCHASE_IN' | 'CONSIGNMENT_IN' | 'SALE_OUT' | 'RETURN_IN' | 'RETURN_OUT' | 'EXPIRED_OUT' | 'ADJUSTMENT';
+  type: "IN" | "OUT" | "ADJUSTMENT"; // Legacy field
+  quantity: number;
+  unitCost?: number;
+  note: string;
+  date: string;
+  createdAt: string;
+  product: {
+    id: string;
+    name: string;
+    unit: string;
+  };
+}
 
 export default function InventoryPage() {
-  // UI State
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("semua");
-  const [selectedOwnership, setSelectedOwnership] = useState<OwnershipFilter>('semua');
-  const [selectedCycle, setSelectedCycle] = useState<StockCycleFilter>('semua');
+  const [selectedOwnership, setSelectedOwnership] = useState<'semua' | 'TOKO' | 'TITIPAN'>('semua');
+  const [selectedCycle, setSelectedCycle] = useState<'semua' | 'HARIAN' | 'MINGGUAN' | 'DUA_MINGGUAN'>('semua');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
-  const [financialPeriod, setFinancialPeriod] = useState<FinancialPeriod>('today');
-  const [isCustomDate, setIsCustomDate] = useState(false);
-  
-  // Modal State
+  const [selectedRange, setSelectedRange] = useState<any>(null);
+  const [financialPeriod, setFinancialPeriod] = useState<'today' | '7days' | '1month' | '3months' | '6months' | '1year'>('today');
   const [showAddModal, setShowAddModal] = useState(false);
   const [showStockModal, setShowStockModal] = useState(false);
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [showAllMovementsModal, setShowAllMovementsModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  
-  // Loading State
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [priceError, setPriceError] = useState('');
   
-  // Data State
   const [products, setProducts] = useState<Product[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [showSupplierDropdown, setShowSupplierDropdown] = useState(false);
   const [stockMovements, setStockMovements] = useState<StockMovement[]>([]);
   const [dailySummary, setDailySummary] = useState({
     totalIn: 0,
     totalOut: 0,
     totalMovements: 0,
   });
-  const [periodFinancialData, setPeriodFinancialData] = useState<FinancialData>({
+  const [periodFinancialData, setPeriodFinancialData] = useState({
     totalRevenue: 0,
     totalProfit: 0,
     totalSoldItems: 0,
-    toko: { revenue: 0, cogs: 0, profit: 0 },
-    consignment: { grossRevenue: 0, cogs: 0, profit: 0, feeTotal: 0 },
+  });
+  const [stockFormData, setStockFormData] = useState({
+    type: 'IN' as 'IN' | 'OUT',
+    quantity: '',
+    note: '',
   });
   
-  // Pagination State
+  // Pagination & Filtering State
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage] = useState(10);
   const [hideOutOfStock, setHideOutOfStock] = useState(false);
 
   // Global notifications
   const { success, error, warning } = useNotification();
+
+  // Form state for new/edit product
+  const [newProduct, setNewProduct] = useState({
+    name: '',
+    description: '',
+    categoryId: '',
+    supplierId: '',
+    supplierName: '',
+    supplierContact: '',
+    sku: '',
+    buyPrice: '',
+    sellPrice: '',
+    stock: '0',
+    threshold: '5',
+    unit: 'pcs',
+    ownershipType: 'TOKO' as 'TOKO' | 'TITIPAN',
+    stockCycle: 'HARIAN' as 'HARIAN' | 'MINGGUAN' | 'DUA_MINGGUAN',
+    isConsignment: false,
+  });
 
   useEffect(() => {
     fetchProducts();
@@ -204,8 +281,6 @@ export default function InventoryPage() {
           totalRevenue: result.data.totalRevenue,
           totalProfit: result.data.totalProfit,
           totalSoldItems: result.data.totalSoldItems,
-          toko: result.data.toko || { revenue: 0, cogs: 0, profit: 0 },
-          consignment: result.data.consignment || { grossRevenue: 0, cogs: 0, profit: 0, feeTotal: 0 },
         });
       } else {
         console.error('Failed to fetch period financial data:', result.error);
@@ -324,7 +399,6 @@ export default function InventoryPage() {
         // Set tanggal ke hari ini dan refresh data
         const today = new Date().toISOString().split('T')[0];
         setSelectedDate(today);
-        setFinancialPeriod('today'); // Reset period to today untuk melihat transaction baru
         
         // Refresh data dengan tanggal hari ini
         await fetchProducts();
@@ -389,7 +463,6 @@ export default function InventoryPage() {
         // Set tanggal ke hari ini untuk melihat stock movement baru
         const today = new Date().toISOString().split('T')[0];
         setSelectedDate(today);
-        setFinancialPeriod('today'); // Reset period to today untuk melihat transaction baru
         
         // Refresh data dengan tanggal hari ini
         await fetchProducts(); // Refresh product list
@@ -512,19 +585,13 @@ export default function InventoryPage() {
   // Financial metrics calculations
   const totalSoldToday = products.reduce((sum, p) => sum + p.soldToday, 0);
   
-  // Consignment Payments: Total nilai konsinyasi yang harus dibayar ke consignor 
-  // HANYA hitung ketika produk TITIPAN terjual (SALE_OUT movement dengan produk isConsignment/ownershipType=TITIPAN)
-  // BUKAN ketika produk masuk (CONSIGNMENT_IN)
-  const consignmentSaleMovements = stockMovements.filter(m => 
-    m.movementType === 'SALE_OUT' && 
-    m.quantity < 0 && // OUT movement = negative quantity
-    m.product && 
-    (m.product.isConsignment || m.product.ownershipType === 'TITIPAN')
-  );
+  // Consignment Payments: Total nilai produk konsinyasi yang MASUK hari ini (nilai TETAP)
+  // Hanya hitung movement IN (quantity > 0), TIDAK terpengaruh oleh produk keluar
+  const consignmentInMovements = stockMovements.filter(m => m.movementType === 'CONSIGNMENT_IN' && m.quantity > 0);
   
-  const consignmentPayments = consignmentSaleMovements.reduce((sum, m) => {
-    // Gunakan unitCost dari movement (COGS), atau fallback ke avgCost/buyPrice
-    const unitCost = m.unitCost || m.product?.avgCost || m.product?.buyPrice || 0;
+  const consignmentPayments = consignmentInMovements.reduce((sum, m) => {
+    // Gunakan unitCost dari movement, atau fallback ke product
+    const unitCost = m.unitCost || 0;
     return sum + (unitCost * Math.abs(m.quantity));
   }, 0);
   
@@ -577,42 +644,11 @@ export default function InventoryPage() {
               {/* Period Dropdown & Calendar */}
               <div className="flex items-center gap-2">
                 <span className="text-xs text-gray-600 font-medium hidden sm:inline">Periode:</span>
-                <div className="flex items-center rounded-lg border border-blue-200 bg-white shadow-sm overflow-hidden relative">
-                  {/* Display current period or custom date */}
-                  <div className="px-3 py-1.5 text-xs font-medium text-gray-700 pointer-events-none">
-                    {(() => {
-                      if (isCustomDate) {
-                        // Custom date selected - show formatted date
-                        return new Date(selectedDate).toLocaleDateString('id-ID', { 
-                          day: 'numeric', 
-                          month: 'short', 
-                          year: 'numeric' 
-                        });
-                      }
-                      // Show period name
-                      if (financialPeriod === 'today') return 'Hari Ini';
-                      if (financialPeriod === '7days') return '7 Hari';
-                      if (financialPeriod === '1month') return '1 Bulan';
-                      if (financialPeriod === '3months') return '3 Bulan';
-                      if (financialPeriod === '6months') return '6 Bulan';
-                      if (financialPeriod === '1year') return '1 Tahun';
-                      return 'Hari Ini';
-                    })()}
-                  </div>
+                <div className="flex items-center rounded-lg border border-blue-200 bg-white shadow-sm overflow-hidden">
                   <select
-                    value={isCustomDate ? 'custom' : financialPeriod}
-                    onChange={(e) => {
-                      const newPeriod = e.target.value as any;
-                      if (newPeriod === 'custom') return; // Ignore if custom is selected
-                      
-                      setFinancialPeriod(newPeriod);
-                      setIsCustomDate(false); // Clear custom date mode
-                      // Reset to actual today's date when "Hari Ini" is selected
-                      if (newPeriod === 'today') {
-                        setSelectedDate(new Date().toISOString().split('T')[0]);
-                      }
-                    }}
-                    className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
+                    value={financialPeriod}
+                    onChange={(e) => setFinancialPeriod(e.target.value as any)}
+                    className="px-3 py-1.5 text-xs font-medium bg-white border-none outline-none appearance-none cursor-pointer text-gray-700"
                   >
                     <option value="today">Hari Ini</option>
                     <option value="7days">7 Hari</option>
@@ -629,7 +665,7 @@ export default function InventoryPage() {
                       value={selectedDate}
                       onChange={(e) => {
                         setSelectedDate(e.target.value);
-                        setIsCustomDate(true); // Mark as custom date
+                        setFinancialPeriod('today'); // Reset to today when manual date is selected
                         setSelectedRange(null); // Clear any range selection
                       }}
                       className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
@@ -687,33 +723,10 @@ export default function InventoryPage() {
               </div>
               
               {/* Keuntungan Bersih */}
-              <div className="space-y-2 border-l border-blue-100 pl-6 relative group">
+              <div className="space-y-2 border-l border-blue-100 pl-6">
                 <div className="flex items-center gap-2">
                   <span className="text-sm font-medium text-gray-600">Keuntungan Bersih</span>
                   <PiggyBank className="h-4 w-4 text-green-500" />
-                  {/* Info Icon with Hover Tooltip */}
-                  <div className="relative">
-                    <Info className="h-3.5 w-3.5 text-gray-400 cursor-help" />
-                    {/* Tooltip - Shows on Hover */}
-                    <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-48 bg-gray-900 text-white text-xs rounded-lg p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none z-50 shadow-xl">
-                      <div className="space-y-1.5">
-                        <div className="flex justify-between">
-                          <span className="text-blue-300">Toko:</span>
-                          <span className="font-semibold">{formatCurrency(periodFinancialData.toko.profit)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span className="text-purple-300">Titipan:</span>
-                          <span className="font-semibold">{formatCurrency(periodFinancialData.consignment.profit)}</span>
-                        </div>
-                        <div className="flex justify-between pt-1.5 border-t border-gray-700">
-                          <span className="font-medium text-emerald-300">Total:</span>
-                          <span className="font-bold">{formatCurrency(periodFinancialData.totalProfit)}</span>
-                        </div>
-                      </div>
-                      {/* Arrow */}
-                      <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-gray-900"></div>
-                    </div>
-                  </div>
                 </div>
                 <p className="text-3xl font-bold text-emerald-600">{formatCurrency(periodFinancialData.totalProfit)}</p>
                 <div className="flex items-center gap-2">
@@ -1194,20 +1207,15 @@ export default function InventoryPage() {
             </CardHeader>
             <CardContent className="space-y-3">
               {stockMovements.length > 0 ? (
-                stockMovements.slice(0, 5).map((movement) => {
-                  // Detect IN/OUT from movementType: check if ends with "_IN" or is positive quantity
-                  const isIncoming = movement.movementType?.includes('_IN') || 
-                                    (movement.quantity > 0 && movement.movementType !== 'SALE_OUT');
-                  
-                  return (
+                stockMovements.slice(0, 5).map((movement) => (
                   <div key={movement.id} className="flex items-start justify-between gap-2 p-3 bg-gray-50 rounded-lg">
                     <div className="flex items-start gap-3 flex-1 min-w-0">
                       <div className={`p-2 rounded-full shrink-0 ${
-                        isIncoming
+                        movement.type === 'IN' 
                           ? 'bg-green-100 text-green-600' 
                           : 'bg-red-100 text-red-600'
                       }`}>
-                        {isIncoming ? (
+                        {movement.type === 'IN' ? (
                           <Plus className="w-3 h-3" />
                         ) : (
                           <Minus className="w-3 h-3" />
@@ -1218,7 +1226,7 @@ export default function InventoryPage() {
                           {movement.product.name}
                         </p>
                         <p className="text-xs text-gray-500">
-                          {isIncoming ? 'Masuk' : 'Keluar'} {Math.abs(movement.quantity)} {movement.product.unit}
+                          {movement.type === 'IN' ? 'Masuk' : 'Keluar'} {movement.quantity} {movement.product.unit}
                         </p>
                         {movement.note && (
                           <p className="text-xs text-gray-400 mt-1 truncate" title={movement.note}>
@@ -1234,8 +1242,7 @@ export default function InventoryPage() {
                       })}
                     </span>
                   </div>
-                  );
-                })
+                ))
               ) : (
                 <div className="text-center py-8 text-gray-500">
                   <Package className="w-8 h-8 mx-auto mb-2 opacity-50" />

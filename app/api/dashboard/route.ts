@@ -20,28 +20,28 @@ export async function GET() {
       recentActivities,
     ] = await Promise.all([
       // Members stats
-      prisma.member.count(),
-      prisma.member.count({ where: { status: 'ACTIVE' } }),
+      prisma.members.count(),
+      prisma.members.count({ where: { status: 'ACTIVE' } }),
       
       // Products stats
-      prisma.product.count({ where: { isActive: true } }),
-      prisma.product.count({
+      prisma.products.count({ where: { isActive: true } }),
+      prisma.products.count({
         where: {
           AND: [
             { isActive: true },
-            { stock: { lte: prisma.product.fields.threshold } },
+            { stock: { lte: 5 } },
           ],
         },
       }),
       
       // Transactions stats
-      prisma.transaction.count({
+      prisma.transactions.count({
         where: {
           createdAt: { gte: startOfDay },
           status: 'COMPLETED',
         },
       }),
-      prisma.transaction.aggregate({
+      prisma.transactions.aggregate({
         where: {
           createdAt: { gte: startOfDay },
           status: 'COMPLETED',
@@ -49,7 +49,7 @@ export async function GET() {
         },
         _sum: { totalAmount: true },
       }),
-      prisma.transaction.aggregate({
+      prisma.transactions.aggregate({
         where: {
           createdAt: { gte: startOfMonth },
           status: 'COMPLETED',
@@ -59,7 +59,7 @@ export async function GET() {
       }),
       
       // Savings stats
-      prisma.member.aggregate({
+      prisma.members.aggregate({
         _sum: {
           simpananPokok: true,
           simpananWajib: true,
@@ -68,7 +68,7 @@ export async function GET() {
       }),
       
       // Recent activities (simplified)
-      prisma.member.findMany({
+      prisma.members.findMany({
         take: 5,
         orderBy: { createdAt: 'desc' },
         select: {
@@ -86,14 +86,14 @@ export async function GET() {
       Number(totalSimpanan._sum.simpananSukarela || 0);
 
     // Get low stock products
-    const lowStockProductsList = await prisma.product.findMany({
+    const lowStockProductsList = await prisma.products.findMany({
       where: {
         AND: [
           { isActive: true },
-          { stock: { lte: prisma.product.fields.threshold } },
+          { stock: { lte: 5 } },
         ],
       },
-      include: { category: true },
+      include: { categories: true },
       take: 5,
     });
 
@@ -106,13 +106,13 @@ export async function GET() {
       todayRevenue: Number(todayRevenue._sum.totalAmount || 0),
       monthlyRevenue: Number(monthlyRevenue._sum.totalAmount || 0),
       totalSimpanan: Number(totalSimpananSum),
-      lowStockProductsList: lowStockProductsList.map(product => ({
+      lowStockProductsList: lowStockProductsList.map((product: any) => ({
         ...product,
         buyPrice: product.buyPrice ? Number(product.buyPrice) : null,
         avgCost: product.avgCost ? Number(product.avgCost) : null,
         sellPrice: Number(product.sellPrice),
       })),
-      recentActivities: recentActivities.map(member => ({
+      recentActivities: recentActivities.map((member: any) => ({
         type: 'member',
         action: 'Anggota baru terdaftar',
         name: member.name,

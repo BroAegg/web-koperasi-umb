@@ -43,12 +43,11 @@ export async function PUT(
       productData.supplierContact = data.supplierContact || null;
     }
 
-    const product = await prisma.product.update({
+    const product = await prisma.products.update({
       where: { id },
       data: productData,
       include: {
-        category: true,
-        supplier: true,
+        categories: true,
       },
     });
 
@@ -90,42 +89,42 @@ export async function DELETE(
     // Delete in correct order to avoid foreign key constraints
     
     // 1. First, get all consignment batches for this product
-    const batches = await prisma.consignmentBatch.findMany({
+    const batches = await prisma.consignment_batches.findMany({
       where: { productId: id },
       select: { id: true },
     });
     
     // 2. Delete consignment sales (if any) - these reference batches
     if (batches.length > 0) {
-      await prisma.consignmentSale.deleteMany({
+      await prisma.consignment_sales.deleteMany({
         where: { 
-          batchId: { in: batches.map(b => b.id) }
+          batchId: { in: batches.map((b: { id: string }) => b.id) }
         },
       });
     }
     
     // 3. Now delete consignment batches
-    await prisma.consignmentBatch.deleteMany({
+    await prisma.consignment_batches.deleteMany({
       where: { productId: id },
     });
 
     // 4. Delete stock movements
-    await prisma.stockMovement.deleteMany({
+    await prisma.stock_movements.deleteMany({
       where: { productId: id },
     });
 
     // 5. Delete transaction items (if any)
-    await prisma.transactionItem.deleteMany({
+    await prisma.transaction_items.deleteMany({
       where: { productId: id },
     });
 
     // 6. Delete purchase items (if any)
-    await prisma.purchaseItem.deleteMany({
+    await prisma.purchase_items.deleteMany({
       where: { productId: id },
     });
 
     // 7. Finally, delete the product
-    await prisma.product.delete({
+    await prisma.products.delete({
       where: { id },
     });
 
@@ -164,11 +163,10 @@ export async function GET(
   try {
     const { id } = await params;
 
-    const product = await prisma.product.findUnique({
+    const product = await prisma.products.findUnique({
       where: { id },
       include: {
-        category: true,
-        supplier: true,
+        categories: true,
       },
     });
 

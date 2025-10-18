@@ -142,7 +142,7 @@ export default function AllMovementsModal({
                             )}
                           </div>
                           {movement.note && (
-                            <p className="text-sm text-gray-500 mt-1 italic">"{movement.note}"</p>
+                            <p className="text-sm text-gray-500 mt-1 italic">&ldquo;{movement.note}&rdquo;</p>
                           )}
                         </div>
                         <div className="text-right shrink-0">

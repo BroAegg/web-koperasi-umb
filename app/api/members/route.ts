@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { Decimal } from '@prisma/client/runtime/library';
+import { randomUUID } from 'crypto';
 
 // GET /api/members - Get all members with optional filtering
 export async function GET(request: NextRequest) {
@@ -29,10 +30,10 @@ export async function GET(request: NextRequest) {
       where.unitKerja = unitKerja;
     }
 
-    const members = await prisma.member.findMany({
+    const members = await prisma.members.findMany({
       where,
       include: {
-        user: {
+        users: {
           select: {
             id: true,
             email: true,
@@ -97,7 +98,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Generate unique member number
-    const lastMember = await prisma.member.findFirst({
+    const lastMember = await prisma.members.findFirst({
       orderBy: { nomorAnggota: 'desc' },
     });
 
@@ -109,8 +110,8 @@ export async function POST(request: NextRequest) {
 
     // Check if email is already registered (both user and member tables)
     const [existingUser, existingMember] = await Promise.all([
-      prisma.user.findUnique({ where: { email } }),
-      prisma.member.findUnique({ where: { email } })
+      prisma.users.findUnique({ where: { email } }),
+      prisma.members.findUnique({ where: { email } })
     ]);
 
     if (existingUser || existingMember) {
@@ -121,12 +122,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Create user first
-    const user = await prisma.user.create({
+    const user = await prisma.users.create({
       data: {
+        id: randomUUID(),
         email,
         name,
         password: 'temporary', // In real app, this should be hashed
         role: 'USER',
+        updatedAt: new Date(),
       },
     });
 
@@ -136,8 +139,9 @@ export async function POST(request: NextRequest) {
     const simpananSukarelaNum = parseFloat(simpananSukarela) || 0;
 
     // Create member
-    const member = await prisma.member.create({
+    const member = await prisma.members.create({
       data: {
+        id: randomUUID(),
         userId: user.id,
         nomorAnggota: memberNumber,
         name,
@@ -151,9 +155,10 @@ export async function POST(request: NextRequest) {
         simpananSukarela: new Decimal(simpananSukarelaNum),
         status,
         joinDate: joinDate ? new Date(joinDate) : new Date(),
+        updatedAt: new Date(),
       },
       include: {
-        user: {
+        users: {
           select: {
             id: true,
             email: true,

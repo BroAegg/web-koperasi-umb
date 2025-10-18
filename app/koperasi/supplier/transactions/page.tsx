@@ -23,7 +23,6 @@ const dummyTransactions = [
     quantity: 10, 
     amount: 750000, 
     date: "2025-01-13",
-    customer: "Toko Berkah Jaya",
     paymentMethod: "Transfer",
     status: "completed"
   },
@@ -34,7 +33,6 @@ const dummyTransactions = [
     quantity: 20, 
     amount: 640000, 
     date: "2025-01-12",
-    customer: "Warung Sari",
     paymentMethod: "Tunai",
     status: "completed"
   },
@@ -45,7 +43,6 @@ const dummyTransactions = [
     quantity: 50, 
     amount: 750000, 
     date: "2025-01-11",
-    customer: "Toko Makmur",
     paymentMethod: "Transfer",
     status: "completed"
   },
@@ -56,7 +53,6 @@ const dummyTransactions = [
     quantity: 30, 
     amount: 840000, 
     date: "2025-01-10",
-    customer: "Pasar Segar",
     paymentMethod: "Transfer",
     status: "completed"
   },
@@ -67,7 +63,6 @@ const dummyTransactions = [
     quantity: 40, 
     amount: 720000, 
     date: "2025-01-09",
-    customer: "Mini Market Sejahtera",
     paymentMethod: "Tunai",
     status: "completed"
   },
@@ -78,7 +73,6 @@ const dummyTransactions = [
     quantity: 100, 
     amount: 1400000, 
     date: "2025-01-08",
-    customer: "Warung Bahagia",
     paymentMethod: "Transfer",
     status: "completed"
   },
@@ -99,8 +93,7 @@ export default function SupplierTransactions() {
   const filteredTransactions = transactions.filter((trx) => {
     const matchesSearch = 
       trx.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      trx.product.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      trx.customer.toLowerCase().includes(searchTerm.toLowerCase());
+      trx.product.toLowerCase().includes(searchTerm.toLowerCase());
     
     const matchesProduct = selectedProduct === "Semua Produk" || trx.product === selectedProduct;
     
@@ -197,7 +190,7 @@ export default function SupplierTransactions() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
               <Input
                 type="text"
-                placeholder="Cari ID transaksi, produk, atau pelanggan..."
+                placeholder="Cari ID transaksi atau produk..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10 rounded-xl border-slate-300"
@@ -260,7 +253,6 @@ export default function SupplierTransactions() {
                   <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">ID Transaksi</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Tanggal</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Produk</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Pelanggan</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Jumlah</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Metode</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Total</th>
@@ -279,7 +271,6 @@ export default function SupplierTransactions() {
                     <td className="px-6 py-4">
                       <p className="font-medium text-slate-800">{trx.product}</p>
                     </td>
-                    <td className="px-6 py-4 text-slate-700">{trx.customer}</td>
                     <td className="px-6 py-4">
                       <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-blue-100 text-blue-700">
                         {trx.quantity} unit

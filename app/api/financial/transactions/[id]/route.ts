@@ -10,19 +10,19 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const transaction = await prisma.transaction.findUnique({
+    const transaction = await prisma.transactions.findUnique({
       where: { id },
       include: {
-        member: {
+        members: {
           select: {
             id: true,
             name: true,
             nomorAnggota: true,
           },
         },
-        items: {
+        transaction_items: {
           include: {
-            product: {
+            products: {
               select: {
                 id: true,
                 name: true,
@@ -77,7 +77,7 @@ export async function PUT(
     } = body;
 
     // Check if transaction exists
-    const existingTransaction = await prisma.transaction.findUnique({
+    const existingTransaction = await prisma.transactions.findUnique({
       where: { id },
     });
 
@@ -107,7 +107,7 @@ export async function PUT(
       );
     }
 
-    const transaction = await prisma.transaction.update({
+    const transaction = await prisma.transactions.update({
       where: { id },
       data: {
         type: type ? type.toUpperCase() : existingTransaction.type,
@@ -117,7 +117,7 @@ export async function PUT(
         date: date ? new Date(date) : existingTransaction.date,
       },
       include: {
-        member: {
+        members: {
           select: {
             id: true,
             name: true,
@@ -155,7 +155,7 @@ export async function DELETE(
   try {
     const { id } = await params;
     // Check if transaction exists
-    const existingTransaction = await prisma.transaction.findUnique({
+    const existingTransaction = await prisma.transactions.findUnique({
       where: { id },
     });
 
@@ -177,7 +177,7 @@ export async function DELETE(
       );
     }
 
-    await prisma.transaction.delete({
+    await prisma.transactions.delete({
       where: { id },
     });
 

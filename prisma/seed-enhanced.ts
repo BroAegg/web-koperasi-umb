@@ -1,5 +1,6 @@
 import { PrismaClient } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
+import { randomUUID } from 'crypto';
 
 const prisma = new PrismaClient();
 
@@ -12,17 +13,17 @@ async function main() {
   // ========================================
   console.log('\n📁 Creating categories...');
   const categories = await Promise.all([
-    prisma.category.create({
-      data: { name: 'Sembako', description: 'Sembilan bahan pokok' }
+    prisma.categories.create({
+      data: { id: randomUUID(), updatedAt: new Date(), name: 'Sembako', description: 'Sembilan bahan pokok' }
     }),
-    prisma.category.create({
-      data: { name: 'Minuman', description: 'Aneka minuman' }
+    prisma.categories.create({
+      data: { id: randomUUID(), updatedAt: new Date(), name: 'Minuman', description: 'Aneka minuman' }
     }),
-    prisma.category.create({
-      data: { name: 'Makanan Ringan', description: 'Snack dan makanan ringan' }
+    prisma.categories.create({
+      data: { id: randomUUID(), updatedAt: new Date(), name: 'Makanan Ringan', description: 'Snack dan makanan ringan' }
     }),
-    prisma.category.create({
-      data: { name: 'Gorengan', description: 'Makanan gorengan segar' }
+    prisma.categories.create({
+      data: { id: randomUUID(), updatedAt: new Date(), name: 'Gorengan', description: 'Makanan gorengan segar' }
     }),
   ]);
   console.log('✅ 4 Categories created');
@@ -35,8 +36,9 @@ async function main() {
   const members = [];
 
   // Admin user
-  const adminUser = await prisma.user.create({
+  const adminUser = await prisma.users.create({
     data: {
+      id: randomUUID(), updatedAt: new Date(),
       email: 'admin@koperasi.umb.ac.id',
       name: 'Admin Koperasi',
       password: 'admin123',
@@ -47,8 +49,9 @@ async function main() {
 
   // Regular members
   for (let i = 1; i <= 10; i++) {
-    const user = await prisma.user.create({
+    const user = await prisma.users.create({
       data: {
+        id: randomUUID(), updatedAt: new Date(),
         email: `member${i}@umb.ac.id`,
         name: `Anggota ${i}`,
         password: 'password123',
@@ -56,8 +59,9 @@ async function main() {
       },
     });
 
-    const member = await prisma.member.create({
+    const member = await prisma.members.create({
       data: {
+        id: randomUUID(), updatedAt: new Date(),
         userId: user.id,
         nomorAnggota: `UMB${String(i).padStart(4, '0')}`,
         name: `Anggota ${i}`,
@@ -83,8 +87,9 @@ async function main() {
   // ========================================
   console.log('\n🏪 Creating suppliers...');
   const suppliers = await Promise.all([
-    prisma.supplier.create({
+    prisma.suppliers.create({
       data: {
+        id: randomUUID(), updatedAt: new Date(),
         code: 'SUP-001',
         name: 'PT Beras Sejahtera',
         contact: 'Bapak Budi',
@@ -95,8 +100,9 @@ async function main() {
         note: 'Supplier beras premium',
       },
     }),
-    prisma.supplier.create({
+    prisma.suppliers.create({
       data: {
+        id: randomUUID(), updatedAt: new Date(),
         code: 'SUP-002',
         name: 'CV Minyak Murni',
         contact: 'Ibu Siti',
@@ -107,8 +113,9 @@ async function main() {
         note: 'Supplier minyak goreng',
       },
     }),
-    prisma.supplier.create({
+    prisma.suppliers.create({
       data: {
+        id: randomUUID(), updatedAt: new Date(),
         code: 'SUP-003',
         name: 'Toko Gula Manis',
         contact: 'Pak Ahmad',
@@ -127,8 +134,9 @@ async function main() {
   // ========================================
   console.log('\n🤝 Creating consignors...');
   const consignors = await Promise.all([
-    prisma.consignor.create({
+    prisma.consignors.create({
       data: {
+        id: randomUUID(), updatedAt: new Date(),
         code: 'CON-001',
         name: 'Ibu Lastri (Gorengan)',
         contact: 'Ibu Lastri',
@@ -141,8 +149,9 @@ async function main() {
         note: 'Titipan gorengan segar harian',
       },
     }),
-    prisma.consignor.create({
+    prisma.consignors.create({
       data: {
+        id: randomUUID(), updatedAt: new Date(),
         code: 'CON-002',
         name: 'Pak Rizal (Keripik)',
         contact: 'Pak Rizal',
@@ -155,8 +164,9 @@ async function main() {
         note: 'Titipan keripik mingguan',
       },
     }),
-    prisma.consignor.create({
+    prisma.consignors.create({
       data: {
+        id: randomUUID(), updatedAt: new Date(),
         code: 'CON-003',
         name: 'CV Minuman Segar',
         contact: 'Ibu Nina',
@@ -177,8 +187,9 @@ async function main() {
   // ========================================
   console.log('\n📦 Creating store-owned products...');
   const storeProducts = await Promise.all([
-    prisma.product.create({
+    prisma.products.create({
       data: {
+        id: randomUUID(), updatedAt: new Date(),
         name: 'Beras Premium 5kg',
         description: 'Beras premium kualitas terbaik',
         categoryId: categories[0].id,
@@ -196,8 +207,9 @@ async function main() {
         lastRestockAt: new Date(),
       },
     }),
-    prisma.product.create({
+    prisma.products.create({
       data: {
+        id: randomUUID(), updatedAt: new Date(),
         name: 'Minyak Goreng 2L',
         description: 'Minyak goreng kemasan 2 liter',
         categoryId: categories[0].id,
@@ -215,8 +227,9 @@ async function main() {
         lastRestockAt: new Date(),
       },
     }),
-    prisma.product.create({
+    prisma.products.create({
       data: {
+        id: randomUUID(), updatedAt: new Date(),
         name: 'Gula Pasir 1kg',
         description: 'Gula pasir kemasan 1kg',
         categoryId: categories[0].id,
@@ -234,8 +247,9 @@ async function main() {
         lastRestockAt: new Date(),
       },
     }),
-    prisma.product.create({
+    prisma.products.create({
       data: {
+        id: randomUUID(), updatedAt: new Date(),
         name: 'Kopi Bubuk 200g',
         description: 'Kopi bubuk premium',
         categoryId: categories[1].id,
@@ -261,8 +275,9 @@ async function main() {
   // ========================================
   console.log('\n🎁 Creating consignment products...');
   const consignmentProducts = await Promise.all([
-    prisma.product.create({
+    prisma.products.create({
       data: {
+        id: randomUUID(), updatedAt: new Date(),
         name: 'Risol Mayo',
         description: 'Risol isi mayones segar',
         categoryId: categories[3].id,
@@ -280,8 +295,9 @@ async function main() {
         expiryPolicy: 'Dijual hari ini saja',
       },
     }),
-    prisma.product.create({
+    prisma.products.create({
       data: {
+        id: randomUUID(), updatedAt: new Date(),
         name: 'Pisang Goreng',
         description: 'Pisang goreng crispy',
         categoryId: categories[3].id,
@@ -299,8 +315,9 @@ async function main() {
         expiryPolicy: 'Dijual hari ini saja',
       },
     }),
-    prisma.product.create({
+    prisma.products.create({
       data: {
+        id: randomUUID(), updatedAt: new Date(),
         name: 'Keripik Singkong Original',
         description: 'Keripik singkong renyah',
         categoryId: categories[2].id,
@@ -317,8 +334,9 @@ async function main() {
         lastRestockAt: new Date(),
       },
     }),
-    prisma.product.create({
+    prisma.products.create({
       data: {
+        id: randomUUID(), updatedAt: new Date(),
         name: 'Keripik Singkong Pedas',
         description: 'Keripik singkong level pedas',
         categoryId: categories[2].id,
@@ -335,8 +353,9 @@ async function main() {
         lastRestockAt: new Date(),
       },
     }),
-    prisma.product.create({
+    prisma.products.create({
       data: {
+        id: randomUUID(), updatedAt: new Date(),
         name: 'Teh Kotak 1L (Titipan)',
         description: 'Minuman teh titipan',
         categoryId: categories[1].id,
@@ -363,8 +382,9 @@ async function main() {
   const purchases = [];
   
   // Purchase 1: Beras dari Supplier 1
-  const purchase1 = await prisma.purchase.create({
+  const purchase1 = await prisma.purchases.create({
     data: {
+      id: randomUUID(), updatedAt: new Date(),
       code: 'PO-2025-001',
       supplierId: suppliers[0].id,
       totalAmount: new Decimal(2250000), // 50 x 45000
@@ -377,8 +397,9 @@ async function main() {
     },
   });
 
-  await prisma.purchaseItem.create({
+  await prisma.purchase_items.create({
     data: {
+      id: randomUUID(),
       purchaseId: purchase1.id,
       productId: storeProducts[0].id, // Beras
       quantity: 50,
@@ -388,8 +409,9 @@ async function main() {
   });
 
   // Create stock movement for purchase
-  await prisma.stockMovement.create({
+  await prisma.stock_movements.create({
     data: {
+      id: randomUUID(),
       productId: storeProducts[0].id,
       movementType: 'PURCHASE_IN',
       quantity: 50,
@@ -404,8 +426,9 @@ async function main() {
   purchases.push(purchase1);
 
   // Purchase 2: Minyak & Gula
-  const purchase2 = await prisma.purchase.create({
+  const purchase2 = await prisma.purchases.create({
     data: {
+      id: randomUUID(), updatedAt: new Date(),
       code: 'PO-2025-002',
       supplierId: suppliers[1].id,
       totalAmount: new Decimal(750000),
@@ -418,8 +441,9 @@ async function main() {
     },
   });
 
-  await prisma.purchaseItem.create({
+  await prisma.purchase_items.create({
     data: {
+      id: randomUUID(),
       purchaseId: purchase2.id,
       productId: storeProducts[1].id, // Minyak
       quantity: 30,
@@ -428,8 +452,9 @@ async function main() {
     },
   });
 
-  await prisma.stockMovement.create({
+  await prisma.stock_movements.create({
     data: {
+      id: randomUUID(),
       productId: storeProducts[1].id,
       movementType: 'PURCHASE_IN',
       quantity: 30,
@@ -451,8 +476,9 @@ async function main() {
   console.log('\n📦 Creating consignment batches (FIFO)...');
   
   // Batch 1: Risol dari Ibu Lastri (hari ini pagi)
-  const batch1 = await prisma.consignmentBatch.create({
+  const batch1 = await prisma.consignment_batches.create({
     data: {
+      id: randomUUID(), updatedAt: new Date(),
       code: 'CB-2025-001',
       consignorId: consignors[0].id, // Ibu Lastri
       productId: consignmentProducts[0].id, // Risol
@@ -468,8 +494,9 @@ async function main() {
     },
   });
 
-  await prisma.stockMovement.create({
+  await prisma.stock_movements.create({
     data: {
+      id: randomUUID(),
       productId: consignmentProducts[0].id,
       movementType: 'CONSIGNMENT_IN',
       quantity: 30,
@@ -481,8 +508,9 @@ async function main() {
   });
 
   // Batch 2: Pisang Goreng dari Ibu Lastri
-  const batch2 = await prisma.consignmentBatch.create({
+  const batch2 = await prisma.consignment_batches.create({
     data: {
+      id: randomUUID(), updatedAt: new Date(),
       code: 'CB-2025-002',
       consignorId: consignors[0].id,
       productId: consignmentProducts[1].id, // Pisang Goreng
@@ -498,8 +526,9 @@ async function main() {
     },
   });
 
-  await prisma.stockMovement.create({
+  await prisma.stock_movements.create({
     data: {
+      id: randomUUID(),
       productId: consignmentProducts[1].id,
       movementType: 'CONSIGNMENT_IN',
       quantity: 40,
@@ -511,8 +540,9 @@ async function main() {
   });
 
   // Batch 3: Keripik Original dari Pak Rizal (minggu lalu)
-  const batch3 = await prisma.consignmentBatch.create({
+  const batch3 = await prisma.consignment_batches.create({
     data: {
+      id: randomUUID(), updatedAt: new Date(),
       code: 'CB-2025-003',
       consignorId: consignors[1].id, // Pak Rizal
       productId: consignmentProducts[2].id, // Keripik Original
@@ -527,8 +557,9 @@ async function main() {
     },
   });
 
-  await prisma.stockMovement.create({
+  await prisma.stock_movements.create({
     data: {
+      id: randomUUID(),
       productId: consignmentProducts[2].id,
       movementType: 'CONSIGNMENT_IN',
       quantity: 30,
@@ -540,8 +571,9 @@ async function main() {
   });
 
   // Batch 4: Keripik Pedas dari Pak Rizal
-  const batch4 = await prisma.consignmentBatch.create({
+  const batch4 = await prisma.consignment_batches.create({
     data: {
+      id: randomUUID(), updatedAt: new Date(),
       code: 'CB-2025-004',
       consignorId: consignors[1].id,
       productId: consignmentProducts[3].id, // Keripik Pedas
@@ -556,8 +588,9 @@ async function main() {
     },
   });
 
-  await prisma.stockMovement.create({
+  await prisma.stock_movements.create({
     data: {
+      id: randomUUID(),
       productId: consignmentProducts[3].id,
       movementType: 'CONSIGNMENT_IN',
       quantity: 25,
@@ -569,8 +602,9 @@ async function main() {
   });
 
   // Batch 5: Teh Kotak dari CV Minuman Segar
-  const batch5 = await prisma.consignmentBatch.create({
+  const batch5 = await prisma.consignment_batches.create({
     data: {
+      id: randomUUID(), updatedAt: new Date(),
       code: 'CB-2025-005',
       consignorId: consignors[2].id, // CV Minuman Segar
       productId: consignmentProducts[4].id, // Teh Kotak
@@ -585,8 +619,9 @@ async function main() {
     },
   });
 
-  await prisma.stockMovement.create({
+  await prisma.stock_movements.create({
     data: {
+      id: randomUUID(),
       productId: consignmentProducts[4].id,
       movementType: 'CONSIGNMENT_IN',
       quantity: 50,
@@ -605,8 +640,9 @@ async function main() {
   console.log('\n💰 Creating sample sales transactions...');
 
   // Sale 1: Mixed products (store-owned + consignment)
-  const sale1 = await prisma.transaction.create({
+  const sale1 = await prisma.transactions.create({
     data: {
+      id: randomUUID(), updatedAt: new Date(),
       memberId: members[0].id,
       type: 'SALE',
       totalAmount: new Decimal(68000), // 50k beras + 3x5k risol + 3k pisang
@@ -618,8 +654,9 @@ async function main() {
   });
 
   // Item 1: Beras (store-owned)
-  const saleItem1_1 = await prisma.transactionItem.create({
+  const saleItem1_1 = await prisma.transaction_items.create({
     data: {
+      id: randomUUID(),
       transactionId: sale1.id,
       productId: storeProducts[0].id,
       quantity: 1,
@@ -631,8 +668,9 @@ async function main() {
     },
   });
 
-  await prisma.stockMovement.create({
+  await prisma.stock_movements.create({
     data: {
+      id: randomUUID(),
       productId: storeProducts[0].id,
       movementType: 'SALE_OUT',
       quantity: -1,
@@ -645,8 +683,9 @@ async function main() {
   });
 
   // Item 2: Risol (consignment - FIFO from batch1)
-  const saleItem1_2 = await prisma.transactionItem.create({
+  const saleItem1_2 = await prisma.transaction_items.create({
     data: {
+      id: randomUUID(),
       transactionId: sale1.id,
       productId: consignmentProducts[0].id,
       quantity: 3,
@@ -656,8 +695,9 @@ async function main() {
   });
 
   // Create consignment sale records (FIFO allocation)
-  const consignmentSale1 = await prisma.consignmentSale.create({
+  const consignmentSale1 = await prisma.consignment_sales.create({
     data: {
+      id: randomUUID(),
       batchId: batch1.id,
       transactionItemId: saleItem1_2.id,
       qtySold: 3,
@@ -670,8 +710,9 @@ async function main() {
     },
   });
 
-  await prisma.stockMovement.create({
+  await prisma.stock_movements.create({
     data: {
+      id: randomUUID(),
       productId: consignmentProducts[0].id,
       movementType: 'SALE_OUT',
       quantity: -3,
@@ -683,17 +724,19 @@ async function main() {
   });
 
   // Update batch qtySold
-  await prisma.consignmentBatch.update({
+  await prisma.consignment_batches.update({
     where: { id: batch1.id },
     data: {
+      id: randomUUID(), updatedAt: new Date(),
       qtySold: { increment: 3 },
       qtyRemaining: { decrement: 3 },
     },
   });
 
   // Item 3: Pisang Goreng (consignment)
-  const saleItem1_3 = await prisma.transactionItem.create({
+  const saleItem1_3 = await prisma.transaction_items.create({
     data: {
+      id: randomUUID(),
       transactionId: sale1.id,
       productId: consignmentProducts[1].id,
       quantity: 1,
@@ -702,8 +745,9 @@ async function main() {
     },
   });
 
-  await prisma.consignmentSale.create({
+  await prisma.consignment_sales.create({
     data: {
+      id: randomUUID(),
       batchId: batch2.id,
       transactionItemId: saleItem1_3.id,
       qtySold: 1,
@@ -716,8 +760,9 @@ async function main() {
     },
   });
 
-  await prisma.stockMovement.create({
+  await prisma.stock_movements.create({
     data: {
+      id: randomUUID(),
       productId: consignmentProducts[1].id,
       movementType: 'SALE_OUT',
       quantity: -1,
@@ -728,9 +773,10 @@ async function main() {
     },
   });
 
-  await prisma.consignmentBatch.update({
+  await prisma.consignment_batches.update({
     where: { id: batch2.id },
     data: {
+      id: randomUUID(), updatedAt: new Date(),
       qtySold: { increment: 1 },
       qtyRemaining: { decrement: 1 },
     },
@@ -743,8 +789,9 @@ async function main() {
   // ========================================
   console.log('\n📢 Creating broadcasts...');
   await Promise.all([
-    prisma.broadcast.create({
+    prisma.broadcasts.create({
       data: {
+        id: randomUUID(), updatedAt: new Date(),
         title: 'Pengumuman Sistem Inventory Baru',
         message: 'Koperasi UMB telah mengimplementasikan sistem inventory dengan dual ownership (Toko & Titipan) dan FIFO tracking untuk transparansi maksimal.',
         type: 'ANNOUNCEMENT',
@@ -756,8 +803,9 @@ async function main() {
         createdById: adminUser.id,
       },
     }),
-    prisma.broadcast.create({
+    prisma.broadcasts.create({
       data: {
+        id: randomUUID(), updatedAt: new Date(),
         title: 'Produk Gorengan Segar Setiap Hari',
         message: 'Koperasi kini menyediakan gorengan segar dari Ibu Lastri setiap hari! Risol mayo dan pisang goreng available pukul 07:00 - 17:00.',
         type: 'INFO',
@@ -804,3 +852,10 @@ main()
   .finally(async () => {
     await prisma.$disconnect();
   });
+
+
+
+
+
+
+

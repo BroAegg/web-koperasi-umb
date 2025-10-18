@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { Decimal } from '@prisma/client/runtime/library';
+import { randomUUID } from 'crypto';
 
 // GET /api/products - Get all products with filtering
 export async function GET(request: NextRequest) {
@@ -21,23 +22,27 @@ export async function GET(request: NextRequest) {
     }
 
     if (category && category !== 'semua') {
-      where.category = { name: category };
+      where.categories = { name: category };
     }
 
     if (lowStock === 'true') {
-      where.stock = { lte: prisma.product.fields.threshold };
+      // Use raw comparison instead of fields reference
+      where.AND = [
+        ...(where.AND || []),
+        { stock: { lte: 10 } } // Low stock threshold
+      ];
     }
 
-    const products = await prisma.product.findMany({
+    const products = await prisma.products.findMany({
       where,
       include: {
-        category: true,
-        supplier: true,
-        stockMovements: {
+        categories: true,
+        suppliers: true,
+        stock_movements: {
           orderBy: { createdAt: 'desc' },
           take: 5,
         },
-        transactionItems: {
+        transaction_items: {
           where: {
             createdAt: {
               gte: new Date(new Date().setHours(0, 0, 0, 0)), // Today
@@ -48,8 +53,8 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: 'desc' },
     });
 
-    const productsWithStats = products.map(product => {
-      const todaySales = product.transactionItems.reduce((sum, item) => sum + item.quantity, 0);
+    const productsWithStats = products.map((product: any) => {
+      const todaySales = product.transaction_items?.reduce((sum: number, item: any) => sum + item.quantity, 0) || 0;
       
       // Calculate profit: for consignment use avgCost, for store-owned use buyPrice or avgCost
       const costPrice = product.avgCost || product.buyPrice || new Decimal(0);
@@ -57,11 +62,15 @@ export async function GET(request: NextRequest) {
       
       return {
         ...product,
+        category: product.categories, // Map to old field name for compatibility
+        supplier: product.suppliers,
+        stockMovements: product.stock_movements,
+        transactionItems: product.transaction_items,
         buyPrice: product.buyPrice ? Number(product.buyPrice) : null,
         avgCost: product.avgCost ? Number(product.avgCost) : null,
         sellPrice: Number(product.sellPrice),
         soldToday: todaySales,
-        totalSold: product.transactionItems.length, // Simplified
+        totalSold: product.transaction_items?.length || 0, // Simplified
         profit,
       };
     });
@@ -101,44 +110,9 @@ export async function POST(request: NextRequest) {
       supplierContact,
     } = body;
 
-    // Validate required fields
     if (!name || !categoryId || !sellPrice) {
       return NextResponse.json(
         { success: false, error: 'Missing required fields' },
-        { status: 400 }
-      );
-    }
-
-    // Validate and parse stock
-    let stockValue = 0;
-    try {
-      stockValue = parseInt(stock?.toString() || '0');
-      if (isNaN(stockValue) || stockValue < 0) {
-        stockValue = 0;
-      }
-    } catch (e) {
-      stockValue = 0;
-    }
-
-    // Validate and parse threshold
-    let thresholdValue = 5;
-    try {
-      thresholdValue = parseInt(threshold?.toString() || '5');
-      if (isNaN(thresholdValue) || thresholdValue < 0) {
-        thresholdValue = 5;
-      }
-    } catch (e) {
-      thresholdValue = 5;
-    }
-
-    // Validate category exists
-    const categoryExists = await prisma.category.findUnique({
-      where: { id: categoryId },
-    });
-
-    if (!categoryExists) {
-      return NextResponse.json(
-        { success: false, error: 'Kategori tidak ditemukan' },
         { status: 400 }
       );
     }
@@ -158,7 +132,7 @@ export async function POST(request: NextRequest) {
 
     // Check if SKU already exists (only if SKU is provided)
     if (sku && sku.trim() !== '') {
-      const existingProduct = await prisma.product.findUnique({
+      const existingProduct = await prisma.products.findUnique({
         where: { sku: sku.trim() },
       });
 
@@ -170,33 +144,39 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const product = await prisma.product.create({
+    const product = await prisma.products.create({
       data: {
+        id: randomUUID(),
         name,
         description,
-        categoryId,
         sku: sku && sku.trim() !== '' ? sku.trim() : null,
         buyPrice: buyPrice ? new Decimal(buyPrice) : null,
         sellPrice: new Decimal(sellPrice),
-        avgCost: buyPrice ? new Decimal(buyPrice) : null, // Initial avgCost
-        stock: stockValue,
-        threshold: thresholdValue,
+        avgCost: buyPrice ? new Decimal(buyPrice) : null,
+        stock: parseInt(stock.toString()),
+        threshold: parseInt(threshold.toString()),
         unit,
         isActive,
         ownershipType,
         stockCycle,
         isConsignment,
-        supplierId: supplierId || null,
         supplierContact: supplierContact || null,
+        updatedAt: new Date(),
+        categories: {
+          connect: { id: categoryId }
+        },
+        suppliers: supplierId ? {
+          connect: { id: supplierId }
+        } : undefined,
       },
       include: {
-        category: true,
-        supplier: true,
+        categories: true,
+        suppliers: true,
       },
     });
 
     // Create initial stock movement if stock > 0
-    if (stockValue > 0) {
+    if (stock > 0) {
       // For consignment products, use avgCost or sellPrice * 0.7 as unit cost estimate
       let unitCostValue = buyPrice ? new Decimal(buyPrice) : null;
       if (ownershipType === 'TITIPAN' && !unitCostValue) {
@@ -204,8 +184,9 @@ export async function POST(request: NextRequest) {
         unitCostValue = new Decimal(sellPrice).mul(0.7);
       }
       
-      await prisma.stockMovement.create({
+      await prisma.stock_movements.create({
         data: {
+          id: randomUUID(),
           productId: product.id,
           movementType: ownershipType === 'TOKO' ? 'PURCHASE_IN' : 'CONSIGNMENT_IN',
           quantity: parseInt(stock.toString()),
@@ -224,39 +205,8 @@ export async function POST(request: NextRequest) {
         sellPrice: Number(product.sellPrice),
       },
     }, { status: 201 });
-  } catch (error: any) {
+  } catch (error) {
     console.error('Error creating product:', error);
-    
-    // Handle specific Prisma errors
-    if (error.code === 'P2002') {
-      return NextResponse.json(
-        { success: false, error: 'Produk dengan data yang sama sudah ada' },
-        { status: 409 }
-      );
-    }
-    
-    if (error.code === 'P2003') {
-      return NextResponse.json(
-        { success: false, error: 'Data relasi tidak valid (kategori atau supplier tidak ditemukan)' },
-        { status: 400 }
-      );
-    }
-    
-    if (error.code === 'P2025') {
-      return NextResponse.json(
-        { success: false, error: 'Data tidak ditemukan' },
-        { status: 404 }
-      );
-    }
-    
-    // Handle validation errors
-    if (error.name === 'PrismaClientValidationError') {
-      return NextResponse.json(
-        { success: false, error: 'Data tidak valid. Pastikan semua field diisi dengan benar.' },
-        { status: 400 }
-      );
-    }
-
     return NextResponse.json(
       { success: false, error: 'Internal server error' },
       { status: 500 }

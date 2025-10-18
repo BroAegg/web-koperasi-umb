@@ -33,10 +33,10 @@ export async function GET(request: NextRequest) {
       where.targetAudience = targetAudience.toUpperCase();
     }
 
-    const broadcasts = await prisma.broadcast.findMany({
+    const broadcasts = await prisma.broadcasts.findMany({
       where,
       include: {
-        createdBy: {
+        users: {
           select: {
             id: true,
             name: true,
@@ -85,7 +85,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate creator exists
-    const creator = await prisma.user.findUnique({
+    const creator = await prisma.users.findUnique({
       where: { id: createdById },
     });
 
@@ -100,15 +100,15 @@ export async function POST(request: NextRequest) {
     let totalRecipients = 0;
     
     if (targetAudience.toUpperCase() === 'ALL') {
-      totalRecipients = await prisma.member.count({
+      totalRecipients = await prisma.members.count({
         where: { status: 'ACTIVE' },
       });
     } else if (targetAudience.toUpperCase() === 'ACTIVE_MEMBERS') {
-      totalRecipients = await prisma.member.count({
+      totalRecipients = await prisma.members.count({
         where: { status: 'ACTIVE' },
       });
     } else if (targetAudience.toUpperCase() === 'UNIT_SPECIFIC' && unitTarget) {
-      totalRecipients = await prisma.member.count({
+      totalRecipients = await prisma.members.count({
         where: { 
           status: 'ACTIVE',
           unitKerja: unitTarget,
@@ -122,8 +122,9 @@ export async function POST(request: NextRequest) {
     const status = isScheduled ? 'SCHEDULED' : 'SENT';
     const sentAt = !isScheduled ? now : null;
 
-    const broadcast = await prisma.broadcast.create({
+    const broadcast = await prisma.broadcasts.create({
       data: {
+        id: require('crypto').randomUUID(),
         title,
         message,
         type: type.toUpperCase(),
@@ -135,10 +136,13 @@ export async function POST(request: NextRequest) {
         totalRecipients,
         successfulDeliveries: !isScheduled ? totalRecipients : 0, // Simulate immediate success for demo
         failedDeliveries: 0,
-        createdById,
+        updatedAt: new Date(),
+        users: {
+          connect: { id: createdById },
+        },
       },
       include: {
-        createdBy: {
+        users: {
           select: {
             id: true,
             name: true,

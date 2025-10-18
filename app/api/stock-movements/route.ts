@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { randomUUID } from 'crypto';
 import { PrismaClient } from '@prisma/client';
 
 const prisma = new PrismaClient();
@@ -37,10 +38,10 @@ export async function GET(request: NextRequest) {
       };
     }
 
-    const stockMovements = await prisma.stockMovement.findMany({
+    const stockMovements = await prisma.stock_movements.findMany({
       where,
       include: {
-        product: {
+        products: {
           select: {
             id: true,
             name: true,
@@ -59,7 +60,7 @@ export async function GET(request: NextRequest) {
       skip: offset,
     });
 
-    const total = await prisma.stockMovement.count({ where });
+    const total = await prisma.stock_movements.count({ where });
 
     return NextResponse.json({
       success: true,
@@ -102,7 +103,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Validate product exists
-    const product = await prisma.product.findUnique({
+    const product = await prisma.products.findUnique({
       where: { id: productId },
     });
 
@@ -144,7 +145,7 @@ export async function POST(request: NextRequest) {
     // Use Prisma transaction to ensure atomicity
     const result = await prisma.$transaction(async (tx) => {
       // Get product details for transaction
-      const productDetails = await tx.product.findUnique({
+      const productDetails = await tx.products.findUnique({
         where: { id: productId },
         select: {
           id: true,
@@ -161,8 +162,9 @@ export async function POST(request: NextRequest) {
       }
 
       // Create stock movement
-      const stockMovement = await tx.stockMovement.create({
+      const stockMovement = await tx.stock_movements.create({
         data: {
+          id: randomUUID(),
           productId,
           movementType: movementType as any, // Type assertion for enum
           quantity: quantityValue,
@@ -173,7 +175,7 @@ export async function POST(request: NextRequest) {
 
       // Update product stock (quantity is already signed)
       const stockChange = quantityValue;
-      const updatedProduct = await tx.product.update({
+      const updatedProduct = await tx.products.update({
         where: { id: productId },
         data: {
           stock: {
@@ -193,19 +195,22 @@ export async function POST(request: NextRequest) {
         const grossProfit = totalAmount - totalCogs;
 
         // Create transaction
-        transaction = await tx.transaction.create({
+        transaction = await tx.transactions.create({
           data: {
+            id: randomUUID(),
             type: 'SALE',
             totalAmount,
             paymentMethod: 'CASH', // Default for manual stock out
             status: 'COMPLETED',
             note: note || 'Penjualan manual via stock movement',
+            updatedAt: new Date(),
           },
         });
 
         // Create transaction item
-        await tx.transactionItem.create({
+        await tx.transaction_items.create({
           data: {
+            id: randomUUID(),
             transactionId: transaction.id,
             productId,
             quantity: saleQuantity,
@@ -218,7 +223,7 @@ export async function POST(request: NextRequest) {
         });
 
         // Update stock movement with reference
-        await tx.stockMovement.update({
+        await tx.stock_movements.update({
           where: { id: stockMovement.id },
           data: {
             referenceType: 'SALE' as any,
@@ -277,10 +282,10 @@ export async function DELETE(request: NextRequest) {
     };
 
     // Count before delete
-    const count = await prisma.stockMovement.count({ where });
+    const count = await prisma.stock_movements.count({ where });
 
     // Delete all stock movements for the date
-    await prisma.stockMovement.deleteMany({ where });
+    await prisma.stock_movements.deleteMany({ where });
 
     return NextResponse.json({
       success: true,

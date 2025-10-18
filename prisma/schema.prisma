@@ -290,10 +290,11 @@ model supplier_payments {
   id                String                    @id
   supplierProfileId String
   amount            Decimal
+  paymentProof      String?                   // URL/path bukti transfer
   paymentMethod     PaymentMethod             @default(TRANSFER)
   paymentDate       DateTime                  @default(now())
-  periodStart       DateTime
-  periodEnd         DateTime
+  periodStart       DateTime?
+  periodEnd         DateTime?
   referenceNo       String?
   verifiedBy        String?
   verifiedAt        DateTime?

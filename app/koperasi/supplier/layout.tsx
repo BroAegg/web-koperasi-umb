@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useAuth } from "@/lib/use-auth";
 import { 
   LayoutDashboard, 
   Package, 
@@ -22,6 +23,19 @@ export default function SupplierLayout({
 }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
+  const { user, loading, authorized, logout } = useAuth(["SUPPLIER"]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (!authorized) {
+    return null;
+  }
 
   const navigation = [
     { name: "Dashboard", href: "/koperasi/supplier", icon: LayoutDashboard },
@@ -102,10 +116,7 @@ export default function SupplierLayout({
           {/* Logout Button */}
           <div className="p-4 border-t border-slate-200">
             <button
-              onClick={() => {
-                localStorage.removeItem("token");
-                window.location.href = "/login";
-              }}
+              onClick={logout}
               className="flex items-center space-x-3 px-4 py-3 rounded-xl w-full text-red-600 hover:bg-red-50 transition-colors"
             >
               <LogOut className="w-5 h-5" />

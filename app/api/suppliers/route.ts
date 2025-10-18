@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { randomUUID } from 'crypto';
 import { prisma } from '@/lib/prisma';
 import { hashPassword } from '@/lib/auth';
 
@@ -22,7 +23,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if email already exists in users
-    const existingUser = await prisma.user.findUnique({
+    const existingUser = await prisma.users.findUnique({
       where: { email },
     });
 
@@ -39,24 +40,28 @@ export async function POST(request: NextRequest) {
     const hashedPassword = await hashPassword(defaultPassword);
 
     // Create user with SUPPLIER role
-    const user = await prisma.user.create({
+    const user = await prisma.users.create({
       data: {
+        id: randomUUID(),
         email,
         name,
         password: hashedPassword,
         role: 'SUPPLIER',
         isActive: false, // Will be activated after approval
+        updatedAt: new Date(),
       },
     });
 
     console.log('User created:', user.id);
 
     // Create supplier profile
-    const supplierProfile = await prisma.supplierProfile.create({
+    const supplierProfile = await prisma.supplier_profiles.create({
       data: {
+        id: randomUUID(),
         userId: user.id,
         businessName: name,
         ownerName: name,
+        email,
         phone,
         address,
         productCategory: category,
@@ -64,6 +69,7 @@ export async function POST(request: NextRequest) {
         status: 'PENDING',
         monthlyFee: 25000,
         isPaymentActive: false,
+        updatedAt: new Date(),
       },
     });
 
@@ -112,10 +118,10 @@ export async function GET(request: NextRequest) {
       where.status = status.toUpperCase();
     }
 
-    const suppliers = await prisma.supplierProfile.findMany({
+    const suppliers = await prisma.supplier_profiles.findMany({
       where,
       include: {
-        user: {
+        users: {
           select: {
             id: true,
             email: true,
@@ -123,10 +129,6 @@ export async function GET(request: NextRequest) {
             isActive: true,
             createdAt: true,
           },
-        },
-        payments: {
-          orderBy: { paymentDate: 'desc' },
-          take: 1,
         },
       },
       orderBy: { createdAt: 'desc' },

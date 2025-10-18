@@ -64,7 +64,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get all transactions within the period
-    const transactions = await prisma.transaction.findMany({
+    const transactions = await prisma.transactions.findMany({
       where: {
         date: {
           gte: startDate,
@@ -73,9 +73,9 @@ export async function GET(request: NextRequest) {
         status: 'COMPLETED',
       },
       include: {
-        items: {
+        transaction_items: {
           include: {
-            product: {
+            products: {
               select: {
                 id: true,
                 name: true,
@@ -85,7 +85,7 @@ export async function GET(request: NextRequest) {
                 isConsignment: true,
                 ownershipType: true,
                 supplierId: true,
-                supplier: {
+                suppliers: {
                   select: {
                     id: true,
                     name: true,
@@ -120,7 +120,7 @@ export async function GET(request: NextRequest) {
 
       if (transaction.type === 'SALE') {
         // Process sale items
-        transaction.items?.forEach(item => {
+        transaction.transaction_items?.forEach(item => {
           const itemRevenue = Number(item.totalPrice);
           const itemCOGS = Number(item.totalCogs || 0);
           totalRevenue += itemRevenue;
@@ -128,7 +128,7 @@ export async function GET(request: NextRequest) {
           totalSoldItems += item.quantity;
           
           // Track unique products sold with details
-          if (item.productId && item.product) {
+          if (item.productId && item.products) {
             uniqueProductIds.add(item.productId);
             
             // Aggregate quantities for each product
@@ -137,14 +137,14 @@ export async function GET(request: NextRequest) {
               existing.quantity += item.quantity;
             } else {
               productSalesMap.set(item.productId, {
-                name: item.product.name,
+                name: item.products.name,
                 quantity: item.quantity
               });
             }
           }
 
           // Determine ownership: product.ownershipType OR product.isConsignment
-          const isConsignment = item.product?.isConsignment || item.product?.ownershipType === 'TITIPAN';
+          const isConsignment = item.products?.isConsignment || item.products?.ownershipType === 'TITIPAN';
 
           if (isConsignment) {
             // Consignment product sold: COGS is expense (payment to consignor)
@@ -153,8 +153,8 @@ export async function GET(request: NextRequest) {
             totalExpense += itemCOGS; // TITIPAN COGS = expense
             
             // Track consignment by supplier
-            const supplierId = item.product?.supplierId || 'unknown';
-            const supplierName = item.product?.supplier?.name || 'Supplier Tidak Diketahui';
+            const supplierId = item.products?.supplierId || 'unknown';
+            const supplierName = item.products?.suppliers?.name || 'Supplier Tidak Diketahui';
             const itemProfit = itemRevenue - itemCOGS;
             
             const existingSupplier = consignmentSupplierMap.get(supplierId);
@@ -178,9 +178,9 @@ export async function GET(request: NextRequest) {
         });
       } else if (transaction.type === 'PURCHASE') {
         // PURCHASE: expense only for TOKO products
-        transaction.items?.forEach(item => {
-          const isToko = item.product?.ownershipType === 'TOKO' || 
-                        item.product?.isConsignment === false;
+        transaction.transaction_items?.forEach(item => {
+          const isToko = item.products?.ownershipType === 'TOKO' || 
+                        item.products?.isConsignment === false;
           if (isToko) {
             totalExpense += Number(item.totalPrice || 0);
           }

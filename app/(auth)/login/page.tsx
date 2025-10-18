@@ -53,8 +53,22 @@ export default function LoginPage() {
       localStorage.setItem('token', data.data.token);
       console.log('Token saved, redirecting...');
       
-      // redirect to koperasi dashboard
-      window.location.href = '/koperasi/dashboard';
+      // Redirect based on user role
+      const userRole = data.data.user.role;
+      let redirectPath = '/koperasi/dashboard'; // default
+      
+      if (userRole === 'SUPER_ADMIN') {
+        redirectPath = '/koperasi/super-admin';
+      } else if (userRole === 'ADMIN') {
+        redirectPath = '/koperasi/admin';
+      } else if (userRole === 'SUPPLIER') {
+        redirectPath = '/koperasi/supplier';
+      } else {
+        redirectPath = '/koperasi/dashboard'; // USER role
+      }
+      
+      console.log('Redirecting to:', redirectPath);
+      window.location.href = redirectPath;
     } catch (err) {
       console.error('Login error:', err);
       alert('Terjadi kesalahan saat login. Silakan cek console untuk detail.');

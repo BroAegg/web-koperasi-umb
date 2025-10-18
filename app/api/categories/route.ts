@@ -1,10 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { randomUUID } from 'crypto';
 
 // GET /api/categories - Get all categories
 export async function GET() {
   try {
-    const categories = await prisma.category.findMany({
+    const categories = await prisma.categories.findMany({
       orderBy: { name: 'asc' },
       include: {
         _count: {
@@ -40,7 +41,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if category already exists
-    const existingCategory = await prisma.category.findUnique({
+    const existingCategory = await prisma.categories.findUnique({
       where: { name },
     });
 
@@ -51,8 +52,13 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const category = await prisma.category.create({
-      data: { name, description },
+    const category = await prisma.categories.create({
+      data: { 
+        id: randomUUID(),
+        name, 
+        description,
+        updatedAt: new Date()
+      },
     });
 
     return NextResponse.json({

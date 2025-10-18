@@ -9,6 +9,9 @@ export function useFinancialData(financialPeriod: FinancialPeriod, selectedDate:
     totalRevenue: 0,
     totalProfit: 0,
     totalSoldItems: 0,
+    uniqueProductsSold: 0,
+    productBreakdown: [],
+    consignmentBreakdown: [],
     toko: { revenue: 0, cogs: 0, profit: 0 },
     consignment: { grossRevenue: 0, cogs: 0, profit: 0, feeTotal: 0 },
   });
@@ -29,6 +32,9 @@ export function useFinancialData(financialPeriod: FinancialPeriod, selectedDate:
           totalRevenue: data.data.totalRevenue || 0,
           totalProfit: data.data.totalProfit || 0,
           totalSoldItems: data.data.totalSoldItems || 0,
+          uniqueProductsSold: data.data.uniqueProductsSold || 0,
+          productBreakdown: data.data.productBreakdown || [],
+          consignmentBreakdown: data.data.consignmentBreakdown || [],
           toko: data.data.toko || { revenue: 0, cogs: 0, profit: 0 },
           consignment: data.data.consignment || { grossRevenue: 0, cogs: 0, profit: 0, feeTotal: 0 },
         });

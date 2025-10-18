@@ -10,10 +10,10 @@ export async function GET(
   try {
     const { id } = await params;
 
-    const member = await prisma.member.findUnique({
+    const member = await prisma.members.findUnique({
       where: { id },
       include: {
-        user: {
+        users: {
           select: {
             id: true,
             email: true,
@@ -33,9 +33,9 @@ export async function GET(
           orderBy: { createdAt: 'desc' },
           take: 10,
           include: {
-            items: {
+            transaction_items: {
               include: {
-                product: true,
+                products: true,
               },
             },
           },
@@ -78,7 +78,7 @@ export async function PUT(
     const { id } = await params;
     const body = await request.json();
 
-    const member = await prisma.member.findUnique({
+    const member = await prisma.members.findUnique({
       where: { id },
     });
 
@@ -91,7 +91,7 @@ export async function PUT(
 
     // Check email uniqueness if email is being updated
     if (body.email && body.email !== member.email) {
-      const existingMember = await prisma.member.findUnique({
+      const existingMember = await prisma.members.findUnique({
         where: { email: body.email },
       });
 
@@ -103,7 +103,7 @@ export async function PUT(
       }
     }
 
-    const updatedMember = await prisma.member.update({
+    const updatedMember = await prisma.members.update({
       where: { id },
       data: {
         ...(body.name && { name: body.name }),
@@ -118,7 +118,7 @@ export async function PUT(
         ...(body.status && { status: body.status }),
       },
       include: {
-        user: {
+        users: {
           select: {
             id: true,
             email: true,
@@ -157,9 +157,9 @@ export async function DELETE(
   try {
     const { id } = await params;
 
-    const member = await prisma.member.findUnique({
+    const member = await prisma.members.findUnique({
       where: { id },
-      include: { user: true },
+      include: { users: true },
     });
 
     if (!member) {
@@ -170,7 +170,7 @@ export async function DELETE(
     }
 
     // Delete member (will cascade delete user due to onDelete: Cascade)
-    await prisma.member.delete({
+    await prisma.members.delete({
       where: { id },
     });
 

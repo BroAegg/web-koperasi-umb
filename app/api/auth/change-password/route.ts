@@ -21,6 +21,15 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Some roles (e.g. SUPPLIER) return a user-like object without password
+    // Ensure the account has a password before attempting to compare/hash it.
+    if (!('password' in user) || typeof (user as any).password !== 'string') {
+      return NextResponse.json(
+        { success: false, error: 'Akun ini tidak dapat mengganti password melalui endpoint ini' },
+        { status: 400 }
+      );
+    }
+
     const body = await request.json();
     const { currentPassword, newPassword } = body;
 
@@ -52,7 +61,7 @@ export async function POST(request: NextRequest) {
     const hashedPassword = await hashPassword(newPassword);
 
     // Update password
-    await prisma.user.update({
+    await prisma.users.update({
       where: { id: user.id },
       data: { password: hashedPassword },
     });

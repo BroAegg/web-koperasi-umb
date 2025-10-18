@@ -14,7 +14,7 @@ export async function GET(request: NextRequest) {
     endDate.setHours(23, 59, 59, 999);
 
     // Get stock movements for the day
-    const movements = await prisma.stockMovement.findMany({
+    const movements = await prisma.stock_movements.findMany({
       where: {
         createdAt: {
           gte: startDate,

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { randomUUID } from 'crypto';
 
 const prisma = new PrismaClient();
 
@@ -29,19 +30,19 @@ export async function GET(request: NextRequest) {
       where.type = type.toUpperCase();
     }
 
-    const transactions = await prisma.transaction.findMany({
+    const transactions = await prisma.transactions.findMany({
       where,
       include: {
-        member: {
+        members: {
           select: {
             id: true,
             name: true,
             nomorAnggota: true,
           },
         },
-        items: {
+        transaction_items: {
           include: {
-            product: {
+            products: {
               select: {
                 id: true,
                 name: true,
@@ -69,7 +70,7 @@ export async function GET(request: NextRequest) {
       totalAmount: Number(transaction.totalAmount),
     }));
 
-    const total = await prisma.transaction.count({ where });
+    const total = await prisma.transactions.count({ where });
 
     return NextResponse.json({
       success: true,
@@ -141,8 +142,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Create transaction
-    const transaction = await prisma.transaction.create({
+    const transaction = await prisma.transactions.create({
       data: {
+        id: randomUUID(),
         type: type.toUpperCase(),
         totalAmount: amount,
         paymentMethod: paymentMethod?.toUpperCase() || 'CASH',
@@ -150,9 +152,10 @@ export async function POST(request: NextRequest) {
         note: description,
         date: date ? new Date(date) : new Date(),
         memberId: memberId || null,
+        updatedAt: new Date(),
       },
       include: {
-        member: {
+        members: {
           select: {
             id: true,
             name: true,

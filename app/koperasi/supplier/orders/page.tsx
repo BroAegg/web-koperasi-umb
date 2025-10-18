@@ -24,10 +24,7 @@ const dummyOrders = [
     quantity: 10, 
     total: 750000, 
     status: "pending", 
-    date: "2025-01-15",
-    customer: "Toko Berkah Jaya",
-    address: "Jl. Merdeka No. 123, Jakarta",
-    phone: "081234567890"
+    date: "2025-01-15"
   },
   { 
     id: "ORD-002", 
@@ -35,10 +32,7 @@ const dummyOrders = [
     quantity: 20, 
     total: 640000, 
     status: "processing", 
-    date: "2025-01-15",
-    customer: "Warung Sari",
-    address: "Jl. Sudirman No. 45, Jakarta",
-    phone: "081234567891"
+    date: "2025-01-15"
   },
   { 
     id: "ORD-003", 
@@ -46,10 +40,7 @@ const dummyOrders = [
     quantity: 50, 
     total: 750000, 
     status: "shipped", 
-    date: "2025-01-14",
-    customer: "Toko Makmur",
-    address: "Jl. Gatot Subroto No. 78, Jakarta",
-    phone: "081234567892"
+    date: "2025-01-14"
   },
   { 
     id: "ORD-004", 
@@ -57,10 +48,7 @@ const dummyOrders = [
     quantity: 30, 
     total: 840000, 
     status: "completed", 
-    date: "2025-01-13",
-    customer: "Pasar Segar",
-    address: "Jl. Ahmad Yani No. 90, Jakarta",
-    phone: "081234567893"
+    date: "2025-01-13"
   },
   { 
     id: "ORD-005", 
@@ -68,10 +56,7 @@ const dummyOrders = [
     quantity: 40, 
     total: 720000, 
     status: "pending", 
-    date: "2025-01-15",
-    customer: "Mini Market Sejahtera",
-    address: "Jl. Diponegoro No. 12, Jakarta",
-    phone: "081234567894"
+    date: "2025-01-15"
   },
   { 
     id: "ORD-006", 
@@ -79,10 +64,7 @@ const dummyOrders = [
     quantity: 100, 
     total: 1400000, 
     status: "processing", 
-    date: "2025-01-14",
-    customer: "Warung Bahagia",
-    address: "Jl. Veteran No. 34, Jakarta",
-    phone: "081234567895"
+    date: "2025-01-14"
   },
 ];
 
@@ -109,8 +91,7 @@ export default function SupplierOrders() {
   const filteredOrders = orders.filter((order) => {
     const matchesSearch = 
       order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.product.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      order.customer.toLowerCase().includes(searchTerm.toLowerCase());
+      order.product.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesStatus = statusFilter === "all" || order.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -200,7 +181,7 @@ export default function SupplierOrders() {
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
               <Input
                 type="text"
-                placeholder="Cari ID pesanan, produk, atau pelanggan..."
+                placeholder="Cari ID pesanan atau produk..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="pl-10 rounded-xl border-slate-300"
@@ -236,7 +217,6 @@ export default function SupplierOrders() {
                 <tr>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">ID Pesanan</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Produk</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Pelanggan</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Jumlah</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Total</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Status</th>
@@ -262,9 +242,6 @@ export default function SupplierOrders() {
                       </td>
                       <td className="px-6 py-4">
                         <p className="font-medium text-slate-800">{order.product}</p>
-                      </td>
-                      <td className="px-6 py-4">
-                        <p className="font-medium text-slate-800">{order.customer}</p>
                       </td>
                       <td className="px-6 py-4">
                         <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-slate-100 text-slate-700">
@@ -390,25 +367,19 @@ export default function SupplierOrders() {
                   </div>
                 </div>
 
-                {/* Info Pelanggan */}
+                {/* Info Pesanan */}
                 <div className="space-y-3">
-                  <h3 className="font-semibold text-slate-800">Informasi Pelanggan</h3>
+                  <h3 className="font-semibold text-slate-800">Informasi Pesanan</h3>
                   <div className="border border-slate-200 rounded-xl p-4 space-y-2">
-                    <div className="flex justify-between">
-                      <span className="text-slate-600">Nama</span>
-                      <span className="font-medium text-slate-800">{selectedOrder.customer}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-600">Telepon</span>
-                      <span className="font-medium text-slate-800">{selectedOrder.phone}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-slate-600">Alamat</span>
-                      <span className="font-medium text-slate-800 text-right">{selectedOrder.address}</span>
-                    </div>
                     <div className="flex justify-between">
                       <span className="text-slate-600">Tanggal Pesanan</span>
                       <span className="font-medium text-slate-800">{selectedOrder.date}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-600">Status</span>
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(selectedOrder.status).bg} ${getStatusColor(selectedOrder.status).text}`}>
+                        {getStatusLabel(selectedOrder.status)}
+                      </span>
                     </div>
                   </div>
                 </div>

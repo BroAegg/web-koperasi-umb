@@ -22,8 +22,10 @@ import type {
 import { 
   DollarSign,
   Plus,
-  Download
+  Download,
+  TrendingUp
 } from 'lucide-react';
+import { ShoppingCart, Receipt, TrendingDown } from 'lucide-react';
 
 export default function FinancialPage() {
   const [loading, setLoading] = useState(true);
@@ -309,6 +311,163 @@ export default function FinancialPage() {
             dailySummary={dailySummary}
           />
         </div>
+      )}
+
+      {/* Financial Trend Chart */}
+      {dailySummary && (
+        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
+          <CardHeader className="border-b border-gray-100">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2.5 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600">
+                  <TrendingUp className="w-5 h-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold text-gray-900">Grafik Keuangan</h3>
+                  <p className="text-xs text-gray-500">Visualisasi performa harian</p>
+                </div>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent className="p-6">
+            <div className="space-y-8">
+              {/* Income vs Expense Bar Chart */}
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h4 className="text-sm font-semibold text-gray-700">Perbandingan Pemasukan & Pengeluaran</h4>
+                  <div className="flex items-center gap-4 text-xs">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded bg-emerald-500"></div>
+                      <span className="text-gray-600">Pemasukan</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded bg-red-500"></div>
+                      <span className="text-gray-600">Pengeluaran</span>
+                    </div>
+                  </div>
+                </div>
+                
+                {/* Bar Chart */}
+                <div className="space-y-4">
+                  {/* Income Bar */}
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-gray-700">Pemasukan</span>
+                      <span className="text-sm font-bold text-emerald-600">{formatCurrency(dailySummary.totalIncome)}</span>
+                    </div>
+                    <div className="w-full h-8 bg-gray-100 rounded-lg overflow-hidden relative">
+                      <div 
+                        className="h-full bg-gradient-to-r from-emerald-400 to-emerald-600 rounded-lg transition-all duration-500 flex items-center justify-end px-3"
+                        style={{ 
+                          width: `${dailySummary.totalIncome > 0 && (dailySummary.totalIncome + dailySummary.totalExpense) > 0 
+                            ? (dailySummary.totalIncome / Math.max(dailySummary.totalIncome, dailySummary.totalExpense)) * 100 
+                            : 0}%`,
+                          minWidth: dailySummary.totalIncome > 0 ? '60px' : '0'
+                        }}
+                      >
+                        <span className="text-xs font-bold text-white">
+                          {dailySummary.totalIncome > 0 && (dailySummary.totalIncome + dailySummary.totalExpense) > 0
+                            ? `${((dailySummary.totalIncome / (dailySummary.totalIncome + dailySummary.totalExpense)) * 100).toFixed(1)}%`
+                            : '0%'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Expense Bar */}
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-gray-700">Pengeluaran</span>
+                      <span className="text-sm font-bold text-red-600">{formatCurrency(dailySummary.totalExpense)}</span>
+                    </div>
+                    <div className="w-full h-8 bg-gray-100 rounded-lg overflow-hidden relative">
+                      <div 
+                        className="h-full bg-gradient-to-r from-red-400 to-red-600 rounded-lg transition-all duration-500 flex items-center justify-end px-3"
+                        style={{ 
+                          width: `${dailySummary.totalExpense > 0 && (dailySummary.totalIncome + dailySummary.totalExpense) > 0
+                            ? (dailySummary.totalExpense / Math.max(dailySummary.totalIncome, dailySummary.totalExpense)) * 100 
+                            : 0}%`,
+                          minWidth: dailySummary.totalExpense > 0 ? '60px' : '0'
+                        }}
+                      >
+                        <span className="text-xs font-bold text-white">
+                          {dailySummary.totalExpense > 0 && (dailySummary.totalIncome + dailySummary.totalExpense) > 0
+                            ? `${((dailySummary.totalExpense / (dailySummary.totalIncome + dailySummary.totalExpense)) * 100).toFixed(1)}%`
+                            : '0%'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Net Income Bar */}
+                  <div className="pt-4 border-t border-gray-100">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-semibold text-gray-800">Keuntungan Bersih</span>
+                      <span className={`text-sm font-bold ${dailySummary.netIncome >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                        {formatCurrency(dailySummary.netIncome)}
+                      </span>
+                    </div>
+                    <div className="w-full h-10 bg-gray-100 rounded-lg overflow-hidden relative">
+                      <div 
+                        className={`h-full rounded-lg transition-all duration-500 flex items-center justify-center ${
+                          dailySummary.netIncome >= 0 
+                            ? 'bg-gradient-to-r from-emerald-500 to-emerald-700' 
+                            : 'bg-gradient-to-r from-red-500 to-red-700'
+                        }`}
+                        style={{ 
+                          width: `${dailySummary.totalIncome > 0 
+                            ? (Math.abs(dailySummary.netIncome) / dailySummary.totalIncome) * 100 
+                            : 0}%`,
+                          minWidth: dailySummary.netIncome !== 0 ? '80px' : '0'
+                        }}
+                      >
+                        <span className="text-sm font-bold text-white">
+                          {dailySummary.netIncome >= 0 ? '+' : '-'} {formatCurrency(Math.abs(dailySummary.netIncome))}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Transaction Distribution */}
+              <div className="pt-6 border-t border-gray-100">
+                <h4 className="text-sm font-semibold text-gray-700 mb-4">Distribusi Transaksi</h4>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  {[
+                    { type: 'SALE', label: 'Penjualan', color: 'emerald', icon: ShoppingCart },
+                    { type: 'PURCHASE', label: 'Pembelian', color: 'blue', icon: Receipt },
+                    { type: 'INCOME', label: 'Pemasukan', color: 'green', icon: TrendingUp },
+                    { type: 'EXPENSE', label: 'Pengeluaran', color: 'red', icon: TrendingDown },
+                  ].map(({ type, label, color, icon: Icon }) => {
+                    const count = transactions.filter(t => t.type === type).length;
+                    const total = transactions.filter(t => t.type === type).reduce((sum, t) => sum + t.amount, 0);
+                    const percentage = dailySummary.transactionCount > 0 
+                      ? (count / dailySummary.transactionCount) * 100 
+                      : 0;
+                    
+                    return (
+                      <div key={type} className="space-y-2">
+                        <div className="flex items-center gap-2">
+                          <Icon className={`w-4 h-4 text-${color}-600`} />
+                          <span className="text-xs font-medium text-gray-600">{label}</span>
+                        </div>
+                        <div className="text-lg font-bold text-gray-900">{count}</div>
+                        <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
+                          <div 
+                            className={`h-full bg-gradient-to-r from-${color}-400 to-${color}-600 rounded-full transition-all duration-500`}
+                            style={{ width: `${percentage}%` }}
+                          ></div>
+                        </div>
+                        <div className="text-xs text-gray-500">{formatCurrency(total)}</div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       )}
 
       {/* Transactions Table */}

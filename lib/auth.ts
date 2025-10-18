@@ -29,6 +29,32 @@ export async function getUserFromToken(token?: string) {
   if (!token) return null;
   const data = verifyToken(token);
   if (!data || !data.userId) return null;
+  
+  // If role is SUPPLIER, get from supplier_profiles
+  if (data.role === 'SUPPLIER') {
+    const supplier = await prisma.supplier_profiles.findUnique({ 
+      where: { id: data.userId },
+      select: {
+        id: true,
+        email: true,
+        businessName: true,
+        status: true,
+        paymentStatus: true,
+      }
+    });
+    
+    if (!supplier) return null;
+    
+    // Return user-like object for supplier
+    return {
+      id: supplier.id,
+      email: supplier.email,
+      name: supplier.businessName,
+      role: 'SUPPLIER' as const,
+    };
+  }
+  
+  // For other roles (ADMIN, SUPER_ADMIN, USER), get from users table
   const user = await prisma.users.findUnique({ where: { id: data.userId } });
   return user;
 }

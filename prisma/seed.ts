@@ -1,46 +1,101 @@
 import { PrismaClient, Role } from '@prisma/client';
 import { Decimal } from '@prisma/client/runtime/library';
 import bcrypt from 'bcryptjs';
+import { randomUUID } from 'crypto';
 
 const prisma = new PrismaClient();
 
 async function main() {
   console.log('🌱 Starting database seeding...');
 
+  // Clean up existing test data
+  console.log('🧹 Cleaning up existing test data...');
+  await prisma.stock_movements.deleteMany({});
+  await prisma.transaction_items.deleteMany({});
+  await prisma.transactions.deleteMany({});
+  await prisma.broadcasts.deleteMany({});
+  await prisma.products.deleteMany({});
+  await prisma.members.deleteMany({});
+  await prisma.categories.deleteMany({});
+  await prisma.users.deleteMany({ where: { email: { contains: '@koperasi.com' } } });
+  console.log('✅ Cleanup completed');
+
   // Create core users: superadmin, admin, supplier
   const passwordPlain = 'Password123!';
   const hashed = await bcrypt.hash(passwordPlain, 10);
 
-  const superAdmin = await prisma.user.upsert({
+  const superAdmin = await prisma.users.upsert({
     where: { email: 'superadmin@koperasi.com' },
     update: { password: hashed, name: 'Super Admin', role: Role.SUPER_ADMIN },
-    create: { email: 'superadmin@koperasi.com', name: 'Super Admin', password: hashed, role: Role.SUPER_ADMIN },
+    create: { 
+      id: randomUUID(),
+      email: 'superadmin@koperasi.com', 
+      name: 'Super Admin', 
+      password: hashed, 
+      role: Role.SUPER_ADMIN,
+      updatedAt: new Date(),
+    },
   });
 
-  const admin = await prisma.user.upsert({
+  const admin = await prisma.users.upsert({
     where: { email: 'admin@koperasi.com' },
     update: { password: hashed, name: 'Admin User', role: Role.ADMIN },
-    create: { email: 'admin@koperasi.com', name: 'Admin User', password: hashed, role: Role.ADMIN },
+    create: { 
+      id: randomUUID(),
+      email: 'admin@koperasi.com', 
+      name: 'Admin User', 
+      password: hashed, 
+      role: Role.ADMIN,
+      updatedAt: new Date(),
+    },
   });
 
-  const supplier = await prisma.user.upsert({
+  const supplier = await prisma.users.upsert({
     where: { email: 'supplier@koperasi.com' },
     update: { password: hashed, name: 'Supplier User', role: Role.SUPPLIER },
-    create: { email: 'supplier@koperasi.com', name: 'Supplier User', password: hashed, role: Role.SUPPLIER },
+    create: { 
+      id: randomUUID(),
+      email: 'supplier@koperasi.com', 
+      name: 'Supplier User', 
+      password: hashed, 
+      role: Role.SUPPLIER,
+      updatedAt: new Date(),
+    },
   });
 
   console.log('✅ Core users (superadmin/admin/supplier) ensured. Default password for all:', 'Password123!');
 
   // Create categories
   const categories = await Promise.all([
-    prisma.category.create({
-      data: { name: 'Sembako', description: 'Sembilan bahan pokok' }
+    prisma.categories.upsert({
+      where: { name: 'Sembako' },
+      update: {},
+      create: { 
+        id: randomUUID(),
+        name: 'Sembako', 
+        description: 'Sembilan bahan pokok',
+        updatedAt: new Date(),
+      }
     }),
-    prisma.category.create({
-      data: { name: 'Minuman', description: 'Aneka minuman' }
+    prisma.categories.upsert({
+      where: { name: 'Minuman' },
+      update: {},
+      create: { 
+        id: randomUUID(),
+        name: 'Minuman', 
+        description: 'Aneka minuman',
+        updatedAt: new Date(),
+      }
     }),
-    prisma.category.create({
-      data: { name: 'Makanan Ringan', description: 'Snack dan makanan ringan' }
+    prisma.categories.upsert({
+      where: { name: 'Makanan Ringan' },
+      update: {},
+      create: { 
+        id: randomUUID(),
+        name: 'Makanan Ringan', 
+        description: 'Snack dan makanan ringan',
+        updatedAt: new Date(),
+      }
     }),
   ]);
 
@@ -50,18 +105,28 @@ async function main() {
   const users = [];
   const members = [];
 
+  // Hash password for member users
+  const memberPassword = await bcrypt.hash('Password123!', 10);
+
   for (let i = 1; i <= 5; i++) {
-    const user = await prisma.user.create({
-      data: {
+    const user = await prisma.users.upsert({
+      where: { email: `member${i}@koperasi.com` },
+      update: {},
+      create: {
+        id: randomUUID(),
         email: `member${i}@koperasi.com`,
         name: `Anggota ${i}`,
-        password: 'password123', // In real app, this should be hashed
+        password: memberPassword, // Now properly hashed
         role: 'USER',
+        updatedAt: new Date(),
       },
     });
 
-    const member = await prisma.member.create({
-      data: {
+    const member = await prisma.members.upsert({
+      where: { email: `member${i}@koperasi.com` },
+      update: {},
+      create: {
+        id: randomUUID(),
         userId: user.id,
         nomorAnggota: `UMB${String(i).padStart(3, '0')}`,
         name: `Anggota ${i}`,
@@ -74,6 +139,7 @@ async function main() {
         simpananWajib: new Decimal(200000 + i * 50000),
         simpananSukarela: new Decimal(150000 + i * 100000),
         status: 'ACTIVE',
+        updatedAt: new Date(),
       },
     });
 
@@ -85,8 +151,9 @@ async function main() {
 
   // Create sample products
   const products = await Promise.all([
-    prisma.product.create({
+    prisma.products.create({
       data: {
+        id: randomUUID(),
         name: 'Beras Premium 5kg',
         description: 'Beras premium kualitas terbaik',
         categoryId: categories[0].id,
@@ -96,10 +163,12 @@ async function main() {
         stock: 25,
         threshold: 10,
         unit: 'sak',
+        updatedAt: new Date(),
       },
     }),
-    prisma.product.create({
+    prisma.products.create({
       data: {
+        id: randomUUID(),
         name: 'Minyak Goreng 2L',
         description: 'Minyak goreng kemasan 2 liter',
         categoryId: categories[0].id,
@@ -109,10 +178,12 @@ async function main() {
         stock: 8, // Low stock
         threshold: 15,
         unit: 'botol',
+        updatedAt: new Date(),
       },
     }),
-    prisma.product.create({
+    prisma.products.create({
       data: {
+        id: randomUUID(),
         name: 'Gula Pasir 1kg',
         description: 'Gula pasir kemasan 1kg',
         categoryId: categories[0].id,
@@ -122,10 +193,12 @@ async function main() {
         stock: 5, // Critical stock
         threshold: 15,
         unit: 'kg',
+        updatedAt: new Date(),
       },
     }),
-    prisma.product.create({
+    prisma.products.create({
       data: {
+        id: randomUUID(),
         name: 'Kopi Bubuk 200g',
         description: 'Kopi bubuk premium',
         categoryId: categories[1].id,
@@ -135,10 +208,12 @@ async function main() {
         stock: 30,
         threshold: 10,
         unit: 'pack',
+        updatedAt: new Date(),
       },
     }),
-    prisma.product.create({
+    prisma.products.create({
       data: {
+        id: randomUUID(),
         name: 'Teh Kotak 1L',
         description: 'Minuman teh dalam kemasan',
         categoryId: categories[1].id,
@@ -148,6 +223,7 @@ async function main() {
         stock: 20,
         threshold: 5,
         unit: 'kotak',
+        updatedAt: new Date(),
       },
     }),
   ]);
@@ -156,8 +232,9 @@ async function main() {
 
   // Create stock movements
   for (const product of products) {
-    await prisma.stockMovement.create({
+    await prisma.stock_movements.create({
       data: {
+        id: randomUUID(),
         productId: product.id,
         movementType: 'PURCHASE_IN',
         quantity: product.stock,
@@ -176,19 +253,22 @@ async function main() {
     const unitPrice = Number(randomProduct.sellPrice);
     const totalPrice = quantity * unitPrice;
 
-    const transaction = await prisma.transaction.create({
+    const transaction = await prisma.transactions.create({
       data: {
+        id: randomUUID(),
         memberId: randomMember.id,
         type: 'SALE',
         totalAmount: new Decimal(totalPrice),
         paymentMethod: 'CASH',
         status: 'COMPLETED',
         note: `Penjualan ${randomProduct.name}`,
+        updatedAt: new Date(),
       },
     });
 
-    await prisma.transactionItem.create({
+    await prisma.transaction_items.create({
       data: {
+        id: randomUUID(),
         transactionId: transaction.id,
         productId: randomProduct.id,
         quantity,
@@ -198,7 +278,7 @@ async function main() {
     });
 
     // Update product stock
-    await prisma.product.update({
+    await prisma.products.update({
       where: { id: randomProduct.id },
       data: {
         stock: {
@@ -208,8 +288,9 @@ async function main() {
     });
 
     // Create stock movement
-    await prisma.stockMovement.create({
+    await prisma.stock_movements.create({
       data: {
+        id: randomUUID(),
         productId: randomProduct.id,
         movementType: 'SALE_OUT',
         quantity,
@@ -225,8 +306,9 @@ async function main() {
     const randomProduct = products[Math.floor(Math.random() * products.length)];
     const quantity = Math.floor(Math.random() * 20) + 10; // 10-30 quantity
 
-    await prisma.stockMovement.create({
+    await prisma.stock_movements.create({
       data: {
+        id: randomUUID(),
         productId: randomProduct.id,
         movementType: 'PURCHASE_IN',
         quantity,
@@ -235,7 +317,7 @@ async function main() {
     });
 
     // Update product stock
-    await prisma.product.update({
+    await prisma.products.update({
       where: { id: randomProduct.id },
       data: {
         stock: {
@@ -276,11 +358,13 @@ async function main() {
   ];
 
   for (const txData of financialTransactions) {
-    await prisma.transaction.create({
+    await prisma.transactions.create({
       data: {
+        id: randomUUID(),
         ...txData,
         status: 'COMPLETED',
         date: new Date(),
+        updatedAt: new Date(),
       },
     });
   }
@@ -289,14 +373,15 @@ async function main() {
 
   // Create sample broadcasts
   const adminUser = users[0]; // Use first user as admin
-  await prisma.user.update({
+  await prisma.users.update({
     where: { id: adminUser.id },
     data: { role: 'ADMIN' },
   });
 
   await Promise.all([
-    prisma.broadcast.create({
+    prisma.broadcasts.create({
       data: {
+        id: randomUUID(),
         title: 'Pengumuman Rapat Anggota Tahunan',
         message: 'Kepada seluruh anggota koperasi, diinformasikan bahwa Rapat Anggota Tahunan akan dilaksanakan pada tanggal 15 November 2024. Mohon kehadiran semua anggota.',
         type: 'ANNOUNCEMENT',
@@ -307,10 +392,12 @@ async function main() {
         successfulDeliveries: members.length,
         failedDeliveries: 0,
         createdById: adminUser.id,
+        updatedAt: new Date(),
       },
     }),
-    prisma.broadcast.create({
+    prisma.broadcasts.create({
       data: {
+        id: randomUUID(),
         title: 'Reminder Pembayaran Simpanan Wajib',
         message: 'Pengingat untuk semua anggota bahwa pembayaran simpanan wajib bulan Oktober akan berakhir pada tanggal 25 Oktober 2024.',
         type: 'REMINDER',
@@ -321,6 +408,7 @@ async function main() {
         successfulDeliveries: members.length - 1,
         failedDeliveries: 1,
         createdById: adminUser.id,
+        updatedAt: new Date(),
       },
     }),
   ]);
