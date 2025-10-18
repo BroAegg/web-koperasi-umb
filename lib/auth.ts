@@ -30,16 +30,24 @@ export async function getUserFromToken(token?: string) {
   const data = verifyToken(token);
   if (!data || !data.userId) return null;
   
-  // If role is SUPPLIER, get from supplier_profiles
+  // First, try to get from users table (for ADMIN, SUPER_ADMIN, USER, and SUPPLIER accounts)
+  // @ts-ignore - TypeScript cache issue: prisma.users exists at runtime (see PRISMA-NAMING-CONVENTIONS.md)
+  const user = await prisma.users.findUnique({ where: { id: data.userId } });
+  
+  if (user) {
+    return user;
+  }
+  
+  // If not found in users table and role is SUPPLIER, try supplier_profiles
+  // (for suppliers registered via public registration form)
   if (data.role === 'SUPPLIER') {
+    // @ts-ignore - TypeScript cache issue: prisma.supplier_profiles exists at runtime
     const supplier = await prisma.supplier_profiles.findUnique({ 
       where: { id: data.userId },
       select: {
         id: true,
-        email: true,
         businessName: true,
         status: true,
-        paymentStatus: true,
       }
     });
     
@@ -48,15 +56,13 @@ export async function getUserFromToken(token?: string) {
     // Return user-like object for supplier
     return {
       id: supplier.id,
-      email: supplier.email,
+      email: '', // Email stored in linked user record
       name: supplier.businessName,
       role: 'SUPPLIER' as const,
     };
   }
   
-  // For other roles (ADMIN, SUPER_ADMIN, USER), get from users table
-  const user = await prisma.users.findUnique({ where: { id: data.userId } });
-  return user;
+  return null;
 }
 
 export function requireRole(...allowed: Array<'SUPER_ADMIN' | 'ADMIN' | 'SUPPLIER' | 'USER'>) {
