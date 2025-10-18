@@ -9,7 +9,7 @@
 ## 🎯 Fix #1: Supplier Dashboard Blank Page
 
 **File**: `app/koperasi/supplier/page.tsx`  
-**Assignee**: 👤 **YOU** (Primary Dev)
+**Assignee**: 👤 **Reyvan** (Backend & Infrastructure Lead)
 
 ### Step 1: Add Debug Logging
 
@@ -204,7 +204,7 @@ export default function SupplierDashboard() {
 ## 🎯 Fix #2: Admin Dashboard Blank Content
 
 **File**: `app/koperasi/dashboard/page.tsx`  
-**Assignee**: 👤 **AEGNER** (Junior Dev)
+**Assignee**: 👤 **Aegner** (Frontend & UX Lead)
 
 ### Issue: Dashboard API Not Called
 
@@ -242,7 +242,7 @@ useEffect(() => {
 3. Dependencies not triggering re-run
 4. `fetchDashboardStats()` has error that's swallowed
 
-### Fix Pattern for AEGNER
+### Fix Pattern for Aegner
 
 ```typescript
 // Add more logging
