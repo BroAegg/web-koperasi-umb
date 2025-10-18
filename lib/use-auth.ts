@@ -49,13 +49,11 @@ export function useAuth(requiredRole?: string[]) {
             if (requiredRole.includes(data.data.role)) {
               setAuthorized(true);
             } else {
-              // Redirect based on role
+              // Redirect based on role to unified dashboard
               if (data.data.role === "SUPPLIER") {
                 router.push("/koperasi/supplier");
-              } else if (data.data.role === "ADMIN") {
-                router.push("/koperasi/admin");
-              } else if (data.data.role === "SUPER_ADMIN") {
-                router.push("/koperasi/super-admin");
+              } else if (data.data.role === "ADMIN" || data.data.role === "SUPER_ADMIN") {
+                router.push("/koperasi/dashboard");
               } else {
                 router.push("/koperasi/dashboard");
               }

@@ -53,18 +53,16 @@ export default function LoginPage() {
       localStorage.setItem('token', data.data.token);
       console.log('Token saved, redirecting...');
       
-      // Redirect based on user role
+      // Redirect based on user role (unified dashboard for ADMIN/SUPER_ADMIN)
       const userRole = data.data.user.role;
       let redirectPath = '/koperasi/dashboard'; // default
       
-      if (userRole === 'SUPER_ADMIN') {
-        redirectPath = '/koperasi/super-admin';
-      } else if (userRole === 'ADMIN') {
-        redirectPath = '/koperasi/admin';
-      } else if (userRole === 'SUPPLIER') {
+      if (userRole === 'SUPPLIER') {
         redirectPath = '/koperasi/supplier';
+      } else if (userRole === 'ADMIN' || userRole === 'SUPER_ADMIN') {
+        redirectPath = '/koperasi/dashboard';
       } else {
-        redirectPath = '/koperasi/dashboard'; // USER role
+        redirectPath = '/koperasi/dashboard'; // USER role or any other
       }
       
       console.log('Redirecting to:', redirectPath);
