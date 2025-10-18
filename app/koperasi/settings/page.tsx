@@ -50,10 +50,13 @@ export default function SettingsPage() {
       });
 
       if (response.ok) {
-        const data = await response.json();
-        setUser(data.user);
-        setName(data.user.name);
-        setEmail(data.user.email);
+        const result = await response.json();
+        // API returns { success: true, data: { user } }
+        if (result.success && result.data) {
+          setUser(result.data);
+          setName(result.data.name);
+          setEmail(result.data.email);
+        }
       }
     } catch (error) {
       console.error('Error fetching user data:', error);
