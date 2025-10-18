@@ -202,49 +202,41 @@ export function FinancialSummaryCard({
       
       <CardContent className="p-6">
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* Total Pemasukan */}
+          {/* Mutasi Masuk (Cash In) */}
           <div className="space-y-2">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-gray-600">Total Pemasukan</span>
+              <span className="text-sm font-medium text-gray-600">Mutasi Masuk</span>
               <TrendingUp className="h-4 w-4 text-emerald-500" />
             </div>
             <p className="text-3xl font-bold text-emerald-600">
               {formatCurrency(summary.totalIncome)}
             </p>
             <div className="flex items-center gap-1">
-              <span className="text-xs font-medium text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded-full">
-                +15% dari periode sebelumnya
-              </span>
+              <span className="text-xs text-gray-500">Cash In periode ini</span>
             </div>
           </div>
           
-          {/* Total Pengeluaran */}
+          {/* Mutasi Keluar (Cash Out) */}
           <div className="space-y-2 border-l border-blue-100 pl-6">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-gray-600">Total Pengeluaran</span>
+              <span className="text-sm font-medium text-gray-600">Mutasi Keluar</span>
               <TrendingDown className="h-4 w-4 text-red-500" />
             </div>
             <p className="text-3xl font-bold text-red-600">
               {formatCurrency(summary.totalExpense)}
             </p>
             <div className="flex items-center gap-2">
-              <span className="text-xs text-gray-500">Efisiensi:</span>
-              <span className="text-xs font-semibold text-blue-600 bg-blue-50 px-2 py-0.5 rounded-full">
-                {summary.totalIncome > 0 
-                  ? ((1 - summary.totalExpense / summary.totalIncome) * 100).toFixed(1) 
-                  : 0}%
-              </span>
+              <span className="text-xs text-gray-500">Cash Out periode ini</span>
             </div>
           </div>
           
-          {/* Keuntungan Bersih */}
-          <div className="space-y-2 border-l border-blue-100 pl-6 relative group">
+          {/* Saldo (Balance) */}
+          <div className="space-y-2 border-l-2 border-blue-300 pl-6 relative group bg-gradient-to-br from-blue-50 to-indigo-50 -m-6 p-6 rounded-r-lg">
             <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-gray-600">Keuntungan Bersih</span>
-              <DollarSign className="h-4 w-4 text-blue-500" />
+              <span className="text-sm font-semibold text-blue-700 uppercase tracking-wide">💳 Saldo Tersedia</span>
               {/* Info Icon with Hover Tooltip */}
               <div className="relative">
-                <Info className="h-3.5 w-3.5 text-gray-400 cursor-help" />
+                <Info className="h-3.5 w-3.5 text-blue-400 cursor-help" />
                 {/* Tooltip */}
                 <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-48 bg-gray-900 text-white text-xs rounded-lg p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none z-50 shadow-xl">
                   {summary.netIncome > 0 ? (
@@ -263,7 +255,7 @@ export function FinancialSummaryCard({
                       </div>
                     </div>
                   ) : (
-                    <div className="text-gray-400 text-center py-2">Belum ada keuntungan</div>
+                    <div className="text-gray-400 text-center py-2">Belum ada saldo</div>
                   )}
                   {/* Arrow */}
                   <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-gray-900"></div>
@@ -271,13 +263,27 @@ export function FinancialSummaryCard({
               </div>
             </div>
             <p className={`text-3xl font-bold ${
-              summary.netIncome >= 0 ? 'text-emerald-600' : 'text-red-600'
+              summary.netIncome >= 0 ? 'text-blue-700' : 'text-red-600'
             }`}>
               {formatCurrency(summary.netIncome)}
             </p>
-            <p className="text-xs text-gray-500">
-              {summary.transactionCount} transaksi periode ini
-            </p>
+            <div className="space-y-1">
+              <div className="h-1 bg-blue-200 rounded-full overflow-hidden">
+                <div 
+                  className="h-full bg-gradient-to-r from-blue-500 to-indigo-500 rounded-full transition-all duration-500"
+                  style={{ 
+                    width: summary.totalIncome > 0 
+                      ? `${Math.min((summary.netIncome / summary.totalIncome) * 100, 100)}%` 
+                      : '0%' 
+                  }}
+                ></div>
+              </div>
+              <p className="text-xs text-gray-600">
+                {summary.transactionCount} transaksi · Profit Margin: {summary.totalIncome > 0 
+                  ? ((summary.netIncome / summary.totalIncome) * 100).toFixed(1) 
+                  : 0}%
+              </p>
+            </div>
           </div>
         </div>
       </CardContent>
