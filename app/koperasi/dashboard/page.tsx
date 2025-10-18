@@ -50,6 +50,7 @@ export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [superAdminStats, setSuperAdminStats] = useState<SuperAdminStats | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     console.log('[Dashboard] useEffect triggered');
@@ -57,20 +58,38 @@ export default function DashboardPage() {
     console.log('[Dashboard] user:', user);
     console.log('[Dashboard] user role:', user?.role);
     
-    // Only fetch when user is loaded and not loading
-    if (!authLoading && user) {
-      if (user.role === 'SUPER_ADMIN') {
-        console.log('[Dashboard] Fetching SUPER_ADMIN dashboard');
-        fetchSuperAdminStats();
-      } else {
-        console.log('[Dashboard] Fetching ADMIN dashboard');
-        fetchDashboardStats();
-      }
+    // Don't fetch if still loading auth
+    if (authLoading) {
+      console.log('[Dashboard] Still loading auth, waiting...');
+      return;
+    }
+
+    // Don't fetch if no user (will show error UI)
+    if (!user) {
+      console.log('[Dashboard] No user found, stopping fetch');
+      setLoading(false);
+      return;
+    }
+    
+    // Fetch based on role
+    console.log('[Dashboard] User loaded, fetching dashboard data for role:', user.role);
+    if (user.role === 'SUPER_ADMIN') {
+      console.log('[Dashboard] Fetching SUPER_ADMIN dashboard');
+      fetchSuperAdminStats();
+    } else if (user.role === 'ADMIN') {
+      console.log('[Dashboard] Fetching ADMIN dashboard');
+      fetchDashboardStats();
+    } else {
+      console.log('[Dashboard] Unexpected role:', user.role);
+      setLoading(false);
+      setError('Role tidak valid untuk dashboard ini');
     }
   }, [user?.role, authLoading]); // Only re-run when role changes or auth completes
 
   const fetchSuperAdminStats = async () => {
     try {
+      setLoading(true);
+      setError(null);
       console.log('[Dashboard] Fetching super admin stats...');
       const token = localStorage.getItem('token');
       const response = await fetch('/api/super-admin/dashboard', {
@@ -84,11 +103,14 @@ export default function DashboardPage() {
       
       if (response.ok) {
         setSuperAdminStats(result);
+        setError(null);
       } else {
         console.error('Failed to fetch super admin stats:', result.error);
+        setError(result.error || 'Gagal memuat data dashboard');
       }
-    } catch (error) {
-      console.error('Error fetching super admin stats:', error);
+    } catch (err) {
+      console.error('Error fetching super admin stats:', err);
+      setError('Terjadi kesalahan saat memuat data. Silakan coba lagi.');
     } finally {
       setLoading(false);
     }
@@ -96,6 +118,8 @@ export default function DashboardPage() {
 
   const fetchDashboardStats = async () => {
     try {
+      setLoading(true);
+      setError(null);
       console.log('[Dashboard] Fetching admin dashboard stats...');
       const response = await fetch('/api/dashboard');
       const result = await response.json();
@@ -104,11 +128,14 @@ export default function DashboardPage() {
       
       if (result.success) {
         setStats(result.data);
+        setError(null);
       } else {
         console.error('Failed to fetch dashboard stats:', result.error);
+        setError(result.error || 'Gagal memuat data dashboard');
       }
-    } catch (error) {
-      console.error('Error fetching dashboard stats:', error);
+    } catch (err) {
+      console.error('Error fetching dashboard stats:', err);
+      setError('Terjadi kesalahan saat memuat data. Silakan coba lagi.');
     } finally {
       setLoading(false);
     }
@@ -136,20 +163,82 @@ export default function DashboardPage() {
   if (!user) {
     console.log('[Dashboard] No user, showing error');
     return (
-      <div className="space-y-6">
-        <div className="text-center text-red-600">
-          User not authenticated. Please login again.
-        </div>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Card className="w-full max-w-md">
+          <CardContent className="p-6 text-center">
+            <AlertTriangle className="h-12 w-12 text-red-600 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Sesi Berakhir
+            </h3>
+            <p className="text-gray-600 mb-4">
+              Sesi login Anda telah berakhir. Silakan login kembali.
+            </p>
+            <Button onClick={() => window.location.href = '/login'}>
+              Login Kembali
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
 
-  if (!stats && !superAdminStats) {
+  // Show error state with retry
+  if (error && !loading) {
+    console.log('[Dashboard] Showing error state:', error);
     return (
-      <div className="space-y-6">
-        <div className="text-center text-red-600">
-          Error loading dashboard data. Please try again.
-        </div>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Card className="w-full max-w-md">
+          <CardContent className="p-6 text-center">
+            <AlertTriangle className="h-12 w-12 text-amber-600 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Gagal Memuat Data
+            </h3>
+            <p className="text-gray-600 mb-4">
+              {error}
+            </p>
+            <Button 
+              onClick={() => {
+                if (user?.role === 'SUPER_ADMIN') {
+                  fetchSuperAdminStats();
+                } else {
+                  fetchDashboardStats();
+                }
+              }}
+            >
+              Coba Lagi
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  if (!stats && !superAdminStats && !loading) {
+    console.log('[Dashboard] No data but not loading, showing empty state');
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Card className="w-full max-w-md">
+          <CardContent className="p-6 text-center">
+            <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Tidak Ada Data
+            </h3>
+            <p className="text-gray-600 mb-4">
+              Dashboard belum memiliki data untuk ditampilkan.
+            </p>
+            <Button 
+              onClick={() => {
+                if (user?.role === 'SUPER_ADMIN') {
+                  fetchSuperAdminStats();
+                } else {
+                  fetchDashboardStats();
+                }
+              }}
+            >
+              Muat Ulang
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -365,13 +454,25 @@ export default function DashboardPage() {
   }
 
   // Admin Dashboard (existing code)
+  // This should not be reached if error or no data, but keep as safety
   if (!stats) {
-    console.log('[Dashboard] No stats data, showing error');
+    console.log('[Dashboard] No stats data (should have been caught earlier)');
     return (
-      <div className="space-y-6">
-        <div className="text-center text-red-600">
-          Error loading dashboard data. Please try again.
-        </div>
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Card className="w-full max-w-md">
+          <CardContent className="p-6 text-center">
+            <Package className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              Tidak Ada Data Dashboard
+            </h3>
+            <p className="text-gray-600 mb-4">
+              Gagal memuat data dashboard admin. Silakan coba lagi.
+            </p>
+            <Button onClick={() => fetchDashboardStats()}>
+              Muat Ulang
+            </Button>
+          </CardContent>
+        </Card>
       </div>
     );
   }
