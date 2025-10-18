@@ -78,8 +78,10 @@ export function useAuth(requiredRole?: string[]) {
   }, []); // Empty dependency array - only run once
 
   const logout = () => {
+    console.log('[useAuth] Logging out...');
     localStorage.removeItem("token");
-    router.push("/login");
+    // Use hard navigation for logout to ensure clean state
+    window.location.href = "/login";
   };
 
   return { user, loading, authorized, logout };
