@@ -46,23 +46,32 @@ interface SuperAdminStats {
 }
 
 export default function DashboardPage() {
-  const { user } = useAuth(["ADMIN", "SUPER_ADMIN"]);
+  const { user, loading: authLoading } = useAuth(["ADMIN", "SUPER_ADMIN"]);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [superAdminStats, setSuperAdminStats] = useState<SuperAdminStats | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    if (user) {
+    console.log('[Dashboard] useEffect triggered');
+    console.log('[Dashboard] authLoading:', authLoading);
+    console.log('[Dashboard] user:', user);
+    console.log('[Dashboard] user role:', user?.role);
+    
+    // Only fetch when user is loaded and not loading
+    if (!authLoading && user) {
       if (user.role === 'SUPER_ADMIN') {
+        console.log('[Dashboard] Fetching SUPER_ADMIN dashboard');
         fetchSuperAdminStats();
       } else {
+        console.log('[Dashboard] Fetching ADMIN dashboard');
         fetchDashboardStats();
       }
     }
-  }, [user]);
+  }, [user?.role, authLoading]); // Only re-run when role changes or auth completes
 
   const fetchSuperAdminStats = async () => {
     try {
+      console.log('[Dashboard] Fetching super admin stats...');
       const token = localStorage.getItem('token');
       const response = await fetch('/api/super-admin/dashboard', {
         headers: {
@@ -70,6 +79,8 @@ export default function DashboardPage() {
         }
       });
       const result = await response.json();
+      
+      console.log('[Dashboard] Super admin stats response:', result);
       
       if (response.ok) {
         setSuperAdminStats(result);
@@ -85,8 +96,11 @@ export default function DashboardPage() {
 
   const fetchDashboardStats = async () => {
     try {
+      console.log('[Dashboard] Fetching admin dashboard stats...');
       const response = await fetch('/api/dashboard');
       const result = await response.json();
+      
+      console.log('[Dashboard] Admin stats response:', result);
       
       if (result.success) {
         setStats(result.data);
@@ -100,7 +114,8 @@ export default function DashboardPage() {
     }
   };
 
-  if (loading) {
+  if (loading || authLoading) {
+    console.log('[Dashboard] Showing loading state - loading:', loading, 'authLoading:', authLoading);
     return (
       <div className="space-y-6">
         <div className="animate-pulse">
@@ -118,6 +133,17 @@ export default function DashboardPage() {
     );
   }
 
+  if (!user) {
+    console.log('[Dashboard] No user, showing error');
+    return (
+      <div className="space-y-6">
+        <div className="text-center text-red-600">
+          User not authenticated. Please login again.
+        </div>
+      </div>
+    );
+  }
+
   if (!stats && !superAdminStats) {
     return (
       <div className="space-y-6">
@@ -130,6 +156,9 @@ export default function DashboardPage() {
 
   // Super Admin Dashboard
   if (user?.role === 'SUPER_ADMIN' && superAdminStats) {
+    console.log('[Dashboard] Rendering SUPER_ADMIN dashboard');
+    console.log('[Dashboard] superAdminStats:', superAdminStats);
+    
     const superAdminDashboardStats = [
       { 
         title: "Total Supplier", 
@@ -337,6 +366,7 @@ export default function DashboardPage() {
 
   // Admin Dashboard (existing code)
   if (!stats) {
+    console.log('[Dashboard] No stats data, showing error');
     return (
       <div className="space-y-6">
         <div className="text-center text-red-600">

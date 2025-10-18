@@ -18,31 +18,41 @@ export default function SupplierDashboard() {
   });
 
   useEffect(() => {
+    console.log('[Supplier Dashboard] Component mounted');
     const token = localStorage.getItem("token");
+    console.log('[Supplier Dashboard] Token exists:', !!token);
+    
     if (!token) {
+      console.log('[Supplier Dashboard] No token, redirecting to login');
       router.push("/login");
       return;
     }
 
     // Fetch user info
+    console.log('[Supplier Dashboard] Fetching user info...');
     fetch("/api/auth/me", {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((r) => r.json())
       .then((d) => {
+        console.log('[Supplier Dashboard] Auth response:', d);
         if (d.success && d.data) {
           if (d.data.role !== "SUPPLIER") {
             // Redirect to appropriate dashboard
+            console.log('[Supplier Dashboard] Not a supplier, redirecting to admin dashboard');
             router.push("/koperasi/dashboard");
             return;
           }
+          console.log('[Supplier Dashboard] User is supplier:', d.data);
           setUser(d.data);
           
           // Fetch supplier profile
+          console.log('[Supplier Dashboard] Fetching supplier profile...');
           return fetch("/api/supplier/profile", {
             headers: { Authorization: `Bearer ${token}` },
           });
         } else {
+          console.log('[Supplier Dashboard] Auth failed, redirecting to login');
           router.push("/login");
         }
       })
