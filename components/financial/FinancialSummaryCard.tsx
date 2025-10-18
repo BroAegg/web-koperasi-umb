@@ -247,20 +247,24 @@ export function FinancialSummaryCard({
                 <Info className="h-3.5 w-3.5 text-gray-400 cursor-help" />
                 {/* Tooltip */}
                 <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-48 bg-gray-900 text-white text-xs rounded-lg p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none z-50 shadow-xl">
-                  <div className="space-y-1.5">
-                    <div className="flex justify-between">
-                      <span className="text-blue-300">Toko:</span>
-                      <span className="font-semibold">{formatCurrency(summary.toko?.profit || 0)}</span>
+                  {summary.netIncome > 0 ? (
+                    <div className="space-y-1.5">
+                      <div className="flex justify-between">
+                        <span className="text-blue-300">Toko:</span>
+                        <span className="font-semibold">{formatCurrency(summary.toko?.profit || 0)}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-purple-300">Titipan:</span>
+                        <span className="font-semibold">{formatCurrency(summary.consignment?.profit || 0)}</span>
+                      </div>
+                      <div className="flex justify-between pt-1.5 border-t border-gray-700">
+                        <span className="font-medium text-emerald-300">Total:</span>
+                        <span className="font-bold">{formatCurrency(summary.netIncome)}</span>
+                      </div>
                     </div>
-                    <div className="flex justify-between">
-                      <span className="text-purple-300">Titipan:</span>
-                      <span className="font-semibold">{formatCurrency(summary.consignment?.profit || 0)}</span>
-                    </div>
-                    <div className="flex justify-between pt-1.5 border-t border-gray-700">
-                      <span className="font-medium text-emerald-300">Total:</span>
-                      <span className="font-bold">{formatCurrency(summary.netIncome)}</span>
-                    </div>
-                  </div>
+                  ) : (
+                    <div className="text-gray-400 text-center py-2">Belum ada keuntungan</div>
+                  )}
                   {/* Arrow */}
                   <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-gray-900"></div>
                 </div>
