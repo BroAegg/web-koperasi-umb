@@ -5,6 +5,7 @@ import { useAuth } from '@/lib/use-auth';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { formatCurrency, formatNumber } from '@/lib/utils';
+import { DashboardLoadingSkeleton } from '@/components/ui/loading-skeleton';
 import { 
   Users, 
   Package, 
@@ -143,21 +144,7 @@ export default function DashboardPage() {
 
   if (loading || authLoading) {
     console.log('[Dashboard] Showing loading state - loading:', loading, 'authLoading:', authLoading);
-    return (
-      <div className="space-y-6">
-        <div className="animate-pulse">
-          <div className="h-8 bg-gray-200 rounded w-48 mb-2"></div>
-          <div className="h-4 bg-gray-200 rounded w-64"></div>
-        </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-          {[...Array(4)].map((_, i) => (
-            <div key={i} className="animate-pulse">
-              <div className="h-32 bg-gray-200 rounded-lg"></div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
+    return <DashboardLoadingSkeleton />;
   }
 
   if (!user) {
