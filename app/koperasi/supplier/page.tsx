@@ -58,11 +58,19 @@ export default function SupplierDashboard() {
       })
       .then((r) => r?.json())
       .then((d) => {
+        console.log('[Supplier Dashboard] Profile response:', d);
         if (d?.success) {
-          setSupplierProfile(d.data);
+          // API returns { profile: {...}, supplier: {...} }
+          setSupplierProfile(d.data?.profile || d.data);
+          console.log('[Supplier Dashboard] Profile loaded:', d.data?.profile || d.data);
+        } else {
+          console.log('[Supplier Dashboard] Profile fetch failed:', d?.error);
         }
       })
-      .catch(() => router.push("/login"));
+      .catch((error) => {
+        console.error('[Supplier Dashboard] Profile fetch error:', error);
+        // Don't redirect on profile error, show registration prompt instead
+      });
   }, [router]);
 
   if (!user) {

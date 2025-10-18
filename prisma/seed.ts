@@ -65,6 +65,47 @@ async function main() {
 
   console.log('✅ Core users (superadmin/admin/supplier) ensured. Default password for all:', 'Password123!');
 
+  // Create supplier profile for supplier@koperasi.com
+  const supplierProfile = await prisma.supplier_profiles.upsert({
+    where: { email: 'supplier@koperasi.com' },
+    update: {
+      businessName: 'CV Makmur Jaya',
+      ownerName: 'Budi Santoso',
+      phone: '081234567890',
+      address: 'Jl. Raya No. 123, Jakarta',
+      productCategory: 'Sembako',
+      description: 'Supplier sembako berkualitas',
+      status: 'APPROVED',
+      paymentStatus: 'PAID_APPROVED',
+      isPaymentActive: true,
+      lastPaymentDate: new Date(),
+      nextPaymentDue: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+      approvedAt: new Date(),
+      updatedAt: new Date(),
+    },
+    create: {
+      id: randomUUID(),
+      userId: supplier.id,
+      businessName: 'CV Makmur Jaya',
+      ownerName: 'Budi Santoso',
+      email: 'supplier@koperasi.com',
+      phone: '081234567890',
+      address: 'Jl. Raya No. 123, Jakarta',
+      productCategory: 'Sembako',
+      description: 'Supplier sembako berkualitas',
+      status: 'APPROVED',
+      paymentStatus: 'PAID_APPROVED',
+      isPaymentActive: true,
+      monthlyFee: 25000,
+      lastPaymentDate: new Date(),
+      nextPaymentDue: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+      approvedAt: new Date(),
+      updatedAt: new Date(),
+    },
+  });
+
+  console.log('✅ Supplier profile created for supplier@koperasi.com:', supplierProfile.businessName);
+
   // Create categories
   const categories = await Promise.all([
     prisma.categories.upsert({
