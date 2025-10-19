@@ -178,19 +178,19 @@ model products {
   sku                 String?               @unique
   buyPrice            Decimal?
   sellPrice           Decimal
-  avgCost             Decimal?
   stock               Int                   @default(0)
   threshold           Int                   @default(5)
   unit                String                @default("pcs")
-  ownershipType       OwnershipType         @default(TOKO)
-  stockCycle          StockCycle            @default(MINGGUAN)
-  isConsignment       Boolean               @default(false)
-  status              ProductStatus         @default(ACTIVE)
   isActive            Boolean               @default(true)
-  lastRestockAt       DateTime?
-  expiryPolicy        String?
   createdAt           DateTime              @default(now())
   updatedAt           DateTime
+  avgCost             Decimal?
+  expiryPolicy        String?
+  isConsignment       Boolean               @default(false)
+  lastRestockAt       DateTime?
+  ownershipType       OwnershipType         @default(TOKO)
+  status              ProductStatus         @default(ACTIVE)
+  stockCycle          StockCycle            @default(MINGGUAN)
   supplierContact     String?
   supplierId          String?
   consignment_batches consignment_batches[]
@@ -217,20 +217,20 @@ model purchase_items {
 }
 
 model purchases {
-  id             String                @id
-  code           String                @unique
+  id             String           @id
+  code           String           @unique
   supplierId     String
-  totalAmount    Decimal               @default(0)
-  purchaseDate   DateTime              @default(now())
+  totalAmount    Decimal          @default(0)
+  purchaseDate   DateTime         @default(now())
   receivedDate   DateTime?
-  status         PurchaseStatus        @default(PENDING)
-  paymentStatus  PurchasePaymentStatus @default(UNPAID)
+  status         PurchaseStatus   @default(PENDING)
+  paymentStatus  PaymentStatus    @default(UNPAID)
   paymentDate    DateTime?
   note           String?
-  createdAt      DateTime              @default(now())
+  createdAt      DateTime         @default(now())
   updatedAt      DateTime
   purchase_items purchase_items[]
-  suppliers      suppliers             @relation(fields: [supplierId], references: [id])
+  suppliers      suppliers        @relation(fields: [supplierId], references: [id])
 
   @@index([supplierId, purchaseDate])
 }
@@ -272,14 +272,14 @@ model settlements {
 model stock_movements {
   id            String         @id
   productId     String
-  movementType  MovementType
   quantity      Int
-  unitCost      Decimal?
-  referenceType ReferenceType?
-  referenceId   String?
   note          String?
-  occurredAt    DateTime       @default(now())
   createdAt     DateTime       @default(now())
+  movementType  MovementType
+  occurredAt    DateTime       @default(now())
+  referenceId   String?
+  referenceType ReferenceType?
+  unitCost      Decimal?
   products      products       @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@index([productId, occurredAt])
@@ -290,11 +290,10 @@ model supplier_payments {
   id                String                    @id
   supplierProfileId String
   amount            Decimal
-  paymentProof      String?                   // URL/path bukti transfer
   paymentMethod     PaymentMethod             @default(TRANSFER)
   paymentDate       DateTime                  @default(now())
-  periodStart       DateTime?
-  periodEnd         DateTime?
+  periodStart       DateTime
+  periodEnd         DateTime
   referenceNo       String?
   verifiedBy        String?
   verifiedAt        DateTime?
@@ -312,7 +311,7 @@ model supplier_profiles {
   userId            String?             @unique
   businessName      String
   ownerName         String
-  email             String              @unique
+  email             String?             @unique
   phone             String
   address           String
   productCategory   String
@@ -357,10 +356,10 @@ model transaction_items {
   quantity          Int
   unitPrice         Decimal
   totalPrice        Decimal
-  cogsPerUnit       Decimal?
-  totalCogs         Decimal?
-  grossProfit       Decimal?
   createdAt         DateTime            @default(now())
+  cogsPerUnit       Decimal?
+  grossProfit       Decimal?
+  totalCogs         Decimal?
   consignment_sales consignment_sales[]
   products          products            @relation(fields: [productId], references: [id])
   transactions      transactions        @relation(fields: [transactionId], references: [id], onDelete: Cascade)
@@ -385,13 +384,13 @@ model transactions {
 }
 
 model users {
-  id                String              @id
-  email             String              @unique
+  id                String             @id
+  email             String             @unique
   password          String
   name              String
-  role              Role                @default(USER)
-  isActive          Boolean             @default(true)
-  createdAt         DateTime            @default(now())
+  role              Role               @default(USER)
+  isActive          Boolean            @default(true)
+  createdAt         DateTime           @default(now())
   updatedAt         DateTime
   broadcasts        broadcasts[]
   members           members?
@@ -467,9 +466,8 @@ enum PaymentMethod {
 
 enum PaymentStatus {
   UNPAID
-  PAID_PENDING_APPROVAL
-  PAID_APPROVED
-  PAID_REJECTED
+  PARTIAL
+  PAID
 }
 
 enum PaymentVerificationStatus {
@@ -482,12 +480,6 @@ enum ProductStatus {
   ACTIVE
   INACTIVE
   SEASONAL
-}
-
-enum PurchasePaymentStatus {
-  UNPAID
-  PARTIAL
-  PAID
 }
 
 enum PurchaseStatus {
