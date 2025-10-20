@@ -38,22 +38,42 @@ function KoperasiContent({ children }: { children: React.ReactNode }) {
     return null;
   }
 
-  // Base navigation for all roles
-  const baseNavigation = [
-    { name: "Dashboard", href: "/koperasi/dashboard", icon: LayoutDashboard, roles: ["ADMIN", "SUPER_ADMIN"] },
-    { name: "POS Kasir", href: "/koperasi/pos", icon: CreditCard, roles: ["ADMIN", "SUPER_ADMIN"] },
-    { name: "Inventory", href: "/koperasi/inventory", icon: Package, roles: ["ADMIN", "SUPER_ADMIN"] },
-    { name: "Membership", href: "/koperasi/membership", icon: Users, roles: ["ADMIN", "SUPER_ADMIN"] },
-    { name: "Keuangan", href: "/koperasi/financial", icon: TrendingUp, roles: ["ADMIN", "SUPER_ADMIN"] },
-    { name: "Broadcast", href: "/koperasi/broadcast", icon: Megaphone, roles: ["ADMIN", "SUPER_ADMIN"] },
-    { name: "Suppliers", href: "/koperasi/super-admin/suppliers", icon: Building2, roles: ["SUPER_ADMIN"] },
-    { name: "Pengaturan", href: "/koperasi/settings", icon: Settings, roles: ["ADMIN", "SUPER_ADMIN"] },
+  // Categorized navigation for better organization
+  const navigationCategories = [
+    {
+      title: "💼 OPERASIONAL",
+      items: [
+        { name: "Dashboard", href: "/koperasi/dashboard", icon: LayoutDashboard, roles: ["ADMIN", "SUPER_ADMIN"] },
+        { name: "POS Kasir", href: "/koperasi/pos", icon: CreditCard, roles: ["ADMIN", "SUPER_ADMIN"] },
+      ]
+    },
+    {
+      title: "📦 INVENTORY & SUPPLIER", 
+      items: [
+        { name: "Inventory", href: "/koperasi/inventory", icon: Package, roles: ["ADMIN", "SUPER_ADMIN"] },
+        { name: "Suppliers", href: "/koperasi/super-admin/suppliers", icon: Building2, roles: ["SUPER_ADMIN"] },
+      ]
+    },
+    {
+      title: "💰 KEUANGAN",
+      items: [
+        { name: "Keuangan", href: "/koperasi/financial", icon: TrendingUp, roles: ["ADMIN", "SUPER_ADMIN"] },
+      ]
+    },
+    {
+      title: "🔧 SISTEM",
+      items: [
+        { name: "Broadcast", href: "/koperasi/broadcast", icon: Megaphone, roles: ["ADMIN", "SUPER_ADMIN"] },
+        { name: "Pengaturan", href: "/koperasi/settings", icon: Settings, roles: ["ADMIN", "SUPER_ADMIN"] },
+      ]
+    }
   ];
 
-  // Filter navigation based on user role
-  const navigation = baseNavigation.filter(item => 
-    item.roles.includes(user?.role || "")
-  );
+  // Filter categories and items based on user role
+  const filteredCategories = navigationCategories.map(category => ({
+    ...category,
+    items: category.items.filter(item => item.roles.includes(user?.role || ""))
+  })).filter(category => category.items.length > 0);
 
   const isActive = (href: string) => {
     if (href === "/koperasi/dashboard") {
@@ -106,27 +126,46 @@ function KoperasiContent({ children }: { children: React.ReactNode }) {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
-            {navigation.map((item) => {
-              const Icon = item.icon;
-              const active = isActive(item.href);
-              
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  onClick={() => setSidebarOpen(false)}
-                  className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 ${
-                    active
-                      ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md shadow-blue-200"
-                      : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
-                  }`}
-                >
-                  <Icon className={`w-5 h-5 ${active ? "text-white" : "text-slate-500"}`} />
-                  <span className="font-medium">{item.name}</span>
-                </Link>
-              );
-            })}
+          <nav className="flex-1 p-4 space-y-6 overflow-y-auto">
+            {filteredCategories.map((category, categoryIndex) => (
+              <div key={category.title}>
+                {/* Category Header */}
+                <div className="px-3 mb-3">
+                  <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                    {category.title}
+                  </h3>
+                </div>
+                
+                {/* Category Items */}
+                <div className="space-y-1">
+                  {category.items.map((item) => {
+                    const Icon = item.icon;
+                    const active = isActive(item.href);
+                    
+                    return (
+                      <Link
+                        key={item.name}
+                        href={item.href}
+                        onClick={() => setSidebarOpen(false)}
+                        className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 ${
+                          active
+                            ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md shadow-blue-200"
+                            : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
+                        }`}
+                      >
+                        <Icon className={`w-5 h-5 ${active ? "text-white" : "text-slate-500"}`} />
+                        <span className="font-medium">{item.name}</span>
+                      </Link>
+                    );
+                  })}
+                </div>
+                
+                {/* Separator between categories (except last) */}
+                {categoryIndex < filteredCategories.length - 1 && (
+                  <div className="mt-4 border-t border-slate-200"></div>
+                )}
+              </div>
+            ))}
           </nav>
 
           {/* User Info & Logout */}
