@@ -295,6 +295,7 @@ model supplier_payments {
   periodStart       DateTime
   periodEnd         DateTime
   referenceNo       String?
+  paymentProof      String?
   verifiedBy        String?
   verifiedAt        DateTime?
   status            PaymentVerificationStatus @default(PENDING)
@@ -468,6 +469,9 @@ enum PaymentStatus {
   UNPAID
   PARTIAL
   PAID
+  PAID_PENDING_APPROVAL
+  PAID_APPROVED
+  PAID_REJECTED
 }
 
 enum PaymentVerificationStatus {
