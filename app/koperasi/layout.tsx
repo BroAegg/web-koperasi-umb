@@ -49,7 +49,7 @@ function KoperasiContent({ children }: { children: React.ReactNode }) {
       ]
     },
     {
-      title: "INVENTORY & SUPPLIER", 
+      title: "MITRA", 
       items: [
         { name: "Suppliers", href: "/koperasi/super-admin/suppliers", icon: Building2, roles: ["SUPER_ADMIN"] },
       ]
@@ -171,9 +171,8 @@ function KoperasiContent({ children }: { children: React.ReactNode }) {
           {/* User Info & Logout */}
           <div className="p-4 border-t border-slate-200 space-y-2">
             <div className="px-4 py-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl border border-slate-200">
-              <p className="text-xs text-slate-500 mb-1">Logged in as</p>
               <p className="font-semibold text-slate-800 truncate">{user?.name}</p>
-              <p className="text-xs text-blue-600 font-medium mt-0.5">{user?.role}</p>
+              <p className="text-xs text-blue-600 font-medium">{user?.role === 'SUPER_ADMIN' ? 'Super Admin' : 'Admin'}</p>
             </div>
             <button
               onClick={logout}
