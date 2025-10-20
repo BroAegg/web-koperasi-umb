@@ -23,7 +23,7 @@ import {
 function KoperasiContent({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
-  const { user, loading, authorized, logout } = useAuth(["ADMIN", "SUPER_ADMIN"]);
+  const { user, loading, authorized, logout } = useAuth(["ADMIN", "SUPER_ADMIN", "SUPPLIER"]);
 
   if (loading) {
     return (

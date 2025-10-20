@@ -33,42 +33,61 @@ export default function SupplierDashboard() {
     fetch("/api/auth/me", {
       headers: { Authorization: `Bearer ${token}` },
     })
-      .then((r) => r.json())
+      .then((r) => {
+        console.log('[Supplier Dashboard] Auth response status:', r.status);
+        return r.json();
+      })
       .then((d) => {
-        console.log('[Supplier Dashboard] Auth response:', d);
+        console.log('[Supplier Dashboard] Auth response data:', d);
         if (d.success && d.data) {
           if (d.data.role !== "SUPPLIER") {
             // Redirect to appropriate dashboard
             console.log('[Supplier Dashboard] Not a supplier, redirecting to admin dashboard');
             router.push("/koperasi/dashboard");
-            return;
+            return Promise.reject('Not a supplier'); // Break chain
           }
           console.log('[Supplier Dashboard] User is supplier:', d.data);
           setUser(d.data);
+          console.log('[Supplier Dashboard] User state SET, now user is:', d.data);
           
           // Fetch supplier profile
-          console.log('[Supplier Dashboard] Fetching supplier profile...');
+          console.log('[Supplier Dashboard] About to fetch supplier profile...');
           return fetch("/api/supplier/profile", {
             headers: { Authorization: `Bearer ${token}` },
           });
         } else {
           console.log('[Supplier Dashboard] Auth failed, redirecting to login');
           router.push("/login");
+          return Promise.reject('Auth failed'); // Break chain
         }
       })
-      .then((r) => r?.json())
+      .then((r) => {
+        if (!r) {
+          console.log('[Supplier Dashboard] No response from profile API');
+          return null;
+        }
+        console.log('[Supplier Dashboard] Profile response status:', r.status);
+        return r.json();
+      })
       .then((d) => {
-        console.log('[Supplier Dashboard] Profile response:', d);
+        if (!d) {
+          console.log('[Supplier Dashboard] No profile data');
+          return;
+        }
+        console.log('[Supplier Dashboard] Profile response data:', d);
         if (d?.success) {
           // API returns { profile: {...}, supplier: {...} }
-          setSupplierProfile(d.data?.profile || d.data);
-          console.log('[Supplier Dashboard] Profile loaded:', d.data?.profile || d.data);
+          const profile = d.data?.profile || d.data;
+          setSupplierProfile(profile);
+          console.log('[Supplier Dashboard] Profile loaded:', profile);
         } else {
           console.log('[Supplier Dashboard] Profile fetch failed:', d?.error);
         }
       })
       .catch((error) => {
-        console.error('[Supplier Dashboard] Profile fetch error:', error);
+        if (error !== 'Not a supplier' && error !== 'Auth failed') {
+          console.error('[Supplier Dashboard] Unexpected error:', error);
+        }
         // Don't redirect on profile error, show registration prompt instead
       });
   }, [router]);

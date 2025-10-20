@@ -45,10 +45,18 @@ export function useAuth(requiredRole?: string[]) {
           setUser(data.data);
           
           // Check role authorization
+          console.log('[useAuth] Checking authorization:', { 
+            userRole: data.data.role, 
+            requiredRole, 
+            requiredRoleArray: JSON.stringify(requiredRole),
+            includes: requiredRole?.includes(data.data.role)
+          });
           if (requiredRole && requiredRole.length > 0) {
             if (requiredRole.includes(data.data.role)) {
+              console.log('[useAuth] User authorized for', requiredRole);
               setAuthorized(true);
             } else {
+              console.log('[useAuth] User not authorized, redirecting...');
               // Redirect based on role to unified dashboard
               if (data.data.role === "SUPPLIER") {
                 router.push("/koperasi/supplier");
@@ -59,6 +67,7 @@ export function useAuth(requiredRole?: string[]) {
               }
             }
           } else {
+            console.log('[useAuth] No role requirement, authorized');
             setAuthorized(true);
           }
         } else {

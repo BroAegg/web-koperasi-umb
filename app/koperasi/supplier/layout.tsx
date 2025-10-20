@@ -25,7 +25,10 @@ export default function SupplierLayout({
   const pathname = usePathname();
   const { user, loading, authorized, logout } = useAuth(["SUPPLIER"]);
 
+  console.log('[Supplier Layout] Auth state:', { user: !!user, loading, authorized });
+
   if (loading) {
+    console.log('[Supplier Layout] Still loading...');
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
@@ -34,8 +37,11 @@ export default function SupplierLayout({
   }
 
   if (!authorized) {
+    console.log('[Supplier Layout] Not authorized, blocking render');
     return null;
   }
+
+  console.log('[Supplier Layout] Rendering layout with user:', user?.email, user?.role);
 
   const navigation = [
     { name: "Dashboard", href: "/koperasi/supplier", icon: LayoutDashboard },
