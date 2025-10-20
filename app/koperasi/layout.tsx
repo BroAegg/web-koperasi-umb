@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/use-auth";
 import { NotificationProvider } from '@/lib/notification-context';
+import { DeveloperToolbar } from '@/components/DeveloperToolbar';
 import { 
   LayoutDashboard, 
   Users,
@@ -29,6 +30,23 @@ function KoperasiContent({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
   const { user, loading, authorized, logout } = useAuth(["ADMIN", "SUPER_ADMIN", "SUPPLIER", "DEVELOPER"]);
+
+  // Check if user is a developer (has developer session in token)
+  const [isDeveloper, setIsDeveloper] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('token');
+      if (token) {
+        try {
+          const payload = JSON.parse(atob(token.split('.')[1]));
+          setIsDeveloper(payload.developerSession?.actualRole === 'DEVELOPER');
+        } catch (error) {
+          setIsDeveloper(false);
+        }
+      }
+    }
+  }, []);
 
   if (loading) {
     return (
@@ -83,9 +101,17 @@ function KoperasiContent({ children }: { children: React.ReactNode }) {
   ];
 
   // Filter categories and items based on user role
+  // Special case: Developer Tools always visible if isDeveloper is true
   const filteredCategories = navigationCategories.map(category => ({
     ...category,
-    items: category.items.filter(item => item.roles.includes(user?.role || ""))
+    items: category.items.filter(item => {
+      // Always show Developer Tools if user is a developer
+      if (category.title === "DEVELOPER TOOLS" && isDeveloper) {
+        return true;
+      }
+      // Otherwise filter by role as usual
+      return item.roles.includes(user?.role || "");
+    })
   })).filter(category => category.items.length > 0);
 
   const isActive = (href: string) => {
@@ -104,6 +130,9 @@ function KoperasiContent({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-50">
+      {/* Developer Toolbar - Always visible for developers */}
+      <DeveloperToolbar />
+
       {/* Mobile Sidebar Backdrop */}
       {sidebarOpen && (
         <div
