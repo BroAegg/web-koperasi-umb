@@ -41,30 +41,30 @@ function KoperasiContent({ children }: { children: React.ReactNode }) {
   // Categorized navigation for better organization
   const navigationCategories = [
     {
-      title: "💼 OPERASIONAL",
+      title: "OPERASIONAL",
       items: [
         { name: "Dashboard", href: "/koperasi/dashboard", icon: LayoutDashboard, roles: ["ADMIN", "SUPER_ADMIN"] },
         { name: "POS Kasir", href: "/koperasi/pos", icon: CreditCard, roles: ["ADMIN", "SUPER_ADMIN"] },
+        { name: "Inventory", href: "/koperasi/inventory", icon: Package, roles: ["ADMIN", "SUPER_ADMIN"] },
       ]
     },
     {
-      title: "📦 INVENTORY & SUPPLIER", 
+      title: "INVENTORY & SUPPLIER", 
       items: [
-        { name: "Inventory", href: "/koperasi/inventory", icon: Package, roles: ["ADMIN", "SUPER_ADMIN"] },
         { name: "Suppliers", href: "/koperasi/super-admin/suppliers", icon: Building2, roles: ["SUPER_ADMIN"] },
       ]
     },
     {
-      title: "💰 KEUANGAN",
+      title: "KEUANGAN",
       items: [
-        { name: "Keuangan", href: "/koperasi/financial", icon: TrendingUp, roles: ["ADMIN", "SUPER_ADMIN"] },
+        { name: "Keuangan", href: "/koperasi/financial", icon: TrendingUp, roles: ["SUPER_ADMIN"] },
       ]
     },
     {
-      title: "🔧 SISTEM",
+      title: "SISTEM",
       items: [
-        { name: "Broadcast", href: "/koperasi/broadcast", icon: Megaphone, roles: ["ADMIN", "SUPER_ADMIN"] },
-        { name: "Pengaturan", href: "/koperasi/settings", icon: Settings, roles: ["ADMIN", "SUPER_ADMIN"] },
+        { name: "Broadcast", href: "/koperasi/broadcast", icon: Megaphone, roles: ["SUPER_ADMIN"] },
+        { name: "Pengaturan", href: "/koperasi/settings", icon: Settings, roles: ["SUPER_ADMIN"] },
       ]
     }
   ];
