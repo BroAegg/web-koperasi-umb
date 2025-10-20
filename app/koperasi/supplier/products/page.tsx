@@ -189,43 +189,41 @@ export default function SupplierProducts() {
   };
 
   return (
-    <div className="space-y-4 p-6 max-w-7xl mx-auto">
+    <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Produk Saya</h1>
-          <p className="text-gray-600 mt-1">Kelola produk yang Anda jual</p>
+          <h1 className="text-2xl font-bold text-gray-900">Produk Saya</h1>
+          <p className="text-gray-600">Kelola produk yang Anda jual</p>
         </div>
         <Button 
           onClick={() => handleOpenModal()}
-          className="bg-blue-600 hover:bg-blue-700 flex items-center gap-2"
         >
-          <Plus className="w-4 h-4" />
-          <span className="hidden sm:inline">Tambah Produk</span>
-          <span className="sm:hidden">Tambah</span>
+          <Plus className="w-4 h-4 mr-2" />
+          Tambah Produk
         </Button>
       </div>
 
-      {/* Filters */}
-      <Card className="rounded-xl shadow-sm">
-        <CardContent className="p-4">
-          <div className="flex flex-col lg:flex-row gap-3">
+      {/* Stats & Filters */}
+      <Card>
+        <CardContent className="p-6">
+          <div className="flex flex-col gap-4">
             {/* Search */}
-            <div className="flex-1 relative">
+            <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
               <Input
                 type="text"
                 placeholder="Cari produk..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 rounded-lg border-gray-300"
+                className="pl-10"
               />
             </div>
 
             {/* Category Filter */}
-            <div className="flex items-center gap-2 overflow-x-auto pb-2 lg:pb-0">
-              <Filter className="w-5 h-5 text-gray-600 flex-shrink-0" />
-              <div className="flex gap-2">
+            <div className="flex items-center gap-2">
+              <Filter className="w-5 h-5 text-gray-600" />
+              <div className="flex gap-2 flex-wrap">
                 {categories.map((cat) => (
                   <button
                     key={cat}

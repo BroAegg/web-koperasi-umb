@@ -125,17 +125,16 @@ export default function SupplierDashboard() {
   const { supplier, metrics, payment, recentOrders, productPerformance } = dashboardData;
 
   return (
-    <div className="space-y-4 p-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-800">Dashboard Supplier</h1>
-          <p className="text-slate-600 mt-1">Selamat datang, {supplier.name}</p>
+          <h1 className="text-2xl font-bold text-gray-900">Dashboard Supplier</h1>
+          <p className="text-gray-600">Selamat datang, {supplier.name}</p>
           <div className="mt-2">{getSupplierStatusBadge(supplier.status)}</div>
         </div>
-        <div className="flex flex-wrap gap-3">
+        <div className="flex space-x-3">
           <Button 
             onClick={() => router.push("/koperasi/supplier/products")}
-            className="bg-blue-600 hover:bg-blue-700"
           >
             <Plus className="w-4 h-4 mr-2" />
             Tambah Produk
@@ -174,69 +173,71 @@ export default function SupplierDashboard() {
         </Card>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-        <Card className="rounded-2xl shadow-md border-0 bg-gradient-to-br from-blue-500 to-blue-600 text-white">
-          <CardContent className="p-5">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <Card>
+          <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-blue-100 text-sm font-medium">Total Produk</p>
-                <p className="text-3xl font-bold mt-2">{metrics.totalProducts}</p>
-                <p className="text-blue-100 text-xs mt-1">{metrics.activeProducts} aktif</p>
+                <p className="text-sm font-medium text-gray-600">Total Produk</p>
+                <p className="text-2xl font-bold text-gray-900">{metrics.totalProducts}</p>
+                <p className="text-sm text-gray-500 mt-1">{metrics.activeProducts} aktif</p>
               </div>
-              <div className="bg-blue-400 bg-opacity-30 p-3 rounded-full">
-                <Package className="w-6 h-6" />
+              <div className="p-3 bg-blue-100 rounded-full">
+                <Package className="w-6 h-6 text-blue-600" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="rounded-2xl shadow-md border-0 bg-gradient-to-br from-green-500 to-green-600 text-white">
-          <CardContent className="p-5">
+        <Card>
+          <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-green-100 text-sm font-medium">Total Pesanan</p>
-                <p className="text-3xl font-bold mt-2">{metrics.totalOrders}</p>
-                <p className="text-green-100 text-xs mt-1">{metrics.pendingOrders} pending</p>
+                <p className="text-sm font-medium text-gray-600">Total Pesanan</p>
+                <p className="text-2xl font-bold text-gray-900">{metrics.totalOrders}</p>
+                <p className="text-sm text-gray-500 mt-1">{metrics.pendingOrders} pending</p>
               </div>
-              <div className="bg-green-400 bg-opacity-30 p-3 rounded-full">
-                <ShoppingCart className="w-6 h-6" />
+              <div className="p-3 bg-green-100 rounded-full">
+                <ShoppingCart className="w-6 h-6 text-green-600" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="rounded-2xl shadow-md border-0 bg-gradient-to-br from-purple-500 to-purple-600 text-white">
-          <CardContent className="p-5">
+        <Card>
+          <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-purple-100 text-sm font-medium">Pendapatan Bulan Ini</p>
-                <p className="text-2xl font-bold mt-2">{formatCurrency(metrics.monthlyRevenue)}</p>
-                <p className="text-purple-100 text-xs mt-1">{metrics.completedOrders} selesai</p>
+                <p className="text-sm font-medium text-gray-600">Pendapatan Bulan Ini</p>
+                <p className="text-2xl font-bold text-gray-900">{formatCurrency(metrics.monthlyRevenue)}</p>
+                <p className="text-sm text-gray-500 mt-1">{metrics.completedOrders} selesai</p>
               </div>
-              <div className="bg-purple-400 bg-opacity-30 p-3 rounded-full">
-                <DollarSign className="w-6 h-6" />
+              <div className="p-3 bg-purple-100 rounded-full">
+                <DollarSign className="w-6 h-6 text-purple-600" />
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <Card className="rounded-2xl shadow-md border-0 bg-gradient-to-br from-orange-500 to-orange-600 text-white">
-          <CardContent className="p-5">
+        <Card>
+          <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-orange-100 text-sm font-medium">Tingkat Penyelesaian</p>
-                <p className="text-3xl font-bold mt-2">{metrics.completionRate}%</p>
-                <p className="text-orange-100 text-xs mt-1">dari total pesanan</p>
+                <p className="text-sm font-medium text-gray-600">Tingkat Penyelesaian</p>
+                <p className="text-2xl font-bold text-gray-900">{metrics.completionRate}%</p>
+                <p className="text-sm text-gray-500 mt-1">dari total pesanan</p>
               </div>
-              <div className="bg-orange-400 bg-opacity-30 p-3 rounded-full">
-                <TrendingUp className="w-6 h-6" />
+              <div className="p-3 bg-orange-100 rounded-full">
+                <TrendingUp className="w-6 h-6 text-orange-600" />
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+      {/* Recent Orders & Product Performance */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Recent Orders */}
         <Card className="shadow-sm">
           <CardContent className="p-4">
