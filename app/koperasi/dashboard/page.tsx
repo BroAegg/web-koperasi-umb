@@ -72,13 +72,16 @@ export default function DashboardPage() {
       return;
     }
     
-    // Fetch based on role
+    // Fetch based on role - ADD MORE LOGGING
     console.log('[Dashboard] User loaded, fetching dashboard data for role:', user.role);
+    console.log('[Dashboard] Is SUPER_ADMIN?', user.role === 'SUPER_ADMIN');
+    console.log('[Dashboard] Is ADMIN?', user.role === 'ADMIN');
+    
     if (user.role === 'SUPER_ADMIN') {
-      console.log('[Dashboard] Fetching SUPER_ADMIN dashboard');
+      console.log('[Dashboard] 🚀 CALLING fetchSuperAdminStats()');
       fetchSuperAdminStats();
     } else if (user.role === 'ADMIN') {
-      console.log('[Dashboard] Fetching ADMIN dashboard');
+      console.log('[Dashboard] 🚀 CALLING fetchDashboardStats()');
       fetchDashboardStats();
     } else {
       console.log('[Dashboard] Unexpected role:', user.role);
@@ -93,6 +96,8 @@ export default function DashboardPage() {
       setError(null);
       console.log('[Dashboard] Fetching super admin stats...');
       const token = localStorage.getItem('token');
+      console.log('[Dashboard] Token available:', !!token);
+      
       const response = await fetch('/api/super-admin/dashboard', {
         headers: {
           'Authorization': `Bearer ${token}`
@@ -100,10 +105,26 @@ export default function DashboardPage() {
       });
       const result = await response.json();
       
+      console.log('[Dashboard] Super admin API response status:', response.status);
       console.log('[Dashboard] Super admin stats response:', result);
       
-      if (response.ok) {
-        setSuperAdminStats(result);
+      if (response.ok && result.success) {
+        // Map API response structure to frontend interface
+        const apiData = result.data;
+        const mappedStats = {
+          totalSuppliers: apiData.suppliers.total,
+          pendingSuppliers: apiData.suppliers.pending,
+          activeSuppliers: apiData.suppliers.active,
+          paymentPendingSuppliers: apiData.suppliers.paymentPending,
+          totalMembers: apiData.members.total,
+          totalProducts: apiData.products.total,
+          lowStockProducts: apiData.products.lowStock,
+          monthlyRevenue: apiData.financial.monthlyRevenue,
+          pendingStockVerification: apiData.pending.stockVerification,
+          recentSuppliers: apiData.recentActivities.suppliers || []
+        };
+        console.log('[Dashboard] Mapped super admin stats:', mappedStats);
+        setSuperAdminStats(mappedStats);
         setError(null);
       } else {
         console.error('Failed to fetch super admin stats:', result.error);
