@@ -1,0 +1,274 @@
+'use client';
+
+import { useState } from 'react';
+import { Modal, ModalContent, ModalHeader, ModalTitle, ModalBody, Button, Input, Card, CardContent, Badge } from '@/components/ui';
+import { 
+  CreditCard, 
+  Banknote, 
+  Calculator,
+  Receipt,
+  Check
+} from 'lucide-react';
+
+interface CartItem {
+  id: string;
+  name: string;
+  quantity: number;
+  sellPrice: number;
+  subtotal: number;
+}
+
+interface PaymentModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  cart: CartItem[];
+  total: number;
+  onPaymentComplete: (transactionId: string) => void;
+}
+
+export function PaymentModal({ 
+  isOpen, 
+  onClose, 
+  cart, 
+  total, 
+  onPaymentComplete 
+}: PaymentModalProps) {
+  const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'TRANSFER'>('CASH');
+  const [amountPaid, setAmountPaid] = useState<string>('');
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [customerName, setCustomerName] = useState('');
+
+  const calculateChange = () => {
+    const paid = parseFloat(amountPaid) || 0;
+    return paid - total;
+  };
+
+  const canProcessPayment = () => {
+    if (paymentMethod === 'CASH') {
+      return parseFloat(amountPaid) >= total;
+    } else {
+      // For transfer, assume payment is confirmed
+      return parseFloat(amountPaid) >= total;
+    }
+  };
+
+  const handlePayment = async () => {
+    if (!canProcessPayment()) return;
+
+    setIsProcessing(true);
+    try {
+      const response = await fetch('/api/pos/transaction', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          items: cart.map(item => ({
+            productId: item.id,
+            quantity: item.quantity,
+            unitPrice: item.sellPrice,
+            subtotal: item.subtotal
+          })),
+          totalAmount: total,
+          paymentMethod,
+          amountPaid: parseFloat(amountPaid),
+          customerName: customerName || 'Walk-in Customer',
+          change: paymentMethod === 'CASH' ? calculateChange() : 0
+        }),
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        onPaymentComplete(result.data.transactionId);
+        resetForm();
+        onClose();
+      } else {
+        alert('Payment failed: ' + result.error);
+      }
+    } catch (error) {
+      console.error('Payment error:', error);
+      alert('Payment failed. Please try again.');
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const resetForm = () => {
+    setAmountPaid('');
+    setCustomerName('');
+    setPaymentMethod('CASH');
+  };
+
+  const quickAmountButtons = [
+    { label: 'Exact', value: total },
+    { label: '50k', value: 50000 },
+    { label: '100k', value: 100000 },
+    { label: '200k', value: 200000 },
+  ];
+
+  return (
+    <Modal open={isOpen} onOpenChange={onClose}>
+      <ModalContent className="sm:max-w-lg">
+        <ModalHeader>
+          <ModalTitle className="flex items-center space-x-2">
+            <CreditCard className="w-5 h-5" />
+            <span>Process Payment</span>
+          </ModalTitle>
+        </ModalHeader>
+
+        <ModalBody>
+          <div className="space-y-4">
+          {/* Order Summary */}
+          <Card>
+            <CardContent className="p-4">
+              <h3 className="font-semibold mb-3">Order Summary</h3>
+              <div className="space-y-2 max-h-40 overflow-y-auto">
+                {cart.map((item) => (
+                  <div key={item.id} className="flex justify-between text-sm">
+                    <span className="flex-1">
+                      {item.quantity}x {item.name}
+                    </span>
+                    <span className="font-medium">
+                      Rp {item.subtotal.toLocaleString('id-ID')}
+                    </span>
+                  </div>
+                ))}
+              </div>
+              <hr className="my-3" />
+              <div className="flex justify-between text-lg font-bold">
+                <span>Total:</span>
+                <span className="text-blue-600">
+                  Rp {total.toLocaleString('id-ID')}
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Customer Name */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Customer Name (Optional)
+            </label>
+            <Input
+              placeholder="Walk-in Customer"
+              value={customerName}
+              onChange={(e) => setCustomerName(e.target.value)}
+            />
+          </div>
+
+          {/* Payment Method */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Payment Method
+            </label>
+            <div className="grid grid-cols-2 gap-3">
+              <Button
+                variant={paymentMethod === 'CASH' ? 'primary' : 'outline'}
+                onClick={() => setPaymentMethod('CASH')}
+                className="h-auto py-3"
+              >
+                <Banknote className="w-4 h-4 mr-2" />
+                Cash
+              </Button>
+              <Button
+                variant={paymentMethod === 'TRANSFER' ? 'primary' : 'outline'}
+                onClick={() => setPaymentMethod('TRANSFER')}
+                className="h-auto py-3"
+              >
+                <CreditCard className="w-4 h-4 mr-2" />
+                Transfer
+              </Button>
+            </div>
+          </div>
+
+          {/* Amount Paid */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Amount Paid
+            </label>
+            <Input
+              type="number"
+              placeholder="0"
+              value={amountPaid}
+              onChange={(e) => setAmountPaid(e.target.value)}
+              className="text-lg"
+            />
+            
+            {/* Quick Amount Buttons */}
+            <div className="grid grid-cols-4 gap-2 mt-2">
+              {quickAmountButtons.map((button) => (
+                <Button
+                  key={button.label}
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setAmountPaid(button.value.toString())}
+                  className="text-xs"
+                >
+                  {button.label}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          {/* Change Calculation */}
+          {paymentMethod === 'CASH' && amountPaid && (
+            <Card className={`${calculateChange() < 0 ? 'border-red-200 bg-red-50' : 'border-green-200 bg-green-50'}`}>
+              <CardContent className="p-3">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm font-medium">
+                    {calculateChange() < 0 ? 'Insufficient Payment' : 'Change'}:
+                  </span>
+                  <span className={`text-lg font-bold ${calculateChange() < 0 ? 'text-red-600' : 'text-green-600'}`}>
+                    Rp {Math.abs(calculateChange()).toLocaleString('id-ID')}
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Payment Status for Transfer */}
+          {paymentMethod === 'TRANSFER' && (
+            <Card className="border-blue-200 bg-blue-50">
+              <CardContent className="p-3">
+                <div className="flex items-center space-x-2 text-blue-700">
+                  <Calculator className="w-4 h-4" />
+                  <span className="text-sm">
+                    Confirm transfer amount: Rp {total.toLocaleString('id-ID')}
+                  </span>
+                </div>
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Action Buttons */}
+          <div className="flex space-x-3 pt-4">
+            <Button
+              variant="outline"
+              onClick={onClose}
+              className="flex-1"
+              disabled={isProcessing}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handlePayment}
+              disabled={!canProcessPayment() || isProcessing}
+              className="flex-1"
+            >
+              {isProcessing ? (
+                <>Processing...</>
+              ) : (
+                <>
+                  <Check className="w-4 h-4 mr-2" />
+                  Complete Payment
+                </>
+              )}
+            </Button>
+          </div>
+          </div>
+        </ModalBody>
+      </ModalContent>
+    </Modal>
+  );
+}

@@ -17,7 +17,8 @@ import {
   LogOut,
   UserCog,
   Shield,
-  Building2
+  Building2,
+  CreditCard
 } from "lucide-react";
 
 function KoperasiContent({ children }: { children: React.ReactNode }) {
@@ -40,6 +41,7 @@ function KoperasiContent({ children }: { children: React.ReactNode }) {
   // Base navigation for all roles
   const baseNavigation = [
     { name: "Dashboard", href: "/koperasi/dashboard", icon: LayoutDashboard, roles: ["ADMIN", "SUPER_ADMIN"] },
+    { name: "POS Kasir", href: "/koperasi/pos", icon: CreditCard, roles: ["ADMIN", "SUPER_ADMIN"] },
     { name: "Inventory", href: "/koperasi/inventory", icon: Package, roles: ["ADMIN", "SUPER_ADMIN"] },
     { name: "Membership", href: "/koperasi/membership", icon: Users, roles: ["ADMIN", "SUPER_ADMIN"] },
     { name: "Keuangan", href: "/koperasi/financial", icon: TrendingUp, roles: ["ADMIN", "SUPER_ADMIN"] },

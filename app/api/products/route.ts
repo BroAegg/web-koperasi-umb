@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
       
       return {
         ...product,
-        category: product.categories, // Map to old field name for compatibility
+        category: product.categories?.name || 'Uncategorized', // Map to old field name for compatibility
         supplier: product.suppliers,
         stockMovements: product.stock_movements,
         transactionItems: product.transaction_items,
