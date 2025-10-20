@@ -189,9 +189,10 @@ export default function SupplierProducts() {
   };
 
   return (
-    <div className="space-y-4">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div className="p-6">
+      <div className="space-y-4">
+        {/* Header */}
+        <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Produk Saya</h1>
           <p className="text-gray-600">Kelola produk yang Anda jual</p>
@@ -504,6 +505,7 @@ export default function SupplierProducts() {
           </Card>
         </div>
       )}
+      </div>
     </div>
   );
 }

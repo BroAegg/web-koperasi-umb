@@ -130,7 +130,8 @@ export default function SupplierProfile() {
   };
 
   return (
-    <div className="space-y-4">
+    <div className="p-6">
+      <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -456,6 +457,8 @@ export default function SupplierProfile() {
           </Card>
         </div>
       )}
+      </div>
     </div>
   );
 }
+

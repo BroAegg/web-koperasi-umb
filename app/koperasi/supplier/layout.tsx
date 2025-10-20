@@ -149,7 +149,7 @@ export default function SupplierLayout({
         </header>
 
         {/* Page Content */}
-        <main className="p-4">
+        <main>
           {children}
         </main>
       </div>

@@ -125,8 +125,9 @@ export default function SupplierDashboard() {
   const { supplier, metrics, payment, recentOrders, productPerformance } = dashboardData;
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
+    <div className="p-6">
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Dashboard Supplier</h1>
           <p className="text-gray-600">Selamat datang, {supplier.name}</p>
@@ -309,6 +310,7 @@ export default function SupplierDashboard() {
           </CardContent>
         </Card>
       </div>
+    </div>
     </div>
   );
 }
