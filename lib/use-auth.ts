@@ -7,7 +7,7 @@ interface User {
   id: string;
   email: string;
   name: string;
-  role: "SUPER_ADMIN" | "ADMIN" | "SUPPLIER" | "USER";
+  role: "SUPER_ADMIN" | "ADMIN" | "SUPPLIER" | "USER" | "DEVELOPER";
 }
 
 export function useAuth(requiredRole?: string[]) {

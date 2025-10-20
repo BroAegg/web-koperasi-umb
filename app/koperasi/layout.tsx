@@ -18,13 +18,17 @@ import {
   UserCog,
   Shield,
   Building2,
-  CreditCard
+  CreditCard,
+  Wrench,
+  Activity,
+  Database,
+  Code
 } from "lucide-react";
 
 function KoperasiContent({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pathname = usePathname();
-  const { user, loading, authorized, logout } = useAuth(["ADMIN", "SUPER_ADMIN", "SUPPLIER"]);
+  const { user, loading, authorized, logout } = useAuth(["ADMIN", "SUPER_ADMIN", "SUPPLIER", "DEVELOPER"]);
 
   if (loading) {
     return (
@@ -65,6 +69,15 @@ function KoperasiContent({ children }: { children: React.ReactNode }) {
       items: [
         { name: "Broadcast", href: "/koperasi/broadcast", icon: Megaphone, roles: ["SUPER_ADMIN"] },
         { name: "Pengaturan", href: "/koperasi/settings", icon: Settings, roles: ["SUPER_ADMIN"] },
+      ]
+    },
+    {
+      title: "DEVELOPER TOOLS",
+      items: [
+        { name: "Developer Dashboard", href: "/koperasi/developer-dashboard", icon: Wrench, roles: ["DEVELOPER"] },
+        { name: "Activity Logs", href: "/koperasi/developer/activity-logs", icon: Activity, roles: ["DEVELOPER"] },
+        { name: "Data Management", href: "/koperasi/developer/data-management", icon: Database, roles: ["DEVELOPER"] },
+        { name: "API Tester", href: "/koperasi/developer/api-tester", icon: Code, roles: ["DEVELOPER"] },
       ]
     }
   ];
@@ -172,7 +185,10 @@ function KoperasiContent({ children }: { children: React.ReactNode }) {
           <div className="p-4 border-t border-slate-200 space-y-2">
             <div className="px-4 py-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl border border-slate-200">
               <p className="font-semibold text-slate-800 truncate">{user?.name}</p>
-              <p className="text-xs text-blue-600 font-medium">{user?.role === 'SUPER_ADMIN' ? 'Super Admin' : 'Admin'}</p>
+              <p className="text-xs text-blue-600 font-medium">
+                {user?.role === 'SUPER_ADMIN' ? 'Super Admin' : 
+                 user?.role === 'DEVELOPER' ? 'Developer' : 'Admin'}
+              </p>
             </div>
             <button
               onClick={logout}
