@@ -89,14 +89,19 @@ export function InlineEmptyState({
 export function TableEmptyState({
   icon: Icon,
   message,
+  description,
 }: {
   icon: LucideIcon;
   message: string;
+  description?: string;
 }) {
   return (
     <div className="text-center py-12">
       <Icon className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-      <p className="text-gray-600">{message}</p>
+      <p className="text-gray-600 font-medium mb-2">{message}</p>
+      {description && (
+        <p className="text-sm text-gray-500">{description}</p>
+      )}
     </div>
   );
 }
