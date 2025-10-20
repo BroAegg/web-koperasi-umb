@@ -93,9 +93,9 @@ function KoperasiContent({ children }: { children: React.ReactNode }) {
       title: "DEVELOPER TOOLS",
       items: [
         { name: "Developer Dashboard", href: "/koperasi/developer-dashboard", icon: Wrench, roles: ["DEVELOPER"] },
-        { name: "Activity Logs", href: "/koperasi/developer/activity-logs", icon: Activity, roles: ["DEVELOPER"] },
-        { name: "Data Management", href: "/koperasi/developer/data-management", icon: Database, roles: ["DEVELOPER"] },
-        { name: "API Tester", href: "/koperasi/developer/api-tester", icon: Code, roles: ["DEVELOPER"] },
+        { name: "Activity Logs", href: "/koperasi/developer-dashboard/activity-logs", icon: Activity, roles: ["DEVELOPER"] },
+        { name: "Data Management", href: "/koperasi/developer-dashboard/data-management", icon: Database, roles: ["DEVELOPER"] },
+        { name: "API Tester", href: "/koperasi/developer-dashboard/api-tester", icon: Code, roles: ["DEVELOPER"] },
       ]
     }
   ];
