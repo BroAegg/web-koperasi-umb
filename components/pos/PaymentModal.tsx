@@ -57,10 +57,17 @@ export function PaymentModal({
 
     setIsProcessing(true);
     try {
+      // Get token from localStorage for authentication
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('Authentication required. Please login again.');
+      }
+
       const response = await fetch('/api/pos/transaction', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({
           items: cart.map(item => ({
@@ -84,11 +91,24 @@ export function PaymentModal({
         resetForm();
         onClose();
       } else {
-        alert('Payment failed: ' + result.error);
+        alert('Payment failed: ' + (result.error || 'Unknown error'));
       }
     } catch (error) {
       console.error('Payment error:', error);
-      alert('Payment failed. Please try again.');
+      
+      // Better error messages
+      if (error instanceof Error) {
+        if (error.message.includes('Authentication required')) {
+          alert('Session expired. Please login again.');
+          window.location.href = '/login';
+        } else if (error.message.includes('Failed to fetch')) {
+          alert('Network error. Please check your connection and try again.');
+        } else {
+          alert('Payment failed: ' + error.message);
+        }
+      } else {
+        alert('Payment failed. Please try again.');
+      }
     } finally {
       setIsProcessing(false);
     }

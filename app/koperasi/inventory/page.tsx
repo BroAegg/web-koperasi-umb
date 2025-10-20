@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useNotification } from '@/lib/notification-context';
+import { useAuth } from '@/lib/use-auth';
 import { formatCurrency } from '@/lib/utils';
 import { 
   Package, 
@@ -57,6 +58,9 @@ import StockModal from '@/components/inventory/StockModal';
 import FilterModal from '@/components/inventory/FilterModal';
 
 export default function InventoryPage() {
+  // ✅ AUTHORIZATION CHECK - Admin/Super Admin only
+  const { user, loading: authLoading, authorized } = useAuth(['ADMIN', 'SUPER_ADMIN']);
+  
   // UI State
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("semua");
@@ -233,32 +237,44 @@ export default function InventoryPage() {
   const fetchStockMovements = async (date?: string) => {
     try {
       const targetDate = date || selectedDate;
-      const response = await fetch(`/api/stock-movements?date=${targetDate}&limit=20`);
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/stock-movements?date=${targetDate}&limit=20`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        }
+      });
       const result = await response.json();
       
       if (result.success) {
         setStockMovements(result.data);
       } else {
-        console.error('Failed to fetch stock movements:', result.error);
+        error('Gagal Memuat Data', 'Tidak dapat memuat riwayat stock movement');
       }
-    } catch (error) {
-      console.error('Error fetching stock movements:', error);
+    } catch (err) {
+      error('Kesalahan', 'Terjadi kesalahan saat memuat riwayat stock movement');
     }
   };
 
   const fetchDailySummary = async (date?: string) => {
     try {
       const targetDate = date || selectedDate;
-      const response = await fetch(`/api/stock-movements/summary?date=${targetDate}`);
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/stock-movements/summary?date=${targetDate}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        }
+      });
       const result = await response.json();
       
       if (result.success) {
         setDailySummary(result.data);
       } else {
-        console.error('Failed to fetch daily summary:', result.error);
+        error('Gagal Memuat Data', 'Tidak dapat memuat ringkasan harian');
       }
-    } catch (error) {
-      console.error('Error fetching daily summary:', error);
+    } catch (err) {
+      error('Kesalahan', 'Terjadi kesalahan saat memuat ringkasan harian');
     }
   };
 
@@ -271,7 +287,13 @@ export default function InventoryPage() {
         ? `/api/financial/period?period=today&date=${selectedDate}`
         : `/api/financial/period?period=${financialPeriod}`;
       
-      const response = await fetch(url);
+      const token = localStorage.getItem('token');
+      const response = await fetch(url, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        }
+      });
       const result = await response.json();
       
       if (result.success) {
@@ -286,26 +308,32 @@ export default function InventoryPage() {
           consignment: result.data.consignment || { grossRevenue: 0, cogs: 0, profit: 0, feeTotal: 0 },
         });
       } else {
-        console.error('Failed to fetch period financial data:', result.error);
+        error('Gagal Memuat Data', 'Tidak dapat memuat data keuangan periode');
       }
-    } catch (error) {
-      console.error('Error fetching period financial data:', error);
+    } catch (err) {
+      error('Kesalahan', 'Terjadi kesalahan saat memuat data keuangan');
     }
   };
 
   const fetchProducts = async () => {
     try {
       setLoading(true);
-      const response = await fetch('/api/products');
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/products', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        }
+      });
       const result = await response.json();
       
       if (result.success) {
         setProducts(result.data);
       } else {
-        console.error('Failed to fetch products:', result.error);
+        error('Gagal Memuat Data', 'Tidak dapat memuat daftar produk');
       }
-    } catch (error) {
-      console.error('Error fetching products:', error);
+    } catch (err) {
+      error('Kesalahan', 'Terjadi kesalahan saat memuat produk');
     } finally {
       setLoading(false);
     }
@@ -313,31 +341,43 @@ export default function InventoryPage() {
 
   const fetchCategories = async () => {
     try {
-      const response = await fetch('/api/categories');
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/categories', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        }
+      });
       const result = await response.json();
       
       if (result.success) {
         setCategories(result.data);
       } else {
-        console.error('Failed to fetch categories:', result.error);
+        error('Gagal Memuat Data', 'Tidak dapat memuat daftar kategori');
       }
-    } catch (error) {
-      console.error('Error fetching categories:', error);
+    } catch (err) {
+      error('Kesalahan', 'Terjadi kesalahan saat memuat kategori');
     }
   };
 
   const fetchSuppliers = async () => {
     try {
-      const response = await fetch('/api/suppliers');
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/suppliers', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        }
+      });
       const result = await response.json();
       
       if (result.success) {
         setSuppliers(result.data);
       } else {
-        console.error('Failed to fetch suppliers:', result.error);
+        error('Gagal Memuat Data', 'Tidak dapat memuat daftar supplier');
       }
-    } catch (error) {
-      console.error('Error fetching suppliers:', error);
+    } catch (err) {
+      error('Kesalahan', 'Terjadi kesalahan saat memuat supplier');
     }
   };
 
@@ -382,9 +422,11 @@ export default function InventoryPage() {
     setIsSubmitting(true);
     
     try {
+      const token = localStorage.getItem('token');
       const response = await fetch('/api/stock-movements', {
         method: 'POST',
         headers: {
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -418,8 +460,7 @@ export default function InventoryPage() {
         error('Gagal Menyimpan', result.error || 'Terjadi kesalahan saat menyimpan stock movement');
       }
     } catch (err) {
-      console.error('Error creating stock movement:', err);
-      error('Kesalahan Server', 'Terjadi kesalahan pada server, silakan coba lagi');
+      error('Kesalahan Server', 'Tidak dapat menyimpan stock movement, silakan coba lagi');
     } finally {
       setIsSubmitting(false);
     }
@@ -455,9 +496,11 @@ export default function InventoryPage() {
         sellPrice: parsePriceInput(formData.sellPrice),
       };
       
+      const token = localStorage.getItem('token');
       const response = await fetch(url, {
         method,
         headers: {
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(productData),
@@ -490,8 +533,8 @@ export default function InventoryPage() {
               result.error || `Terjadi kesalahan saat ${action} produk`);
       }
     } catch (err) {
-      console.error('Error saving product:', err);
-      error('Kesalahan Server', 'Terjadi kesalahan pada server, silakan coba lagi');
+      const action = editingProduct ? 'mengupdate' : 'menambahkan';
+      error('Kesalahan Server', `Tidak dapat ${action} produk, silakan coba lagi`);
     } finally {
       setIsSubmitting(false);
     }
@@ -558,8 +601,13 @@ export default function InventoryPage() {
 
   const handleDeleteProduct = async (productId: string) => {
     try {
+      const token = localStorage.getItem('token');
       const response = await fetch(`/api/products/${productId}`, {
         method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        }
       });
 
       const data = await response.json();
@@ -571,8 +619,7 @@ export default function InventoryPage() {
         error('Gagal Menghapus', data.error || 'Gagal menghapus produk');
       }
     } catch (err) {
-      console.error('Error deleting product:', err);
-      error('Kesalahan Server', 'Terjadi kesalahan saat menghapus produk');
+      error('Kesalahan Server', 'Tidak dapat menghapus produk, silakan coba lagi');
     }
   };
 
@@ -624,6 +671,37 @@ export default function InventoryPage() {
   }, 0);
 
   const categoryOptions = ["semua", ...categories.map(c => c.name)];
+
+  // ✅ LOADING STATE - Show while checking auth
+  if (authLoading || loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center space-y-4">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
+          <p className="text-gray-600">Memuat data inventory...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // ✅ AUTHORIZATION CHECK - Only ADMIN and SUPER_ADMIN allowed
+  if (!authorized) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center space-y-4 max-w-md">
+          <div className="text-red-600 text-6xl">🔒</div>
+          <h2 className="text-2xl font-bold text-gray-900">Akses Ditolak</h2>
+          <p className="text-gray-600">
+            Anda tidak memiliki izin untuk mengakses halaman inventory.
+            Hanya Admin dan Super Admin yang dapat mengakses halaman ini.
+          </p>
+          <Button onClick={() => window.location.href = '/koperasi/dashboard'}>
+            Kembali ke Dashboard
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-4">
@@ -1424,9 +1502,14 @@ export default function InventoryPage() {
                       onClick={async () => {
                         if (confirm(`⚠️ DEVELOPMENT MODE\n\nHapus ${stockMovements.length} stock movement untuk tanggal ini?\n\nPeringatan: Ini akan menghapus semua riwayat transaksi hari ini!`)) {
                           try {
+                            const token = localStorage.getItem('token');
                             // Bulk delete all stock movements for selected date
                             const response = await fetch(`/api/stock-movements?date=${selectedDate}`, { 
-                              method: 'DELETE' 
+                              method: 'DELETE',
+                              headers: {
+                                'Authorization': `Bearer ${token}`,
+                                'Content-Type': 'application/json',
+                              }
                             });
                             const result = await response.json();
                             
@@ -1439,8 +1522,7 @@ export default function InventoryPage() {
                               error('Gagal Menghapus', result.error);
                             }
                           } catch (err) {
-                            console.error('Error deleting movements:', err);
-                            error('Kesalahan', 'Gagal menghapus stock movements');
+                            error('Kesalahan', 'Tidak dapat menghapus stock movements, silakan coba lagi');
                           }
                         }
                       }}

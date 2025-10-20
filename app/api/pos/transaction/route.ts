@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getUserFromToken } from "@/lib/auth";
-import { withDeveloperSession, addProductionData } from "@/lib/prisma-middleware";
+import { withDeveloperSession } from "@/lib/prisma-middleware";
 import { createActivityLog } from "@/lib/developer-helpers";
 import { randomUUID } from "crypto";
 
@@ -83,9 +83,9 @@ export async function POST(req: NextRequest) {
 
     // Create transaction with items in a single database transaction
     const result = await prisma.$transaction(async (tx) => {
-      // Create main transaction with automatic isProduction flag
+      // Create main transaction (isProduction handled by withDeveloperSession middleware)
       const transaction = await tx.transactions.create({
-        data: addProductionData({
+        data: {
           id: randomUUID(),
           type: 'SALE',
           totalAmount,
@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
           note: `POS Sale - Customer: ${customerName || 'Walk-in Customer'}`,
           date: new Date(),
           updatedAt: new Date(),
-        }),
+        },
       });
 
       const transactionItems = [];
@@ -102,17 +102,16 @@ export async function POST(req: NextRequest) {
 
       // Process each item
       for (const item of items) {
-        // Create transaction item with automatic isProduction flag
+        // Create transaction item (isProduction handled by middleware)
         const transactionItem = await tx.transaction_items.create({
-          data: addProductionData({
+          data: {
             id: randomUUID(),
             transactionId: transaction.id,
             productId: item.productId,
             quantity: item.quantity,
             unitPrice: item.unitPrice,
-            subtotal: item.subtotal,
-            updatedAt: new Date(),
-          }),
+            totalPrice: item.subtotal,
+          },
         });
 
         transactionItems.push(transactionItem);
@@ -128,18 +127,18 @@ export async function POST(req: NextRequest) {
           },
         });
 
-        // Create stock movement record with automatic isProduction flag
+        // Create stock movement record (isProduction handled by middleware)
         const stockMovement = await tx.stock_movements.create({
-          data: addProductionData({
+          data: {
             id: randomUUID(),
             productId: item.productId,
             movementType: 'SALE_OUT',
             quantity: -item.quantity, // Negative for outgoing
-            referenceType: 'TRANSACTION',
+            referenceType: 'SALE', // ✅ FIX: Use correct enum value (not TRANSACTION)
             referenceId: transaction.id,
             note: `POS Sale - ${customerName || 'Walk-in Customer'}`,
             occurredAt: new Date(),
-          }),
+          },
         });
 
         stockMovements.push(stockMovement);
@@ -191,13 +190,19 @@ export async function POST(req: NextRequest) {
           productId: item.productId,
           quantity: item.quantity,
           unitPrice: item.unitPrice,
-          subtotal: item.subtotal
+          subtotal: item.totalPrice // ✅ FIX: Use totalPrice from database
         }))
       }
     });
 
   } catch (error) {
     console.error('[POS] Transaction error:', error);
+    console.error('[POS] Error details:', {
+      message: error?.message,
+      code: error?.code,
+      meta: error?.meta,
+      stack: error?.stack
+    });
     
     // Handle specific database errors
     if (error.code === 'P2002') {
@@ -215,7 +220,10 @@ export async function POST(req: NextRequest) {
     }
 
       return NextResponse.json(
-        { error: "Internal server error during transaction processing" },
+        { 
+          error: "Internal server error during transaction processing",
+          details: process.env.NODE_ENV === 'development' ? error?.message : undefined
+        },
         { status: 500 }
       );
     }
