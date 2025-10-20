@@ -19,20 +19,18 @@ export async function GET(req: NextRequest) {
     const where: any = {};
 
     if (role && role !== 'ALL') {
-      where.user = {
-        role: role,
-      };
+      where.userRole = role;
     }
 
     if (environment && environment !== 'ALL') {
-      where.environment = environment;
+      where.isProduction = environment === 'PROD';
     }
 
     if (search) {
       where.OR = [
         { description: { contains: search, mode: 'insensitive' } },
         { action: { contains: search, mode: 'insensitive' } },
-        { user: { username: { contains: search, mode: 'insensitive' } } },
+        { users: { username: { contains: search, mode: 'insensitive' } } },
       ];
     }
 
@@ -57,7 +55,7 @@ export async function GET(req: NextRequest) {
     const logs = await prisma.activity_logs.findMany({
       where,
       include: {
-        user: {
+        users: {
           select: {
             id: true,
             username: true,
@@ -87,12 +85,12 @@ export async function GET(req: NextRequest) {
       }),
       devCount: await prisma.activity_logs.count({
         where: {
-          environment: 'DEV',
+          isProduction: false,
         },
       }),
       prodCount: await prisma.activity_logs.count({
         where: {
-          environment: 'PROD',
+          isProduction: true,
         },
       }),
       byRole: {},
