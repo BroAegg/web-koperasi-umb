@@ -1,0 +1,10 @@
+nama_produk,deskripsi,kategori,sku,harga_beli,harga_jual,stok_awal,minimum_stok,satuan,jenis_kepemilikan,siklus_stok,kontak_supplier,keterangan
+Beras Premium 5kg,Beras premium kualitas terbaik,Sembako,BRS-001,45000,50000,50,15,sak,TOKO,DUA_MINGGUAN,081234567890,
+Minyak Goreng 2L,Minyak goreng kemasan 2 liter,Sembako,MNG-001,25000,28000,30,20,botol,TOKO,MINGGUAN,,
+Gula Pasir 1kg,Gula pasir kemasan 1kg,Sembako,GUL-001,12000,14000,40,25,kg,TOKO,MINGGUAN,,
+Kopi Bubuk 200g,Kopi bubuk premium,Minuman,KOP-001,15000,18000,30,10,pack,TOKO,MINGGUAN,,
+Teh Kotak 1L,Minuman teh dalam kemasan,Minuman,TEH-001,8000,10000,20,5,kotak,TOKO,MINGGUAN,,
+Risol Mayo,Risol dengan mayonaise segar,Gorengan,RSL-001,,3000,0,15,pcs,TITIPAN,HARIAN,081234567891,Ibu Lastri - Fee 20%
+Pisang Goreng,Pisang goreng crispy,Gorengan,PSG-001,,3000,0,15,pcs,TITIPAN,HARIAN,081234567891,Ibu Lastri - Fee 20%
+Keripik Singkong Original,Keripik singkong renyah,Makanan Ringan,KRP-001,,15000,0,10,pack,TITIPAN,MINGGUAN,081234567892,Pak Rizal - Fee Rp 2000/pack
+Keripik Singkong Pedas,Keripik singkong level pedas,Makanan Ringan,KRP-002,,15000,0,10,pack,TITIPAN,MINGGUAN,081234567892,Pak Rizal - Fee Rp 2000/pack
