@@ -3,6 +3,34 @@
 
 const baseURL = 'http://localhost:3000';
 
+// Test credentials (matching actual database)
+const TEST_CREDENTIALS = {
+  admin: {
+    email: 'admin@koperasi.com',
+    password: 'admin123',
+    name: 'Admin User',
+    role: 'ADMIN'
+  },
+  superadmin: {
+    email: 'superadmin@koperasi.com',
+    password: 'superadmin123',
+    name: 'Super Admin',
+    role: 'SUPER_ADMIN'
+  },
+  supplier: {
+    email: 'supplier@koperasi.com',
+    password: 'supplier123',
+    name: 'Supplier User',
+    role: 'SUPPLIER'
+  },
+  member: {
+    email: 'member1@koperasi.com',
+    password: 'member123',
+    name: 'Anggota 1',
+    role: 'USER'
+  }
+};
+
 // Test cases
 const tests = {
   passed: 0,
@@ -99,8 +127,8 @@ async function runTests() {
   
   // Test 1: Admin Login (Success)
   const adminResult = await testLogin(
-    'admin@umb.ac.id',
-    'Password123!',
+    TEST_CREDENTIALS.admin.email,
+    TEST_CREDENTIALS.admin.password,
     true,
     'Admin Login (Success)'
   );
@@ -108,38 +136,46 @@ async function runTests() {
   
   // Test 2: Super Admin Login (Success)
   const superAdminResult = await testLogin(
-    'superadmin@umb.ac.id',
-    'Password123!',
+    TEST_CREDENTIALS.superadmin.email,
+    TEST_CREDENTIALS.superadmin.password,
     true,
     'Super Admin Login (Success)'
   );
   const superAdminToken = superAdminResult.data?.data?.token;
   
-  // Test 3: Supplier Login (Success) - if exists
+  // Test 3: Supplier Login (Success)
   await testLogin(
-    'supplier@example.com',
-    'Password123!',
+    TEST_CREDENTIALS.supplier.email,
+    TEST_CREDENTIALS.supplier.password,
     true,
-    'Supplier Login (Success) - May fail if not seeded'
+    'Supplier Login (Success)'
   );
   
-  // Test 4: Wrong Password
+  // Test 4: Member Login (Success)
   await testLogin(
-    'admin@umb.ac.id',
+    TEST_CREDENTIALS.member.email,
+    TEST_CREDENTIALS.member.password,
+    true,
+    'Member Login (Success)'
+  );
+  
+  // Test 5: Wrong Password
+  await testLogin(
+    TEST_CREDENTIALS.admin.email,
     'WrongPassword123',
     false,
     'Login with Wrong Password (Should Fail)'
   );
   
-  // Test 5: Non-existent Email
+  // Test 6: Non-existent Email
   await testLogin(
-    'nonexistent@umb.ac.id',
+    'nonexistent@koperasi.com',
     'Password123!',
     false,
     'Login with Non-existent Email (Should Fail)'
   );
   
-  // Test 6: Empty Email
+  // Test 7: Empty Email
   await testLogin(
     '',
     'Password123!',
@@ -147,9 +183,9 @@ async function runTests() {
     'Login with Empty Email (Should Fail)'
   );
   
-  // Test 7: Empty Password
+  // Test 8: Empty Password
   await testLogin(
-    'admin@umb.ac.id',
+    TEST_CREDENTIALS.admin.email,
     '',
     false,
     'Login with Empty Password (Should Fail)'
@@ -161,7 +197,7 @@ async function runTests() {
   console.log('\n📋 SECTION 2: TOKEN VALIDATION');
   console.log('-'.repeat(60));
   
-  // Test 8: Valid Admin Token
+  // Test 9: Valid Admin Token
   if (adminToken) {
     await testAuthMe(
       adminToken,
@@ -170,7 +206,7 @@ async function runTests() {
     );
   }
   
-  // Test 9: Valid Super Admin Token
+  // Test 10: Valid Super Admin Token
   if (superAdminToken) {
     await testAuthMe(
       superAdminToken,
@@ -179,21 +215,21 @@ async function runTests() {
     );
   }
   
-  // Test 10: Invalid Token
+  // Test 11: Invalid Token
   await testAuthMe(
     'invalid.token.here',
     false,
     'Invalid Token (Should Fail)'
   );
   
-  // Test 11: Empty Token
+  // Test 12: Empty Token
   await testAuthMe(
     '',
     false,
     'Empty Token (Should Fail)'
   );
   
-  // Test 12: Malformed Token
+  // Test 13: Malformed Token
   await testAuthMe(
     'Bearer xyz',
     false,
