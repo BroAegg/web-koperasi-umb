@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useDeveloperMode } from '@/contexts/DeveloperContext';
+import { useDeveloper } from '@/contexts/DeveloperContext';
 
 interface ActivityLog {
   id: string;
@@ -30,7 +30,7 @@ type Role = 'ALL' | 'ADMIN' | 'KASIR' | 'MEMBER' | 'SUPPLIER' | 'DEVELOPER';
 
 export default function ActivityLogsPage() {
   const router = useRouter();
-  const { user, loading: authLoading } = useDeveloperMode();
+  const { user, loading: authLoading } = useDeveloper();
   
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [stats, setStats] = useState<ActivityStats | null>(null);
