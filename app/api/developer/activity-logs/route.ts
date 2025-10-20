@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
       where.OR = [
         { description: { contains: search, mode: 'insensitive' } },
         { action: { contains: search, mode: 'insensitive' } },
-        { users: { username: { contains: search, mode: 'insensitive' } } },
+        { users: { name: { contains: search, mode: 'insensitive' } } },
       ];
     }
 
@@ -58,7 +58,7 @@ export async function GET(req: NextRequest) {
         users: {
           select: {
             id: true,
-            username: true,
+            name: true,
             role: true,
           },
         },
