@@ -125,7 +125,7 @@ export default function SupplierDashboard() {
   const { supplier, metrics, payment, recentOrders, productPerformance } = dashboardData;
 
   return (
-    <div className="pr-6 pt-6 pb-6">
+    <div className="pl-4 pr-6 pt-6 pb-6">
       <div className="space-y-4">
         <div className="flex items-center justify-between">
         <div>
