@@ -125,8 +125,8 @@ export default function SupplierDashboard() {
   const { supplier, metrics, payment, recentOrders, productPerformance } = dashboardData;
 
   return (
-    <div className="space-y-6 p-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div className="space-y-4 p-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-3xl font-bold text-slate-800">Dashboard Supplier</h1>
           <p className="text-slate-600 mt-1">Selamat datang, {supplier.name}</p>
@@ -153,7 +153,7 @@ export default function SupplierDashboard() {
       {/* Payment Warning */}
       {payment.status !== 'PAID_APPROVED' && (
         <Card className="border-yellow-200 bg-yellow-50">
-          <CardContent className="p-4 sm:p-5">
+          <CardContent className="p-4">
             <div className="flex items-start gap-3">
               <AlertCircle className="w-5 h-5 text-yellow-600 mt-0.5 flex-shrink-0" />
               <div className="flex-1">
@@ -174,9 +174,9 @@ export default function SupplierDashboard() {
         </Card>
       )}
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
         <Card className="rounded-2xl shadow-md border-0 bg-gradient-to-br from-blue-500 to-blue-600 text-white">
-          <CardContent className="p-6">
+          <CardContent className="p-5">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-blue-100 text-sm font-medium">Total Produk</p>
@@ -191,7 +191,7 @@ export default function SupplierDashboard() {
         </Card>
 
         <Card className="rounded-2xl shadow-md border-0 bg-gradient-to-br from-green-500 to-green-600 text-white">
-          <CardContent className="p-6">
+          <CardContent className="p-5">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-green-100 text-sm font-medium">Total Pesanan</p>
@@ -206,7 +206,7 @@ export default function SupplierDashboard() {
         </Card>
 
         <Card className="rounded-2xl shadow-md border-0 bg-gradient-to-br from-purple-500 to-purple-600 text-white">
-          <CardContent className="p-6">
+          <CardContent className="p-5">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-purple-100 text-sm font-medium">Pendapatan Bulan Ini</p>
@@ -221,7 +221,7 @@ export default function SupplierDashboard() {
         </Card>
 
         <Card className="rounded-2xl shadow-md border-0 bg-gradient-to-br from-orange-500 to-orange-600 text-white">
-          <CardContent className="p-6">
+          <CardContent className="p-5">
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-orange-100 text-sm font-medium">Tingkat Penyelesaian</p>
@@ -236,10 +236,10 @@ export default function SupplierDashboard() {
         </Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         {/* Recent Orders */}
         <Card className="shadow-sm">
-          <CardContent className="p-5 sm:p-6">
+          <CardContent className="p-4">
             <h3 className="text-lg font-semibold mb-4 text-gray-900">Pesanan Terbaru</h3>
             {recentOrders.length === 0 ? (
               <EmptyState
@@ -276,7 +276,7 @@ export default function SupplierDashboard() {
 
         {/* Product Performance */}
         <Card className="shadow-sm">
-          <CardContent className="p-5 sm:p-6">
+          <CardContent className="p-4">
             <h3 className="text-lg font-semibold mb-4 text-gray-900">Performa Produk</h3>
             {productPerformance.length === 0 ? (
               <EmptyState

@@ -14,8 +14,17 @@ import {
   Upload,
   Filter,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Package
 } from "lucide-react";
+import { StatusBadge, EmptyState, LoadingSpinner, Pagination } from "@/components/supplier";
+import { 
+  PRODUCT_STATUS, 
+  PRODUCT_CATEGORIES, 
+  formatCurrency, 
+  EMPTY_STATES,
+  validateImageFile 
+} from "@/lib/supplier-constants";
 
 // Dummy data produk
 const dummyProducts = [
@@ -31,7 +40,8 @@ const dummyProducts = [
   { id: 10, name: "Pasta Gigi", category: "Kebersihan", price: 8000, stock: 150, status: "active", image: "/placeholder.jpg" },
 ];
 
-const categories = ["Semua", "Sembako", "Makanan Segar", "Minuman", "Makanan Instan", "Kebersihan"];
+// Use centralized categories
+const categories = ["Semua", ...PRODUCT_CATEGORIES];
 
 interface ProductForm {
   name: string;
@@ -117,8 +127,9 @@ export default function SupplierProducts() {
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 2 * 1024 * 1024) {
-        alert("Ukuran gambar maksimal 2MB");
+      const validation = validateImageFile(file);
+      if (!validation.valid) {
+        alert(validation.error);
         return;
       }
       setFormData({ ...formData, image: file });
@@ -177,197 +188,179 @@ export default function SupplierProducts() {
     ));
   };
 
-  const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("id-ID", {
-      style: "currency",
-      currency: "IDR",
-      minimumFractionDigits: 0,
-    }).format(amount);
-  };
-
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 p-6 max-w-7xl mx-auto">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-slate-800">Produk Saya</h1>
-          <p className="text-slate-600 mt-1">Kelola produk yang Anda jual</p>
+          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">Produk Saya</h1>
+          <p className="text-gray-600 mt-1">Kelola produk yang Anda jual</p>
         </div>
         <Button 
           onClick={() => handleOpenModal()}
-          className="bg-blue-600 hover:bg-blue-700"
+          className="bg-blue-600 hover:bg-blue-700 flex items-center gap-2"
         >
-          <Plus className="w-4 h-4 mr-2" />
-          Tambah Produk
+          <Plus className="w-4 h-4" />
+          <span className="hidden sm:inline">Tambah Produk</span>
+          <span className="sm:hidden">Tambah</span>
         </Button>
       </div>
 
       {/* Filters */}
-      <Card className="rounded-2xl shadow-md border-0">
-        <CardContent className="p-6">
-          <div className="flex flex-col sm:flex-row gap-4">
+      <Card className="rounded-xl shadow-sm">
+        <CardContent className="p-4">
+          <div className="flex flex-col lg:flex-row gap-3">
             {/* Search */}
             <div className="flex-1 relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-slate-400" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
               <Input
                 type="text"
                 placeholder="Cari produk..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10 rounded-xl border-slate-300"
+                className="pl-10 rounded-lg border-gray-300"
               />
             </div>
 
             {/* Category Filter */}
-            <div className="flex items-center gap-2 flex-wrap">
-              <Filter className="w-5 h-5 text-slate-600" />
-              {categories.map((cat) => (
-                <button
-                  key={cat}
-                  onClick={() => setSelectedCategory(cat)}
-                  className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
-                    selectedCategory === cat
-                      ? "bg-blue-600 text-white shadow-md"
-                      : "bg-slate-100 text-slate-700 hover:bg-slate-200"
-                  }`}
-                >
-                  {cat}
-                </button>
-              ))}
+            <div className="flex items-center gap-2 overflow-x-auto pb-2 lg:pb-0">
+              <Filter className="w-5 h-5 text-gray-600 flex-shrink-0" />
+              <div className="flex gap-2">
+                {categories.map((cat) => (
+                  <button
+                    key={cat}
+                    onClick={() => setSelectedCategory(cat)}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
+                      selectedCategory === cat
+                        ? "bg-blue-600 text-white shadow-md"
+                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                    }`}
+                  >
+                    {cat}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Products Table */}
-      <Card className="rounded-2xl shadow-md border-0">
+      {/* Products Table/Empty State */}
+      <Card className="rounded-xl shadow-sm">
         <CardContent className="p-0">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead className="bg-slate-50">
-                <tr>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Produk</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Kategori</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Harga</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Stok</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-slate-700">Status</th>
-                  <th className="px-6 py-4 text-center text-sm font-semibold text-slate-700">Aksi</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200">
-                {paginatedProducts.map((product) => (
-                  <tr key={product.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="px-6 py-4">
-                      <div className="flex items-center space-x-3">
-                        <div className="w-12 h-12 rounded-lg bg-slate-200 flex items-center justify-center overflow-hidden">
-                          <span className="text-xl">📦</span>
-                        </div>
-                        <div>
-                          <p className="font-medium text-slate-800">{product.name}</p>
-                          <p className="text-sm text-slate-500">ID: {product.id}</p>
-                        </div>
-                      </div>
-                    </td>
-                    <td className="px-6 py-4 text-slate-700">{product.category}</td>
-                    <td className="px-6 py-4 font-semibold text-slate-800">{formatCurrency(product.price)}</td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                        product.stock > 100 ? "bg-green-100 text-green-700" :
-                        product.stock > 50 ? "bg-yellow-100 text-yellow-700" :
-                        "bg-red-100 text-red-700"
-                      }`}>
-                        {product.stock} unit
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                        product.status === "active" 
-                          ? "bg-green-100 text-green-700" 
-                          : "bg-slate-100 text-slate-700"
-                      }`}>
-                        {product.status === "active" ? "Aktif" : "Nonaktif"}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <div className="flex items-center justify-center space-x-2">
-                        <Button
-                          onClick={() => handleOpenModal(product)}
-                          size="sm"
-                          variant="outline"
-                          className="rounded-lg"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          onClick={() => handleToggleStatus(product.id)}
-                          size="sm"
-                          variant="outline"
-                          className={`rounded-lg ${
-                            product.status === "active" 
-                              ? "text-red-600 hover:bg-red-50" 
-                              : "text-green-600 hover:bg-green-50"
-                          }`}
-                        >
-                          <Power className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Pagination */}
-          <div className="px-6 py-4 border-t border-slate-200 flex items-center justify-between">
-            <p className="text-sm text-slate-600">
-              Menampilkan {startIndex + 1}-{Math.min(startIndex + itemsPerPage, filteredProducts.length)} dari {filteredProducts.length} produk
-            </p>
-            <div className="flex items-center space-x-2">
-              <Button
-                onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-                disabled={currentPage === 1}
-                variant="outline"
-                size="sm"
-                className="rounded-lg"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </Button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                <Button
-                  key={page}
-                  onClick={() => setCurrentPage(page)}
-                  variant={currentPage === page ? "primary" : "outline"}
-                  size="sm"
-                  className={`rounded-lg ${currentPage === page ? "bg-blue-600" : ""}`}
-                >
-                  {page}
-                </Button>
-              ))}
-              <Button
-                onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-                disabled={currentPage === totalPages}
-                variant="outline"
-                size="sm"
-                className="rounded-lg"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </Button>
+          {filteredProducts.length === 0 ? (
+            <div className="p-6">
+              <EmptyState
+                icon={Package}
+                title={searchTerm || selectedCategory !== "Semua" ? EMPTY_STATES.search.title : EMPTY_STATES.products.title}
+                description={searchTerm || selectedCategory !== "Semua" ? EMPTY_STATES.search.description : EMPTY_STATES.products.description}
+                actionLabel={!(searchTerm || selectedCategory !== "Semua") ? EMPTY_STATES.products.action : undefined}
+                onAction={!(searchTerm || selectedCategory !== "Semua") ? () => handleOpenModal() : undefined}
+              />
             </div>
-          </div>
+          ) : (
+            <>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead className="bg-gray-50">
+                    <tr>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Produk</th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Kategori</th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Harga</th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Stok</th>
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Status</th>
+                      <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700">Aksi</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200">
+                    {paginatedProducts.map((product) => (
+                      <tr key={product.id} className="hover:bg-gray-50 transition-colors">
+                        <td className="px-4 py-3">
+                          <div className="flex items-center space-x-3">
+                            <div className="w-10 h-10 rounded-lg bg-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0">
+                              <span className="text-lg">📦</span>
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-medium text-gray-900 text-sm truncate">{product.name}</p>
+                              <p className="text-xs text-gray-500">ID: {product.id}</p>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-4 py-3 text-gray-700 text-sm">{product.category}</td>
+                        <td className="px-4 py-3 font-semibold text-gray-900 text-sm">{formatCurrency(product.price)}</td>
+                        <td className="px-4 py-3">
+                          <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                            product.stock > 100 ? "bg-green-100 text-green-700" :
+                            product.stock > 50 ? "bg-yellow-100 text-yellow-700" :
+                            "bg-red-100 text-red-700"
+                          }`}>
+                            {product.stock}
+                          </span>
+                        </td>
+                        <td className="px-4 py-3">
+                          <StatusBadge 
+                            {...PRODUCT_STATUS[product.status as keyof typeof PRODUCT_STATUS]}
+                            size="sm"
+                          />
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex items-center justify-center space-x-2">
+                            <Button
+                              onClick={() => handleOpenModal(product)}
+                              size="sm"
+                              variant="outline"
+                              className="rounded-lg p-2"
+                              title="Edit"
+                            >
+                              <Edit className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              onClick={() => handleToggleStatus(product.id)}
+                              size="sm"
+                              variant="outline"
+                              className={`rounded-lg p-2 ${
+                                product.status === "active" 
+                                  ? "text-red-600 hover:bg-red-50 border-red-200" 
+                                  : "text-green-600 hover:bg-green-50 border-green-200"
+                              }`}
+                              title={product.status === "active" ? "Nonaktifkan" : "Aktifkan"}
+                            >
+                              <Power className="w-4 h-4" />
+                            </Button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Pagination */}
+              <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+                itemsPerPage={itemsPerPage}
+                totalItems={filteredProducts.length}
+              />
+            </>
+          )}
         </CardContent>
       </Card>
 
       {/* Modal Tambah/Edit Produk */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <Card className="w-full max-w-2xl rounded-2xl shadow-xl border-0 max-h-[90vh] overflow-y-auto">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-slate-800">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-2xl rounded-xl shadow-2xl border-0 max-h-[90vh] overflow-y-auto">
+            <CardContent className="p-5">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-xl font-bold text-gray-900">
                   {editingProduct ? "Edit Produk" : "Tambah Produk Baru"}
                 </h2>
-                <button onClick={handleCloseModal} className="text-slate-400 hover:text-slate-600">
+                <button 
+                  onClick={handleCloseModal} 
+                  className="text-gray-400 hover:text-gray-600 transition-colors p-2 hover:bg-gray-100 rounded-lg"
+                >
                   <X className="w-6 h-6" />
                 </button>
               </div>
@@ -375,7 +368,7 @@ export default function SupplierProducts() {
               <form onSubmit={handleSubmit} className="space-y-4">
                 {/* Nama Produk */}
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     Nama Produk <span className="text-red-500">*</span>
                   </label>
                   <Input
@@ -383,20 +376,20 @@ export default function SupplierProducts() {
                     value={formData.name}
                     onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                     placeholder="Masukkan nama produk"
-                    className="rounded-xl"
+                    className="rounded-lg"
                     required
                   />
                 </div>
 
                 {/* Kategori */}
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     Kategori <span className="text-red-500">*</span>
                   </label>
                   <select
                     value={formData.category}
                     onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                    className="w-full px-4 py-2 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                     required
                   >
                     {categories.filter(c => c !== "Semua").map((cat) => (
@@ -406,9 +399,9 @@ export default function SupplierProducts() {
                 </div>
 
                 {/* Harga & Stok */}
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
                       Harga (Rp) <span className="text-red-500">*</span>
                     </label>
                     <Input
@@ -416,13 +409,13 @@ export default function SupplierProducts() {
                       value={formData.price}
                       onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                       placeholder="0"
-                      className="rounded-xl"
+                      className="rounded-lg"
                       required
                       min="0"
                     />
                   </div>
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
                       Stok <span className="text-red-500">*</span>
                     </label>
                     <Input
@@ -430,7 +423,7 @@ export default function SupplierProducts() {
                       value={formData.stock}
                       onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
                       placeholder="0"
-                      className="rounded-xl"
+                      className="rounded-lg"
                       required
                       min="0"
                     />
@@ -439,13 +432,13 @@ export default function SupplierProducts() {
 
                 {/* Upload Gambar */}
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
-                    Gambar Produk (Max 2MB)
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Gambar Produk (Max 5MB)
                   </label>
-                  <div className="border-2 border-dashed border-slate-300 rounded-xl p-6 text-center">
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center hover:border-blue-400 transition-colors">
                     {imagePreview ? (
                       <div className="space-y-4">
-                        <img src={imagePreview} alt="Preview" className="mx-auto h-32 object-cover rounded-lg" />
+                        <img src={imagePreview} alt="Preview" className="mx-auto h-32 w-32 object-cover rounded-lg" />
                         <Button
                           type="button"
                           onClick={() => {
@@ -461,7 +454,7 @@ export default function SupplierProducts() {
                       </div>
                     ) : (
                       <div>
-                        <Upload className="w-12 h-12 text-slate-400 mx-auto mb-2" />
+                        <Upload className="w-12 h-12 text-gray-400 mx-auto mb-2" />
                         <label className="cursor-pointer">
                           <span className="text-blue-600 hover:text-blue-700 font-medium">
                             Pilih gambar
@@ -473,7 +466,7 @@ export default function SupplierProducts() {
                             className="hidden"
                           />
                         </label>
-                        <p className="text-sm text-slate-500 mt-1">PNG, JPG hingga 2MB</p>
+                        <p className="text-sm text-gray-500 mt-1">PNG, JPG, WebP hingga 5MB</p>
                       </div>
                     )}
                   </div>
@@ -481,7 +474,7 @@ export default function SupplierProducts() {
 
                 {/* Deskripsi */}
                 <div>
-                  <label className="block text-sm font-medium text-slate-700 mb-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
                     Deskripsi Produk
                   </label>
                   <textarea
@@ -489,23 +482,23 @@ export default function SupplierProducts() {
                     onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                     placeholder="Deskripsi produk (opsional)"
                     rows={3}
-                    className="w-full px-4 py-2 rounded-xl border border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full px-4 py-2 rounded-lg border border-gray-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
 
                 {/* Buttons */}
-                <div className="flex justify-end space-x-3 pt-4">
+                <div className="flex flex-col sm:flex-row justify-end gap-3 pt-4">
                   <Button
                     type="button"
                     onClick={handleCloseModal}
                     variant="outline"
-                    className="rounded-xl"
+                    className="rounded-lg order-2 sm:order-1"
                   >
                     Batal
                   </Button>
                   <Button
                     type="submit"
-                    className="bg-blue-600 hover:bg-blue-700 rounded-xl"
+                    className="bg-blue-600 hover:bg-blue-700 rounded-lg order-1 sm:order-2"
                   >
                     {editingProduct ? "Simpan Perubahan" : "Tambah Produk"}
                   </Button>
