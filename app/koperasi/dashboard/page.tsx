@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { DashboardLoadingSkeleton } from '@/components/ui/loading-skeleton';
 
 export default function DashboardPage() {
-  const { user, loading, authorized } = useAuth(['ADMIN', 'SUPER_ADMIN']);
+  const { user, loading, authorized } = useAuth(['ADMIN', 'SUPER_ADMIN', 'DEVELOPER']);
   const router = useRouter();
 
   useEffect(() => {
@@ -16,6 +16,8 @@ export default function DashboardPage() {
         router.replace('/koperasi/super-admin-dashboard');
       } else if (user.role === 'ADMIN') {
         router.replace('/koperasi/admin-dashboard');
+      } else if (user.role === 'DEVELOPER') {
+        router.replace('/koperasi/developer-dashboard');
       }
     }
   }, [user, loading, authorized, router]);

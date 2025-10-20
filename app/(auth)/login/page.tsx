@@ -59,6 +59,8 @@ export default function LoginPage() {
       
       if (userRole === 'SUPPLIER') {
         redirectPath = '/koperasi/supplier';
+      } else if (userRole === 'DEVELOPER') {
+        redirectPath = '/koperasi/developer-dashboard';
       } else if (userRole === 'ADMIN' || userRole === 'SUPER_ADMIN') {
         redirectPath = '/koperasi/dashboard';
       } else {
