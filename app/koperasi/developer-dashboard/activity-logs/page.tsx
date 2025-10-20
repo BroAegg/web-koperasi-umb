@@ -30,7 +30,7 @@ type Role = 'ALL' | 'ADMIN' | 'KASIR' | 'MEMBER' | 'SUPPLIER' | 'DEVELOPER';
 
 export default function ActivityLogsPage() {
   const router = useRouter();
-  const { user, loading: authLoading } = useDeveloper();
+  const { isDeveloper, activeRole } = useDeveloper();
   
   const [logs, setLogs] = useState<ActivityLog[]>([]);
   const [stats, setStats] = useState<ActivityStats | null>(null);
@@ -54,10 +54,10 @@ export default function ActivityLogsPage() {
 
   // Auth check
   useEffect(() => {
-    if (!authLoading && (!user || user.role !== 'DEVELOPER')) {
+    if (!isDeveloper) {
       router.push('/koperasi/dashboard');
     }
-  }, [user, authLoading, router]);
+  }, [isDeveloper, router]);
 
   // Fetch activity logs
   useEffect(() => {
@@ -161,7 +161,7 @@ export default function ActivityLogsPage() {
 
   const totalPages = Math.ceil(totalItems / itemsPerPage);
 
-  if (authLoading || !user || user.role !== 'DEVELOPER') {
+  if (!isDeveloper) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
