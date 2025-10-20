@@ -130,7 +130,7 @@ export default function SupplierProfile() {
   };
 
   return (
-    <div className="p-6">
+    <div className="pr-6 pt-6 pb-6">
       <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
