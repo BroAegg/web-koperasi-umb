@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Loading, CardSkeleton } from '@/components/ui/loading';
+import { TableEmptyState } from '@/components/ui/empty-state';
 import { formatDate } from '@/lib/utils';
 import { useNotification } from '@/lib/notification-context';
 import { 
@@ -342,6 +343,12 @@ export default function BroadcastPage() {
               <CardSkeleton />
               <CardSkeleton />
             </div>
+          ) : filteredBroadcasts.length === 0 ? (
+            <TableEmptyState
+              icon={Megaphone}
+              message={searchTerm ? "Tidak ada broadcast yang sesuai pencarian" : "Belum ada broadcast"}
+              description={searchTerm ? "Coba ubah kata kunci pencarian" : "Buat broadcast pertama untuk mengirim pesan ke anggota"}
+            />
           ) : (
             <Table>
               <TableHeader>
