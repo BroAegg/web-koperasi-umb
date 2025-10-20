@@ -10,10 +10,10 @@ interface ActivityLog {
   action: string;
   description: string;
   metadata: Record<string, any> | null;
-  environment: 'DEV' | 'PROD';
+  isProduction: boolean;
   createdAt: string;
-  user: {
-    username: string;
+  users: {
+    name: string;
     role: string;
   };
 }
@@ -138,11 +138,11 @@ export default function ActivityLogsPage() {
     const headers = ['Timestamp', 'Username', 'Role', 'Action', 'Description', 'Environment', 'Metadata'];
     const rows = logs.map(log => [
       new Date(log.createdAt).toISOString(),
-      log.user.username,
-      log.user.role,
+      log.users.name,
+      log.users.role,
       log.action,
       log.description,
-      log.environment,
+      log.isProduction ? 'PROD' : 'DEV',
       JSON.stringify(log.metadata || {}),
     ]);
 
@@ -417,11 +417,11 @@ export default function ActivityLogsPage() {
                       {formatTimestamp(log.createdAt)}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">
-                      {log.user.username}
+                      {log.users.name}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span className="px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-                        {log.user.role}
+                        {log.users.role}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-mono">
@@ -433,12 +433,12 @@ export default function ActivityLogsPage() {
                     <td className="px-6 py-4 whitespace-nowrap">
                       <span
                         className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                          log.environment === 'DEV'
+                          !log.isProduction
                             ? 'bg-cyan-100 text-cyan-800'
                             : 'bg-green-100 text-green-800'
                         }`}
                       >
-                        {log.environment === 'DEV' ? '🟦 DEV' : '🟩 PROD'}
+                        {!log.isProduction ? '🟦 DEV' : '🟩 PROD'}
                       </span>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm">
@@ -575,7 +575,7 @@ export default function ActivityLogsPage() {
                   <div className="flex">
                     <dt className="font-medium text-gray-600 w-32">User:</dt>
                     <dd className="text-gray-900">
-                      {selectedLog.user.username} ({selectedLog.user.role})
+                      {selectedLog.users.name} ({selectedLog.users.role})
                     </dd>
                   </div>
                   <div className="flex">
@@ -587,12 +587,12 @@ export default function ActivityLogsPage() {
                     <dd>
                       <span
                         className={`px-2 py-1 text-xs font-semibold rounded-full ${
-                          selectedLog.environment === 'DEV'
+                          !selectedLog.isProduction
                             ? 'bg-cyan-100 text-cyan-800'
                             : 'bg-green-100 text-green-800'
                         }`}
                       >
-                        {selectedLog.environment === 'DEV' ? '🟦 DEV' : '🟩 PROD'}
+                        {!selectedLog.isProduction ? '🟦 DEV' : '🟩 PROD'}
                       </span>
                     </dd>
                   </div>
