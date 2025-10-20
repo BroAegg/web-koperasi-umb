@@ -266,7 +266,7 @@ export default function DeveloperDashboard() {
       {/* Quick Actions */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <button
-          onClick={() => router.push('/koperasi/developer/activity-logs')}
+          onClick={() => router.push('/koperasi/developer-dashboard/activity-logs')}
           className="bg-white rounded-xl shadow-md p-6 hover:shadow-lg transition-shadow duration-200 text-left group"
         >
           <div className="flex items-center justify-between mb-3">
