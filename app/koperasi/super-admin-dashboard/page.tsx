@@ -231,7 +231,7 @@ export default function SuperAdminDashboardPage() {
                   <span className="font-medium">Stok Menipis</span>
                 </div>
                 <span className="text-sm text-orange-600 font-medium">
-                  {stats.lowStockProducts} produk
+                  {stats?.lowStockProducts || 0} produk
                 </span>
               </div>
             )}
