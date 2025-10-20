@@ -1,6 +1,7 @@
 import { prisma } from './prisma';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { SessionUser, DeveloperSession } from './types/developer';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'change_this_secret_in_env';
 const JWT_EXPIRES_IN = '7d';
@@ -25,47 +26,75 @@ export function verifyToken(token: string) {
   }
 }
 
+/**
+ * Create a token specifically for developer sessions that includes developerSession metadata
+ */
+export function signDeveloperToken(userId: string, role: string, developerSession?: DeveloperSession) {
+  const payload: any = { userId, role };
+  if (developerSession) payload.developerSession = developerSession;
+  return signToken(payload);
+}
+
 export async function getUserFromToken(token?: string) {
   if (!token) return null;
   const data = verifyToken(token);
   if (!data || !data.userId) return null;
-  
-  // First, try to get from users table (for ADMIN, SUPER_ADMIN, USER, and SUPPLIER accounts)
-  // @ts-ignore - TypeScript cache issue: prisma.users exists at runtime (see PRISMA-NAMING-CONVENTIONS.md)
-  const user = await prisma.users.findUnique({ where: { id: data.userId } });
-  
-  if (user) {
-    return user;
+
+  // If developerSession present in token and activeRole set, use activeRole when returning user-like object
+  if (data.developerSession && data.developerSession.activeRole && data.developerSession.actualRole === 'DEVELOPER') {
+    // If activeRole is SUPPLIER, try supplier_profiles
+    const activeRole = data.developerSession.activeRole;
+    if (activeRole === 'SUPPLIER') {
+      // @ts-ignore
+      const supplier = await prisma.supplier_profiles.findUnique({
+        where: { id: data.userId },
+        select: { id: true, businessName: true, status: true }
+      });
+      if (!supplier) return null;
+      return {
+        id: supplier.id,
+        email: '',
+        name: supplier.businessName,
+        role: 'SUPPLIER' as const,
+        developerSession: data.developerSession as DeveloperSession
+      } as any;
+    }
+
+    // For non-supplier active roles, return a minimal user-like object using activeRole
+    return {
+      id: data.userId,
+      name: data.name || undefined,
+      email: data.email || undefined,
+      role: data.developerSession.activeRole,
+      developerSession: data.developerSession as DeveloperSession
+    } as SessionUser;
   }
-  
-  // If not found in users table and role is SUPPLIER, try supplier_profiles
-  // (for suppliers registered via public registration form)
+
+  // Default behavior: lookup in users table
+  // @ts-ignore - Prisma types at runtime
+  const user = await prisma.users.findUnique({ where: { id: data.userId } });
+  if (user) return user;
+
+  // If role is SUPPLIER, try supplier_profiles
   if (data.role === 'SUPPLIER') {
-    // @ts-ignore - TypeScript cache issue: prisma.supplier_profiles exists at runtime
-    const supplier = await prisma.supplier_profiles.findUnique({ 
+    // @ts-ignore
+    const supplier = await prisma.supplier_profiles.findUnique({
       where: { id: data.userId },
-      select: {
-        id: true,
-        businessName: true,
-        status: true,
-      }
+      select: { id: true, businessName: true, status: true }
     });
-    
     if (!supplier) return null;
-    
-    // Return user-like object for supplier
     return {
       id: supplier.id,
-      email: '', // Email stored in linked user record
+      email: '',
       name: supplier.businessName,
       role: 'SUPPLIER' as const,
-    };
+    } as any;
   }
-  
+
   return null;
 }
 
-export function requireRole(...allowed: Array<'SUPER_ADMIN' | 'ADMIN' | 'SUPPLIER' | 'USER'>) {
+export function requireRole(...allowed: Array<'SUPER_ADMIN' | 'ADMIN' | 'SUPPLIER' | 'USER' | 'DEVELOPER'>) {
   return async (req: Request) => {
     try {
       const auth = (req as any).headers?.get?.('authorization') || (req as any).headers?.authorization;

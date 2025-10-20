@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { comparePassword, signToken } from '@/lib/auth';
+import { comparePassword, signToken, signDeveloperToken } from '@/lib/auth';
 
 export async function POST(request: NextRequest) {
   console.log('Login attempt received');
@@ -29,7 +29,17 @@ export async function POST(request: NextRequest) {
       }
 
       console.log('Password correct, generating token for user:', email);
-      const token = signToken({ userId: user.id, role: user.role });
+      let token: string;
+      if (user.role === 'DEVELOPER') {
+        // default developerSession: activeRole = DEVELOPER, DEV mode
+        token = signDeveloperToken(user.id, user.role, {
+          actualRole: 'DEVELOPER',
+          activeRole: 'DEVELOPER',
+          isProduction: false,
+        });
+      } else {
+        token = signToken({ userId: user.id, role: user.role });
+      }
 
       const response = { 
         success: true, 
