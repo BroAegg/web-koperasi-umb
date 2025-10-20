@@ -24,12 +24,12 @@ interface AdminDashboardStats {
   todayRevenue: number;
   lowStockProducts: number;
   totalProducts: number;
-  pendingTransactions: number;
-  topSellingProducts: Array<{
+  monthlyRevenue: number;
+  lowStockProductsList: Array<{
     id: string;
     name: string;
-    soldToday: number;
-    revenue: number;
+    stock: number;
+    sellPrice: number;
   }>;
 }
 
@@ -46,7 +46,7 @@ export default function AdminDashboardPage() {
 
   const fetchAdminStats = async () => {
     try {
-      const response = await fetch('/api/admin-dashboard');
+      const response = await fetch('/api/dashboard');
       const result = await response.json();
       if (result.success) {
         setStats(result.data);
@@ -182,28 +182,28 @@ export default function AdminDashboardPage() {
         </CardContent>
       </Card>
 
-      {/* Top Selling Products */}
-      {stats?.topSellingProducts && stats.topSellingProducts.length > 0 && (
+      {/* Low Stock Products Alert */}
+      {stats?.lowStockProductsList && stats.lowStockProductsList.length > 0 && (
         <Card>
           <CardHeader>
-            <h3 className="text-lg font-semibold">Produk Terlaris Hari Ini</h3>
+            <h3 className="text-lg font-semibold">⚠️ Produk Stok Menipis</h3>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {stats.topSellingProducts.map((product, index) => (
-                <div key={product.id} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+              {stats.lowStockProductsList.map((product, index) => (
+                <div key={product.id} className="flex items-center justify-between p-3 bg-orange-50 rounded-lg border border-orange-200">
                   <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                      <span className="text-sm font-bold text-blue-600">#{index + 1}</span>
+                    <div className="w-8 h-8 bg-orange-100 rounded-full flex items-center justify-center">
+                      <span className="text-sm font-bold text-orange-600">!</span>
                     </div>
                     <div>
                       <p className="font-medium text-gray-900">{product.name}</p>
-                      <p className="text-sm text-gray-600">{product.soldToday} terjual</p>
+                      <p className="text-sm text-orange-600">Sisa {product.stock} unit</p>
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="font-semibold text-green-600">
-                      {formatCurrency(product.revenue)}
+                    <p className="font-semibold text-gray-900">
+                      {formatCurrency(product.sellPrice)}
                     </p>
                   </div>
                 </div>

@@ -21,19 +21,26 @@ import {
 } from 'lucide-react';
 
 interface SuperAdminDashboardStats {
-  totalMembers: number;
-  activeMembers: number;
-  totalProducts: number;
-  lowStockProducts: number;
-  todayTransactions: number;
-  todayRevenue: number;
-  monthlyRevenue: number;
-  totalSimpanan: number;
-  totalSuppliers: number;
-  pendingApprovals: number;
-  systemHealth: {
-    uptime: string;
-    performance: number;
+  suppliers: {
+    total: number;
+    pending: number;
+    active: number;
+    paymentPending: number;
+  };
+  members: {
+    total: number;
+  };
+  products: {
+    total: number;
+    lowStock: number;
+  };
+  financial: {
+    monthlyRevenue: number;
+  };
+  pending: {
+    stockVerification: number;
+    supplierApprovals: number;
+    paymentVerification: number;
   };
 }
 
@@ -50,10 +57,18 @@ export default function SuperAdminDashboardPage() {
 
   const fetchSuperAdminStats = async () => {
     try {
-      const response = await fetch('/api/super-admin/dashboard');
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/super-admin/dashboard', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
       const result = await response.json();
       if (result.success) {
         setStats(result.data);
+      } else {
+        console.error('API Error:', result.error);
       }
     } catch (error) {
       console.error('Error fetching super admin dashboard:', error);
@@ -96,10 +111,10 @@ export default function SuperAdminDashboardPage() {
               <div>
                 <p className="text-sm font-medium text-gray-600">Total Anggota</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {formatNumber(stats?.totalMembers || 0)}
+                  {formatNumber(stats?.members?.total || 0)}
                 </p>
                 <p className="text-xs text-green-600">
-                  {formatNumber(stats?.activeMembers || 0)} aktif
+                  Aktif
                 </p>
               </div>
               <div className="p-3 bg-blue-100 rounded-full">
@@ -115,10 +130,10 @@ export default function SuperAdminDashboardPage() {
               <div>
                 <p className="text-sm font-medium text-gray-600">Pendapatan Bulan Ini</p>
                 <p className="text-2xl font-bold text-green-600">
-                  {formatCurrency(stats?.monthlyRevenue || 0)}
+                  {formatCurrency(stats?.financial?.monthlyRevenue || 0)}
                 </p>
                 <p className="text-xs text-gray-600">
-                  Hari ini: {formatCurrency(stats?.todayRevenue || 0)}
+                  Pendapatan bulan ini
                 </p>
               </div>
               <div className="p-3 bg-green-100 rounded-full">
@@ -132,9 +147,13 @@ export default function SuperAdminDashboardPage() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Total Simpanan</p>
+                <p className="text-sm font-medium text-gray-600">Pending Items</p>
                 <p className="text-2xl font-bold text-purple-600">
-                  {formatCurrency(stats?.totalSimpanan || 0)}
+                  {formatNumber(
+                    (stats?.pending?.stockVerification || 0) + 
+                    (stats?.pending?.supplierApprovals || 0) + 
+                    (stats?.pending?.paymentVerification || 0)
+                  )}
                 </p>
               </div>
               <div className="p-3 bg-purple-100 rounded-full">
@@ -150,7 +169,10 @@ export default function SuperAdminDashboardPage() {
               <div>
                 <p className="text-sm font-medium text-gray-600">Perlu Perhatian</p>
                 <p className="text-2xl font-bold text-orange-600">
-                  {formatNumber((stats?.lowStockProducts || 0) + (stats?.pendingApprovals || 0))}
+                  {formatNumber(
+                    (stats?.products?.lowStock || 0) + 
+                    (stats?.pending?.supplierApprovals || 0)
+                  )}
                 </p>
                 <p className="text-xs text-gray-600">
                   Stok & Approval
@@ -177,7 +199,7 @@ export default function SuperAdminDashboardPage() {
                 <Package className="w-5 h-5 text-blue-600" />
                 <span className="font-medium">Total Produk</span>
               </div>
-              <span className="font-bold text-gray-900">{formatNumber(stats?.totalProducts || 0)}</span>
+              <span className="font-bold text-gray-900">{formatNumber(stats?.products?.total || 0)}</span>
             </div>
             
             <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
@@ -185,15 +207,15 @@ export default function SuperAdminDashboardPage() {
                 <Building2 className="w-5 h-5 text-green-600" />
                 <span className="font-medium">Supplier Aktif</span>
               </div>
-              <span className="font-bold text-gray-900">{formatNumber(stats?.totalSuppliers || 0)}</span>
+              <span className="font-bold text-gray-900">{formatNumber(stats?.suppliers?.total || 0)}</span>
             </div>
             
             <div className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
               <div className="flex items-center space-x-3">
                 <BarChart3 className="w-5 h-5 text-purple-600" />
-                <span className="font-medium">Transaksi Hari Ini</span>
+                <span className="font-medium">Pending Approvals</span>
               </div>
-              <span className="font-bold text-gray-900">{formatNumber(stats?.todayTransactions || 0)}</span>
+              <span className="font-bold text-gray-900">{formatNumber(stats?.pending?.supplierApprovals || 0)}</span>
             </div>
           </CardContent>
         </Card>
@@ -210,7 +232,7 @@ export default function SuperAdminDashboardPage() {
                 <span className="font-medium">Sistem Online</span>
               </div>
               <span className="text-sm text-green-600 font-medium">
-                {stats?.systemHealth?.uptime || '99.9%'}
+                99.9%
               </span>
             </div>
             
@@ -220,18 +242,18 @@ export default function SuperAdminDashboardPage() {
                 <span className="font-medium">Performance</span>
               </div>
               <span className="text-sm text-blue-600 font-medium">
-                {stats?.systemHealth?.performance || 95}%
+                95%
               </span>
             </div>
             
-            {(stats?.lowStockProducts || 0) > 0 && (
+            {(stats?.products?.lowStock || 0) > 0 && (
               <div className="flex items-center justify-between p-3 bg-orange-50 rounded-lg">
                 <div className="flex items-center space-x-3">
                   <AlertTriangle className="w-5 h-5 text-orange-600" />
                   <span className="font-medium">Stok Menipis</span>
                 </div>
                 <span className="text-sm text-orange-600 font-medium">
-                  {stats?.lowStockProducts || 0} produk
+                  {stats?.products?.lowStock || 0} produk
                 </span>
               </div>
             )}
