@@ -20,6 +20,28 @@ model audit_logs {
   createdAt DateTime @default(now())
 }
 
+model activity_logs {
+  id           String   @id
+  userId       String
+  userRole     Role
+  action       String
+  module       String
+  description  String   @db.Text
+  metadata     Json?
+  ipAddress    String?
+  userAgent    String?
+  isProduction Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  users        users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([userRole])
+  @@index([module])
+  @@index([action])
+  @@index([isProduction])
+  @@index([createdAt])
+}
+
 model broadcasts {
   id                   String          @id
   title                String
@@ -90,6 +112,7 @@ model consignment_sales {
   isSettled           Boolean             @default(false)
   saleDate            DateTime            @default(now())
   createdAt           DateTime            @default(now())
+  isProduction        Boolean             @default(true)
   consignment_batches consignment_batches @relation(fields: [batchId], references: [id])
   settlements         settlements?        @relation(fields: [settlementId], references: [id])
   transaction_items   transaction_items   @relation(fields: [transactionItemId], references: [id])
@@ -97,6 +120,7 @@ model consignment_sales {
   @@index([batchId])
   @@index([saleDate])
   @@index([settlementId])
+  @@index([isProduction])
 }
 
 model consignors {
@@ -280,10 +304,12 @@ model stock_movements {
   referenceId   String?
   referenceType ReferenceType?
   unitCost      Decimal?
+  isProduction  Boolean        @default(true)
   products      products       @relation(fields: [productId], references: [id], onDelete: Cascade)
 
   @@index([productId, occurredAt])
   @@index([referenceType, referenceId])
+  @@index([isProduction])
 }
 
 model supplier_payments {
@@ -361,12 +387,14 @@ model transaction_items {
   cogsPerUnit       Decimal?
   grossProfit       Decimal?
   totalCogs         Decimal?
+  isProduction      Boolean             @default(true)
   consignment_sales consignment_sales[]
   products          products            @relation(fields: [productId], references: [id])
   transactions      transactions        @relation(fields: [transactionId], references: [id], onDelete: Cascade)
 
   @@index([productId])
   @@index([transactionId])
+  @@index([isProduction])
 }
 
 model transactions {
@@ -380,8 +408,11 @@ model transactions {
   date              DateTime            @default(now())
   createdAt         DateTime            @default(now())
   updatedAt         DateTime
+  isProduction      Boolean             @default(true)
   transaction_items transaction_items[]
   members           members?            @relation(fields: [memberId], references: [id])
+
+  @@index([isProduction])
 }
 
 model users {
@@ -393,6 +424,7 @@ model users {
   isActive          Boolean            @default(true)
   createdAt         DateTime           @default(now())
   updatedAt         DateTime
+  activity_logs     activity_logs[]
   broadcasts        broadcasts[]
   members           members?
   supplier_profiles supplier_profiles?
@@ -505,6 +537,7 @@ enum Role {
   ADMIN
   SUPPLIER
   USER
+  DEVELOPER
 }
 
 enum SavingType {
