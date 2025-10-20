@@ -56,6 +56,8 @@ export function DeveloperProvider({ children }: DeveloperProviderProps) {
 
   // Initialize session from localStorage token
   useEffect(() => {
+    if (typeof window === 'undefined') return; // SSR guard
+    
     const token = localStorage.getItem('token');
     if (!token) {
       setDeveloperSession(null);

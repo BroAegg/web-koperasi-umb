@@ -2,20 +2,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getUserFromToken } from "@/lib/auth";
+import { withDeveloperSession, addProductionData } from "@/lib/prisma-middleware";
+import { createActivityLog } from "@/lib/developer-helpers";
 import { randomUUID } from "crypto";
 
 export async function POST(req: NextRequest) {
-  try {
-    const auth = req.headers.get("authorization");
-    const token = auth?.replace(/^Bearer\s+/i, "");
-    const user = await getUserFromToken(token);
+  return withDeveloperSession(req, async () => {
+    try {
+      const auth = req.headers.get("authorization");
+      const token = auth?.replace(/^Bearer\s+/i, "");
+      const user = await getUserFromToken(token);
 
-    if (!user || !["ADMIN", "SUPER_ADMIN"].includes(user.role)) {
-      return NextResponse.json(
-        { error: "Unauthorized - Admin access only" },
-        { status: 403 }
-      );
-    }
+      if (!user || !["ADMIN", "SUPER_ADMIN", "DEVELOPER"].includes(user.role)) {
+        return NextResponse.json(
+          { error: "Unauthorized - Admin access only" },
+          { status: 403 }
+        );
+      }
 
     const body = await req.json();
     const {
@@ -80,9 +83,9 @@ export async function POST(req: NextRequest) {
 
     // Create transaction with items in a single database transaction
     const result = await prisma.$transaction(async (tx) => {
-      // Create main transaction
+      // Create main transaction with automatic isProduction flag
       const transaction = await tx.transactions.create({
-        data: {
+        data: addProductionData({
           id: randomUUID(),
           type: 'SALE',
           totalAmount,
@@ -91,7 +94,7 @@ export async function POST(req: NextRequest) {
           note: `POS Sale - Customer: ${customerName || 'Walk-in Customer'}`,
           date: new Date(),
           updatedAt: new Date(),
-        },
+        }),
       });
 
       const transactionItems = [];
@@ -99,9 +102,9 @@ export async function POST(req: NextRequest) {
 
       // Process each item
       for (const item of items) {
-        // Create transaction item
+        // Create transaction item with automatic isProduction flag
         const transactionItem = await tx.transaction_items.create({
-          data: {
+          data: addProductionData({
             id: randomUUID(),
             transactionId: transaction.id,
             productId: item.productId,
@@ -109,7 +112,7 @@ export async function POST(req: NextRequest) {
             unitPrice: item.unitPrice,
             subtotal: item.subtotal,
             updatedAt: new Date(),
-          },
+          }),
         });
 
         transactionItems.push(transactionItem);
@@ -125,9 +128,9 @@ export async function POST(req: NextRequest) {
           },
         });
 
-        // Create stock movement record
+        // Create stock movement record with automatic isProduction flag
         const stockMovement = await tx.stock_movements.create({
-          data: {
+          data: addProductionData({
             id: randomUUID(),
             productId: item.productId,
             movementType: 'SALE_OUT',
@@ -136,7 +139,7 @@ export async function POST(req: NextRequest) {
             referenceId: transaction.id,
             note: `POS Sale - ${customerName || 'Walk-in Customer'}`,
             occurredAt: new Date(),
-          },
+          }),
         });
 
         stockMovements.push(stockMovement);
@@ -153,6 +156,22 @@ export async function POST(req: NextRequest) {
       transactionId: result.transaction.id,
       itemsProcessed: result.transactionItems.length,
       totalAmount
+    });
+
+    // Log activity
+    await createActivityLog({
+      userId: user.id,
+      userRole: user.role,
+      action: 'CREATE',
+      module: 'POS',
+      description: `Created POS transaction ${result.transaction.id}`,
+      metadata: {
+        transactionId: result.transaction.id,
+        totalAmount,
+        itemCount: result.transactionItems.length,
+        paymentMethod,
+        customerName: customerName || 'Walk-in Customer'
+      },
     });
 
     // Return success with transaction details
@@ -195,11 +214,12 @@ export async function POST(req: NextRequest) {
       );
     }
 
-    return NextResponse.json(
-      { error: "Internal server error during transaction processing" },
-      { status: 500 }
-    );
-  }
+      return NextResponse.json(
+        { error: "Internal server error during transaction processing" },
+        { status: 500 }
+      );
+    }
+  });
 }
 
 // GET endpoint for POS transaction history
