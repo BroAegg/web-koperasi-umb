@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
 import { Loading, TableSkeleton } from '@/components/ui/loading';
+import { TableEmptyState } from '@/components/ui/empty-state';
 import { formatCurrency } from '@/lib/utils';
 import { useNotification } from '@/lib/notification-context';
 import { 
@@ -349,6 +350,12 @@ export default function MembershipPage() {
         <CardContent>
           {loading ? (
             <TableSkeleton rows={5} cols={7} />
+          ) : filteredMembers.length === 0 ? (
+            <TableEmptyState
+              icon={Users}
+              message={searchTerm ? "Tidak ada anggota yang sesuai pencarian" : "Belum ada data anggota"}
+              description={searchTerm ? "Coba ubah kata kunci pencarian" : "Tambahkan anggota pertama untuk memulai"}
+            />
           ) : (
             <Table>
               <TableHeader>
