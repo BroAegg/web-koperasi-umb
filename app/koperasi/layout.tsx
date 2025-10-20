@@ -118,7 +118,8 @@ function KoperasiContent({ children }: { children: React.ReactNode }) {
     if (href === "/koperasi/dashboard") {
       return pathname === href || pathname === "/koperasi";
     }
-    return pathname?.startsWith(href);
+    // Exact match for all routes to prevent multiple active items
+    return pathname === href;
   };
 
   // Determine portal name and icon based on role
