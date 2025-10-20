@@ -11,7 +11,10 @@ import {
   Filter,
   Calendar,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  Receipt,
+  DollarSign,
+  Package
 } from "lucide-react";
 
 // Dummy data transaksi
@@ -132,18 +135,17 @@ export default function SupplierTransactions() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-800">Riwayat Transaksi</h1>
-          <p className="text-slate-600 mt-1">Transaksi yang sudah selesai</p>
+          <h1 className="text-2xl font-bold text-gray-900">Riwayat Transaksi</h1>
+          <p className="text-gray-600">Transaksi yang sudah selesai</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex space-x-3">
           <Button 
             onClick={handleExportExcel}
             variant="outline"
-            className="rounded-xl"
           >
             <Download className="w-4 h-4 mr-2" />
             Export Excel
@@ -151,7 +153,6 @@ export default function SupplierTransactions() {
           <Button 
             onClick={handleExportPDF}
             variant="outline"
-            className="rounded-xl"
           >
             <FileText className="w-4 h-4 mr-2" />
             Export PDF
@@ -160,29 +161,52 @@ export default function SupplierTransactions() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card className="rounded-2xl shadow-md border-0 bg-gradient-to-br from-blue-500 to-blue-600 text-white">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <Card>
           <CardContent className="p-6">
-            <p className="text-blue-100 text-sm font-medium">Total Transaksi</p>
-            <p className="text-3xl font-bold mt-2">{filteredTransactions.length}</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Total Transaksi</p>
+                <p className="text-2xl font-bold text-gray-900 mt-2">{filteredTransactions.length}</p>
+              </div>
+              <div className="p-3 bg-blue-100 rounded-full">
+                <Receipt className="w-6 h-6 text-blue-600" />
+              </div>
+            </div>
           </CardContent>
         </Card>
-        <Card className="rounded-2xl shadow-md border-0 bg-gradient-to-br from-green-500 to-green-600 text-white">
+        
+        <Card>
           <CardContent className="p-6">
-            <p className="text-green-100 text-sm font-medium">Total Pendapatan</p>
-            <p className="text-2xl font-bold mt-2">{formatCurrency(totalAmount)}</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Total Pendapatan</p>
+                <p className="text-2xl font-bold text-gray-900 mt-2">{formatCurrency(totalAmount)}</p>
+              </div>
+              <div className="p-3 bg-green-100 rounded-full">
+                <DollarSign className="w-6 h-6 text-green-600" />
+              </div>
+            </div>
           </CardContent>
         </Card>
-        <Card className="rounded-2xl shadow-md border-0 bg-gradient-to-br from-purple-500 to-purple-600 text-white">
+        
+        <Card>
           <CardContent className="p-6">
-            <p className="text-purple-100 text-sm font-medium">Total Produk Terjual</p>
-            <p className="text-3xl font-bold mt-2">{totalQuantity} unit</p>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600">Total Produk Terjual</p>
+                <p className="text-2xl font-bold text-gray-900 mt-2">{totalQuantity} unit</p>
+              </div>
+              <div className="p-3 bg-purple-100 rounded-full">
+                <Package className="w-6 h-6 text-purple-600" />
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
 
       {/* Filters */}
-      <Card className="rounded-2xl shadow-md border-0">
+      <Card>
         <CardContent className="p-6">
           <div className="space-y-4">
             {/* Search */}

@@ -163,21 +163,25 @@ export default function SupplierPaymentPage() {
   const pendingVerification = paymentInfo?.paymentStatus === 'PAID_PENDING_APPROVAL';
 
   return (
-    <div className="p-6 space-y-6 max-w-4xl mx-auto">
+    <div className="space-y-4">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Pembayaran Supplier</h1>
-        <p className="text-gray-600 mt-2">Kelola pembayaran fee bulanan Anda</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Pembayaran Supplier</h1>
+          <p className="text-gray-600">Kelola pembayaran fee bulanan Anda</p>
+        </div>
       </div>
 
       {/* Payment Info Card */}
-      <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+      <Card className="border-blue-200 bg-blue-50">
         <CardContent className="p-6">
           <div className="flex items-start justify-between">
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <DollarSign className="w-6 h-6 text-blue-600" />
-                <h2 className="text-xl font-semibold text-gray-900">Fee Bulanan Supplier</h2>
+            <div className="flex-1">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="p-2 bg-blue-100 rounded-lg">
+                  <DollarSign className="w-5 h-5 text-blue-600" />
+                </div>
+                <h2 className="text-lg font-semibold text-gray-900">Fee Bulanan Supplier</h2>
               </div>
               <div className="flex items-baseline gap-2">
                 <span className="text-4xl font-bold text-blue-600">

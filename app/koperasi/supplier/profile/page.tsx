@@ -130,18 +130,17 @@ export default function SupplierProfile() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-slate-800">Profil Supplier</h1>
-          <p className="text-slate-600 mt-1">Kelola informasi perusahaan Anda</p>
+          <h1 className="text-2xl font-bold text-gray-900">Profil Supplier</h1>
+          <p className="text-gray-600">Kelola informasi perusahaan Anda</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex space-x-3">
           <Button 
             onClick={() => setShowPasswordModal(true)}
             variant="outline"
-            className="rounded-xl"
           >
             <Lock className="w-4 h-4 mr-2" />
             Ubah Password
@@ -151,13 +150,11 @@ export default function SupplierProfile() {
               <Button 
                 onClick={handleEditToggle}
                 variant="outline"
-                className="rounded-xl"
               >
                 Batal
               </Button>
               <Button 
                 onClick={handleSaveProfile}
-                className="bg-blue-600 hover:bg-blue-700 rounded-xl"
               >
                 Simpan
               </Button>
@@ -165,7 +162,6 @@ export default function SupplierProfile() {
           ) : (
             <Button 
               onClick={handleEditToggle}
-              className="bg-blue-600 hover:bg-blue-700 rounded-xl"
             >
               Edit Profil
             </Button>

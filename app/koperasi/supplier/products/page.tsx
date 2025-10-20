@@ -189,7 +189,7 @@ export default function SupplierProducts() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
@@ -204,47 +204,45 @@ export default function SupplierProducts() {
         </Button>
       </div>
 
-      {/* Stats & Filters */}
+      {/* Search & Filters */}
       <Card>
-        <CardContent className="p-6">
-          <div className="flex flex-col gap-4">
+        <CardContent className="p-4">
+          <div className="space-y-3">
             {/* Search */}
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
               <Input
                 type="text"
                 placeholder="Cari produk..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
+                className="pl-9"
               />
             </div>
 
             {/* Category Filter */}
-            <div className="flex items-center gap-2">
-              <Filter className="w-5 h-5 text-gray-600" />
-              <div className="flex gap-2 flex-wrap">
-                {categories.map((cat) => (
-                  <button
-                    key={cat}
-                    onClick={() => setSelectedCategory(cat)}
-                    className={`px-3 py-1.5 rounded-lg text-sm font-medium transition-all whitespace-nowrap ${
-                      selectedCategory === cat
-                        ? "bg-blue-600 text-white shadow-md"
-                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                    }`}
-                  >
-                    {cat}
-                  </button>
-                ))}
-              </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <Filter className="w-4 h-4 text-gray-600 flex-shrink-0" />
+              {categories.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setSelectedCategory(cat)}
+                  className={`px-3 py-1 rounded-md text-sm font-medium transition-colors ${
+                    selectedCategory === cat
+                      ? "bg-blue-600 text-white"
+                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                  }`}
+                >
+                  {cat}
+                </button>
+              ))}
             </div>
           </div>
         </CardContent>
       </Card>
 
-      {/* Products Table/Empty State */}
-      <Card className="rounded-xl shadow-sm">
+      {/* Products Table */}
+      <Card>
         <CardContent className="p-0">
           {filteredProducts.length === 0 ? (
             <div className="p-6">
