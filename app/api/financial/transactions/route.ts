@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { randomUUID } from 'crypto';
+import { logFromRequest } from '@/lib/activity-logger';
 
 const prisma = new PrismaClient();
 
@@ -164,6 +165,21 @@ export async function POST(request: NextRequest) {
         },
       },
     });
+
+    // ✅ Activity Logging
+    await logFromRequest(
+      request,
+      'TRANSACTION_CREATE',
+      'FINANCIAL',
+      `Created ${type.toUpperCase()} transaction: ${description} (Rp ${Number(amount).toLocaleString('id-ID')})`,
+      { 
+        transactionId: transaction.id,
+        type: type.toUpperCase(),
+        amount: Number(amount),
+        category,
+        paymentMethod: paymentMethod?.toUpperCase() || 'CASH',
+      }
+    ).catch(err => console.error('[Activity Logger] Failed:', err));
 
     return NextResponse.json({
       success: true,

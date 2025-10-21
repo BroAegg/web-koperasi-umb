@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { logFromRequest } from '@/lib/activity-logger';
 
 const prisma = new PrismaClient();
 
@@ -127,6 +128,20 @@ export async function PUT(
       },
     });
 
+    // ✅ Activity Logging
+    await logFromRequest(
+      request,
+      'TRANSACTION_UPDATE',
+      'FINANCIAL',
+      `Updated financial transaction: ${transaction.note || id}`,
+      { 
+        transactionId: id,
+        type: transaction.type,
+        amount: Number(transaction.totalAmount),
+        changes: Object.keys(body),
+      }
+    ).catch(err => console.error('[Activity Logger] Failed:', err));
+
     return NextResponse.json({
       success: true,
       data: {
@@ -180,6 +195,19 @@ export async function DELETE(
     await prisma.transactions.delete({
       where: { id },
     });
+
+    // ✅ Activity Logging
+    await logFromRequest(
+      request,
+      'TRANSACTION_DELETE',
+      'FINANCIAL',
+      `Deleted financial transaction: ${existingTransaction.note || id}`,
+      { 
+        transactionId: id,
+        type: existingTransaction.type,
+        amount: Number(existingTransaction.totalAmount),
+      }
+    ).catch(err => console.error('[Activity Logger] Failed:', err));
 
     return NextResponse.json({
       success: true,

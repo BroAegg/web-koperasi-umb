@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { comparePassword, signToken, signDeveloperToken } from '@/lib/auth';
+import { logActivity, extractRequestMetadata } from '@/lib/activity-logger';
 
 export async function POST(request: NextRequest) {
   console.log('Login attempt received');
@@ -55,6 +56,19 @@ export async function POST(request: NextRequest) {
           } 
         } 
       };
+      
+      // ✅ Activity Logging for User Login
+      const { ipAddress, userAgent } = extractRequestMetadata(request);
+      await logActivity({
+        userId: user.id,
+        userRole: user.role,
+        action: 'LOGIN',
+        module: 'AUTH',
+        description: `User logged in: ${user.name} (${user.role})`,
+        metadata: { email: user.email },
+        ipAddress,
+        userAgent,
+      }).catch(err => console.error('[Activity Logger] Failed:', err));
       
       console.log('Login successful for user:', email);
       return NextResponse.json(response);
@@ -111,6 +125,19 @@ export async function POST(request: NextRequest) {
         } 
       } 
     };
+    
+    // ✅ Activity Logging for Supplier Login
+    const { ipAddress, userAgent } = extractRequestMetadata(request);
+    await logActivity({
+      userId: supplier.id,
+      userRole: 'SUPPLIER',
+      action: 'LOGIN',
+      module: 'AUTH',
+      description: `Supplier logged in: ${supplier.businessName}`,
+      metadata: { email: supplier.email, status: supplier.status },
+      ipAddress,
+      userAgent,
+    }).catch(err => console.error('[Activity Logger] Failed:', err));
     
     console.log('Login successful for supplier:', email);
     return NextResponse.json(response);
