@@ -13,6 +13,8 @@ import { FinancialSummaryCard } from '@/components/financial/FinancialSummaryCar
 import { FinancialMetricsCards } from '@/components/financial/FinancialMetricsCards';
 import { TransactionTable } from '@/components/financial/TransactionTable';
 import { TransactionModal } from '@/components/financial/TransactionModal';
+import { FinancialChart } from '@/components/financial/FinancialChart';
+import { TransactionDetailModal } from '@/components/financial/TransactionDetailModal';
 import type { 
   Transaction,
   NewTransaction,
@@ -35,6 +37,8 @@ export default function FinancialPage() {
   const [isCustomDate, setIsCustomDate] = useState(false);
   const [filterType, setFilterType] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<string | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -232,18 +236,9 @@ export default function FinancialPage() {
   };
 
   const handleViewTransaction = (transaction: Transaction) => {
-    // Build detail message
-    let detailMsg = `${formatCurrency(transaction.amount)}`;
-    if (transaction.description) detailMsg += `\n${transaction.description}`;
-    if (transaction.items && transaction.items.length > 0) {
-      detailMsg += '\n\nProduk:';
-      transaction.items.forEach(item => {
-        const productName = item.product?.name || item.productName || 'Produk';
-        detailMsg += `\n• ${productName} (${item.quantity}x) - ${formatCurrency(item.totalPrice)}`;
-      });
-    }
-    
-    success('Detail Transaksi', detailMsg);
+    // Open detail modal instead of notification
+    setSelectedTransaction(transaction);
+    setShowDetailModal(true);
   };
 
   const handleEditTransaction = (transaction: Transaction) => {
@@ -293,181 +288,48 @@ export default function FinancialPage() {
 
       {/* Financial Summary Cards with Visual Hierarchy */}
       {dailySummary && (
-        <div className="space-y-4 sm:space-y-6">
-          {/* DOMINANT: Financial Summary Card */}
-          <FinancialSummaryCard
-            summary={dailySummary}
-            selectedDate={selectedDate}
-            onDateChange={setSelectedDate}
-            financialPeriod={financialPeriod}
-            onPeriodChange={setFinancialPeriod}
-            isCustomDate={isCustomDate}
-            onCustomDateToggle={setIsCustomDate}
-          />
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+          {/* LEFT SIDE: Summary Card (Takes 1 column) */}
+          <div className="lg:col-span-1">
+            <FinancialSummaryCard
+              summary={dailySummary}
+              selectedDate={selectedDate}
+              onDateChange={setSelectedDate}
+              financialPeriod={financialPeriod}
+              onPeriodChange={setFinancialPeriod}
+              isCustomDate={isCustomDate}
+              onCustomDateToggle={setIsCustomDate}
+            />
+          </div>
 
-          {/* SECONDARY: Other Metrics - 3 Cards in a Row */}
-          <FinancialMetricsCards
-            transactions={transactions}
-            dailySummary={dailySummary}
-          />
+          {/* RIGHT SIDE: Metrics Cards (Takes 2 columns) */}
+          <div className="lg:col-span-2">
+            <FinancialMetricsCards
+              transactions={transactions}
+              dailySummary={dailySummary}
+            />
+          </div>
         </div>
       )}
 
-      {/* Financial Trend Chart */}
+      {/* Financial Chart - Replacing old bar chart */}
       {dailySummary && (
-        <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
-          <CardHeader className="border-b border-gray-100">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2.5 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600">
-                  <TrendingUp className="w-5 h-5 text-white" />
-                </div>
-                <div>
-                  <h3 className="text-lg font-bold text-gray-900">Grafik Keuangan</h3>
-                  <p className="text-xs text-gray-500">Visualisasi performa harian</p>
-                </div>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="p-6">
-            <div className="space-y-8">
-              {/* Income vs Expense Bar Chart */}
-              <div>
-                <div className="flex items-center justify-between mb-4">
-                  <h4 className="text-sm font-semibold text-gray-700">Perbandingan Pemasukan & Pengeluaran</h4>
-                  <div className="flex items-center gap-4 text-xs">
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded bg-emerald-500"></div>
-                      <span className="text-gray-600">Pemasukan</span>
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <div className="w-3 h-3 rounded bg-red-500"></div>
-                      <span className="text-gray-600">Pengeluaran</span>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Bar Chart */}
-                <div className="space-y-4">
-                  {/* Income Bar */}
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-gray-700">Pemasukan</span>
-                      <span className="text-sm font-bold text-emerald-600">{formatCurrency(dailySummary.totalIncome)}</span>
-                    </div>
-                    <div className="w-full h-8 bg-gray-100 rounded-lg overflow-hidden relative">
-                      <div 
-                        className="h-full bg-gradient-to-r from-emerald-400 to-emerald-600 rounded-lg transition-all duration-500 flex items-center justify-end px-3"
-                        style={{ 
-                          width: `${dailySummary.totalIncome > 0 && (dailySummary.totalIncome + dailySummary.totalExpense) > 0 
-                            ? (dailySummary.totalIncome / Math.max(dailySummary.totalIncome, dailySummary.totalExpense)) * 100 
-                            : 0}%`,
-                          minWidth: dailySummary.totalIncome > 0 ? '60px' : '0'
-                        }}
-                      >
-                        <span className="text-xs font-bold text-white">
-                          {dailySummary.totalIncome > 0 && (dailySummary.totalIncome + dailySummary.totalExpense) > 0
-                            ? `${((dailySummary.totalIncome / (dailySummary.totalIncome + dailySummary.totalExpense)) * 100).toFixed(1)}%`
-                            : '0%'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
+        <FinancialChart
+          transactions={transactions}
+          totalIncome={dailySummary.totalIncome}
+          totalExpense={dailySummary.totalExpense}
+          netIncome={dailySummary.netIncome}
+        />
+      )}
 
-                  {/* Expense Bar */}
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-gray-700">Pengeluaran</span>
-                      <span className="text-sm font-bold text-red-600">{formatCurrency(dailySummary.totalExpense)}</span>
-                    </div>
-                    <div className="w-full h-8 bg-gray-100 rounded-lg overflow-hidden relative">
-                      <div 
-                        className="h-full bg-gradient-to-r from-red-400 to-red-600 rounded-lg transition-all duration-500 flex items-center justify-end px-3"
-                        style={{ 
-                          width: `${dailySummary.totalExpense > 0 && (dailySummary.totalIncome + dailySummary.totalExpense) > 0
-                            ? (dailySummary.totalExpense / Math.max(dailySummary.totalIncome, dailySummary.totalExpense)) * 100 
-                            : 0}%`,
-                          minWidth: dailySummary.totalExpense > 0 ? '60px' : '0'
-                        }}
-                      >
-                        <span className="text-xs font-bold text-white">
-                          {dailySummary.totalExpense > 0 && (dailySummary.totalIncome + dailySummary.totalExpense) > 0
-                            ? `${((dailySummary.totalExpense / (dailySummary.totalIncome + dailySummary.totalExpense)) * 100).toFixed(1)}%`
-                            : '0%'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Net Income Bar */}
-                  <div className="pt-4 border-t border-gray-100">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-semibold text-gray-800">Keuntungan Bersih</span>
-                      <span className={`text-sm font-bold ${dailySummary.netIncome >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
-                        {formatCurrency(dailySummary.netIncome)}
-                      </span>
-                    </div>
-                    <div className="w-full h-10 bg-gray-100 rounded-lg overflow-hidden relative">
-                      <div 
-                        className={`h-full rounded-lg transition-all duration-500 flex items-center justify-center ${
-                          dailySummary.netIncome >= 0 
-                            ? 'bg-gradient-to-r from-emerald-500 to-emerald-700' 
-                            : 'bg-gradient-to-r from-red-500 to-red-700'
-                        }`}
-                        style={{ 
-                          width: `${dailySummary.totalIncome > 0 
-                            ? (Math.abs(dailySummary.netIncome) / dailySummary.totalIncome) * 100 
-                            : 0}%`,
-                          minWidth: dailySummary.netIncome !== 0 ? '80px' : '0'
-                        }}
-                      >
-                        <span className="text-sm font-bold text-white">
-                          {dailySummary.netIncome >= 0 ? '+' : '-'} {formatCurrency(Math.abs(dailySummary.netIncome))}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Transaction Distribution */}
-              <div className="pt-6 border-t border-gray-100">
-                <h4 className="text-sm font-semibold text-gray-700 mb-4">Distribusi Transaksi</h4>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {[
-                    { type: 'SALE', label: 'Penjualan', color: 'emerald', icon: ShoppingCart },
-                    { type: 'PURCHASE', label: 'Pembelian', color: 'blue', icon: Receipt },
-                    { type: 'INCOME', label: 'Pemasukan', color: 'green', icon: TrendingUp },
-                    { type: 'EXPENSE', label: 'Pengeluaran', color: 'red', icon: TrendingDown },
-                  ].map(({ type, label, color, icon: Icon }) => {
-                    const count = transactions.filter(t => t.type === type).length;
-                    const total = transactions.filter(t => t.type === type).reduce((sum, t) => sum + t.amount, 0);
-                    const percentage = dailySummary.transactionCount > 0 
-                      ? (count / dailySummary.transactionCount) * 100 
-                      : 0;
-                    
-                    return (
-                      <div key={type} className="space-y-2">
-                        <div className="flex items-center gap-2">
-                          <Icon className={`w-4 h-4 text-${color}-600`} />
-                          <span className="text-xs font-medium text-gray-600">{label}</span>
-                        </div>
-                        <div className="text-lg font-bold text-gray-900">{count}</div>
-                        <div className="w-full h-2 bg-gray-100 rounded-full overflow-hidden">
-                          <div 
-                            className={`h-full bg-gradient-to-r from-${color}-400 to-${color}-600 rounded-full transition-all duration-500`}
-                            style={{ width: `${percentage}%` }}
-                          ></div>
-                        </div>
-                        <div className="text-xs text-gray-500">{formatCurrency(total)}</div>
-                      </div>
-                    );
-                  })}
-                </div>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Financial Chart - Replacing old bar chart */}
+      {dailySummary && (
+        <FinancialChart
+          transactions={transactions}
+          totalIncome={dailySummary.totalIncome}
+          totalExpense={dailySummary.totalExpense}
+          netIncome={dailySummary.netIncome}
+        />
       )}
 
       {/* Transactions Table */}
@@ -500,6 +362,16 @@ export default function FinancialPage() {
         onClose={handleTransactionModalClose}
         onSubmit={handleTransactionSubmit}
         isSubmitting={isSubmitting}
+      />
+
+      {/* Transaction Detail Modal */}
+      <TransactionDetailModal
+        isOpen={showDetailModal}
+        transaction={selectedTransaction}
+        onClose={() => {
+          setShowDetailModal(false);
+          setSelectedTransaction(null);
+        }}
       />
 
     </div>
