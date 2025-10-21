@@ -54,26 +54,35 @@ export async function POST(request: NextRequest) {
 
     console.log('User created:', user.id);
 
-    // Create supplier profile
-    const supplierProfile = await prisma.supplier_profiles.create({
+    // Generate supplier code
+    const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const randomSuffix = Math.random().toString(36).substring(2, 5).toUpperCase();
+    const supplierCode = `SUP-${dateStr}-${randomSuffix}`;
+
+    // Create supplier in unified table
+    const supplier = await prisma.suppliers.create({
       data: {
         id: randomUUID(),
-        userId: user.id,
+        code: supplierCode,
         businessName: name,
         ownerName: name,
         email,
+        password: hashedPassword,
         phone,
         address,
         productCategory: category,
         description: description || null,
         status: 'PENDING',
+        paymentStatus: 'UNPAID',
         monthlyFee: 25000,
         isPaymentActive: false,
+        isActive: false,
+        createdAt: new Date(),
         updatedAt: new Date(),
       },
     });
 
-    console.log('Supplier profile created:', supplierProfile.id);
+    console.log('Supplier created:', supplier.id, 'Code:', supplier.code);
 
     // In production, send email with credentials
     // await sendEmail(email, 'Welcome', `Your password is: ${defaultPassword}`);
@@ -82,10 +91,11 @@ export async function POST(request: NextRequest) {
       success: true,
       message: 'Pendaftaran berhasil. Menunggu persetujuan admin.',
       data: {
-        id: supplierProfile.id,
-        name: supplierProfile.businessName,
-        email: user.email,
-        status: supplierProfile.status,
+        id: supplier.id,
+        code: supplier.code,
+        name: supplier.businessName,
+        email: supplier.email,
+        status: supplier.status,
       },
     }, { status: 201 });
 
@@ -118,18 +128,22 @@ export async function GET(request: NextRequest) {
       where.status = status.toUpperCase();
     }
 
-    const suppliers = await prisma.supplier_profiles.findMany({
+    const suppliers = await prisma.suppliers.findMany({
       where,
-      include: {
-        users: {
-          select: {
-            id: true,
-            email: true,
-            name: true,
-            isActive: true,
-            createdAt: true,
-          },
-        },
+      select: {
+        id: true,
+        code: true,
+        businessName: true,
+        ownerName: true,
+        email: true,
+        phone: true,
+        address: true,
+        productCategory: true,
+        status: true,
+        paymentStatus: true,
+        isActive: true,
+        createdAt: true,
+        updatedAt: true,
       },
       orderBy: { createdAt: 'desc' },
     });
