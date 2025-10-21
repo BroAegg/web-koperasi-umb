@@ -197,8 +197,8 @@ export function FinancialSummaryCard({
       </CardHeader>
       
       <CardContent className="p-6 space-y-6">
-        {/* PRIMARY: Saldo Tersedia - Enhanced Banking Dashboard */}
-        <div className="relative overflow-hidden bg-gradient-to-br from-emerald-50 via-green-50 to-emerald-100 border-2 border-emerald-300 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 group/card">
+        {/* PRIMARY: Saldo Tersedia - Vertical Layout */}
+        <div className="relative overflow-hidden bg-gradient-to-br from-emerald-50 via-green-50 to-emerald-100 border-2 border-emerald-300 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300">
           {/* Animated Background Pattern */}
           <div className="absolute inset-0 opacity-5">
             <div className="absolute top-0 -left-4 w-24 h-24 bg-emerald-500 rounded-full blur-3xl"></div>
@@ -206,121 +206,72 @@ export function FinancialSummaryCard({
           </div>
           
           <div className="relative z-10">
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-gradient-to-br from-emerald-500 to-green-600 rounded-xl shadow-lg group-hover/card:shadow-emerald-300 group-hover/card:scale-110 transition-all duration-300">
-                  <PiggyBank className="h-6 w-6 text-white" />
-                </div>
-                <div>
-                  <p className="text-xs font-semibold text-gray-700 uppercase tracking-wider">Saldo Tersedia</p>
-                  <div className="flex items-center gap-1.5 mt-0.5">
-                    <div className="h-1.5 w-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
-                    <p className="text-[10px] text-gray-600">{summary.transactionCount} transaksi periode ini</p>
-                  </div>
-                </div>
+            {/* Header - Centered */}
+            <div className="text-center mb-6">
+              <div className="inline-flex items-center justify-center p-3 bg-gradient-to-br from-emerald-500 to-green-600 rounded-xl shadow-lg mb-3">
+                <PiggyBank className="h-8 w-8 text-white" />
               </div>
-              {/* Info Icon with Enhanced Tooltip */}
-              <div className="relative group">
-                <div className="p-1.5 rounded-lg hover:bg-emerald-100 transition-colors cursor-help">
-                  <Info className="h-4 w-4 text-emerald-500" />
-                </div>
-                {/* Enhanced Tooltip */}
-                <div className="absolute right-0 bottom-full mb-3 w-56 bg-gradient-to-br from-gray-900 to-gray-800 text-white text-xs rounded-xl p-4 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-300 pointer-events-none z-50 shadow-2xl border border-gray-700">
-                  {summary.netIncome > 0 ? (
-                    <div className="space-y-2">
-                      <p className="text-[10px] text-gray-400 uppercase tracking-wide mb-2">Breakdown Saldo</p>
-                      <div className="flex justify-between items-center py-1.5 border-b border-gray-700/50">
-                        <div className="flex items-center gap-1.5">
-                          <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
-                          <span className="text-blue-300">Toko</span>
-                        </div>
-                        <span className="font-semibold">{formatCurrency(summary.toko?.profit || 0)}</span>
-                      </div>
-                      <div className="flex justify-between items-center py-1.5 border-b border-gray-700/50">
-                        <div className="flex items-center gap-1.5">
-                          <div className="w-2 h-2 bg-purple-400 rounded-full"></div>
-                          <span className="text-purple-300">Titipan</span>
-                        </div>
-                        <span className="font-semibold">{formatCurrency(summary.consignment?.profit || 0)}</span>
-                      </div>
-                      <div className="flex justify-between items-center pt-2 bg-gradient-to-r from-emerald-500/10 to-green-500/10 -mx-2 px-2 py-2 rounded-lg">
-                        <span className="font-semibold text-emerald-300">Total Saldo</span>
-                        <span className="font-bold text-emerald-200">{formatCurrency(summary.netIncome)}</span>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="text-center py-3">
-                      <p className="text-gray-400">Belum ada saldo</p>
-                      <p className="text-[10px] text-gray-500 mt-1">Mulai transaksi untuk melihat saldo</p>
-                    </div>
-                  )}
-                  {/* Enhanced Arrow */}
-                  <div className="absolute right-6 top-full">
-                    <div className="w-0 h-0 border-l-[6px] border-r-[6px] border-t-[6px] border-l-transparent border-r-transparent border-t-gray-900"></div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-          
-          {/* Enhanced Amount Display with Animation */}
-          <div className="mb-6">
-            <p className={`text-5xl md:text-6xl font-black mb-2 transition-all duration-500 ${
-              summary.netIncome >= 0 ? 'text-emerald-700 drop-shadow-sm' : 'text-red-600 drop-shadow-sm'
-            }`}>
-              {formatCurrency(summary.netIncome)}
-            </p>
-            <div className="flex items-center gap-2 text-xs">
-              <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full font-medium ${
-                summary.netIncome >= 0 
-                  ? 'bg-emerald-100 text-emerald-700' 
-                  : 'bg-red-100 text-red-700'
-              }`}>
-                {summary.netIncome >= 0 ? '↗' : '↘'}
-                {summary.netIncome >= 0 ? 'Surplus' : 'Defisit'}
-              </span>
-              <span className="text-gray-500">dari {summary.transactionCount} transaksi</span>
-            </div>
-          </div>
-          
-          {/* Enhanced Progress Bar with Glow */}
-          <div className="space-y-3">
-            <div className="relative h-3 bg-emerald-200/50 rounded-full overflow-hidden shadow-inner">
-              {/* Animated shimmer effect */}
-              <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer"></div>
-              
-              <div 
-                className="relative h-full bg-gradient-to-r from-emerald-500 via-emerald-600 to-green-600 rounded-full shadow-lg transition-all duration-700 ease-out"
-                style={{ 
-                  width: summary.totalIncome > 0 
-                    ? `${Math.min((summary.netIncome / summary.totalIncome) * 100, 100)}%` 
-                    : '0%',
-                  boxShadow: '0 0 10px rgba(16, 185, 129, 0.5)'
-                }}
-              >
-                {/* Glow effect */}
-                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent"></div>
+              <p className="text-sm font-semibold text-gray-700 uppercase tracking-wider">Saldo Tersedia</p>
+              <div className="flex items-center justify-center gap-1.5 mt-1">
+                <div className="h-1.5 w-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
+                <p className="text-xs text-gray-600">{summary.transactionCount} transaksi periode ini</p>
               </div>
             </div>
             
-            <div className="flex items-center justify-between text-xs">
-              <p className="text-gray-600">
-                Profit Margin
+            {/* Amount - Large & Centered */}
+            <div className="text-center mb-6">
+              <p className="text-4xl font-bold bg-gradient-to-r from-emerald-600 via-green-600 to-emerald-500 bg-clip-text text-transparent mb-1">
+                {formatCurrency(summary.netIncome)}
               </p>
-              <div className="flex items-center gap-2">
-                <div className="px-2.5 py-1 bg-emerald-100 rounded-full">
-                  <span className="font-bold text-emerald-700">
-                    {summary.totalIncome > 0 
-                      ? ((summary.netIncome / summary.totalIncome) * 100).toFixed(1) 
-                      : 0}%
-                  </span>
-                </div>
-                <span className="text-gray-500">dari total pendapatan</span>
+              <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full ${summary.netIncome > 0 ? 'bg-emerald-100 text-emerald-700' : summary.netIncome < 0 ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'}`}>
+                {summary.netIncome > 0 ? (
+                  <>
+                    <TrendingUp className="h-4 w-4" />
+                    <span className="text-sm font-semibold">Surplus</span>
+                  </>
+                ) : summary.netIncome < 0 ? (
+                  <>
+                    <TrendingDown className="h-4 w-4" />
+                    <span className="text-sm font-semibold">Defisit</span>
+                  </>
+                ) : (
+                  <span className="text-sm font-semibold">Break Even</span>
+                )}
               </div>
+            </div>
+            
+            {/* Breakdown - Stacked Vertically */}
+            <div className="space-y-3 mb-4">
+              {/* Toko */}
+              <div className="bg-white/60 backdrop-blur-sm rounded-xl p-3 border border-emerald-200/50">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    <span className="text-sm font-medium text-gray-700">Toko</span>
+                  </div>
+                  <span className="text-sm font-bold text-gray-900">{formatCurrency(summary.toko?.profit || 0)}</span>
+                </div>
+              </div>
+              
+              {/* Titipan */}
+              <div className="bg-white/60 backdrop-blur-sm rounded-xl p-3 border border-emerald-200/50">
+                <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                    <span className="text-sm font-medium text-gray-700">Titipan</span>
+                  </div>
+                  <span className="text-sm font-bold text-gray-900">{formatCurrency(summary.consignment?.profit || 0)}</span>
+                </div>
+              </div>
+            </div>
+            
+            {/* Footer Info */}
+            <div className="text-center pt-3 border-t border-emerald-200">
+              <p className="text-xs text-gray-600">Data periode: {getPeriodDisplayLabel()}</p>
             </div>
           </div>
         </div>
-        
+
         {/* SECONDARY: Enhanced Mutasi Cards */}
         <div>
           <div className="flex items-center gap-2 mb-4">
