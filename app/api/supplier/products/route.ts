@@ -75,7 +75,7 @@ export async function GET(request: NextRequest) {
         suppliers: {
           select: {
             id: true,
-            name: true,
+            businessName: true,
             email: true,
           },
         },
@@ -184,7 +184,7 @@ export async function POST(request: NextRequest) {
         suppliers: {
           select: {
             id: true,
-            name: true,
+            businessName: true,
           },
         },
       },
@@ -302,7 +302,7 @@ export async function PUT(request: NextRequest) {
         suppliers: {
           select: {
             id: true,
-            name: true,
+            businessName: true,
           },
         },
       },
