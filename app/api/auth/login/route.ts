@@ -154,18 +154,8 @@ export async function POST(request: NextRequest) {
       } 
     };
     
-    // ✅ Activity Logging for Supplier Login
-    const { ipAddress, userAgent } = extractRequestMetadata(request);
-    await logActivity({
-      userId: supplier.id,
-      userRole: 'SUPPLIER',
-      action: 'LOGIN',
-      module: 'AUTH',
-      description: `Supplier logged in: ${supplier.businessName}`,
-      metadata: { email: supplier.email, status: supplier.status },
-      ipAddress,
-      userAgent,
-    }).catch(err => console.error('[Activity Logger] Failed:', err));
+    // Note: Activity logging skipped for suppliers (userId FK constraint to users table only)
+    // Suppliers are in separate `suppliers` table, not `users` table
     
     console.log('Login successful for supplier:', email);
     return NextResponse.json(response);
