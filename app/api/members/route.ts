@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { Decimal } from '@prisma/client/runtime/library';
 import { randomUUID } from 'crypto';
-import { logFromRequest } from '@/lib/activity-logger';
+import { withActivityLog } from '@/lib/with-activity-log';
 
 // GET /api/members - Get all members with optional filtering
 export async function GET(request: NextRequest) {
@@ -73,7 +73,8 @@ export async function GET(request: NextRequest) {
 }
 
 // POST /api/members - Create new member
-export async function POST(request: NextRequest) {
+// POST /api/members - Create new member
+async function handleCreateMember(request: NextRequest) {
   try {
     const body = await request.json();
     const {
@@ -171,21 +172,6 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Log activity
-    await logFromRequest(
-      request,
-      'MEMBER_CREATE',
-      'MEMBER',
-      `Created member: ${name} (${memberNumber})`,
-      {
-        memberId: member.id,
-        name,
-        email,
-        memberNumber,
-        unitKerja,
-      }
-    ).catch((err) => console.error('[Activity Logger] Failed to log member creation:', err));
-
     return NextResponse.json({
       success: true,
       data: {
@@ -204,3 +190,26 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+export const POST = withActivityLog({
+  module: 'MEMBER',
+  action: 'CREATE_MEMBER',
+  getDescription: (req, result) => {
+    const member = result?.data;
+    return member
+      ? `Created member: ${member.name} (${member.nomorAnggota})`
+      : 'Created new member';
+  },
+  getMetadata: (req, result) => {
+    const member = result?.data;
+    return member
+      ? {
+          memberId: member.id,
+          name: member.name,
+          email: member.email,
+          memberNumber: member.nomorAnggota,
+          unitKerja: member.unitKerja,
+        }
+      : undefined;
+  },
+})(handleCreateMember);
