@@ -149,7 +149,7 @@ export default function SupplierLayout({
         </header>
 
         {/* Page Content */}
-        <main className="p-4 sm:p-6 lg:p-8">
+        <main className="p-4 sm:p-6 lg:p-8 min-h-[calc(100vh-4rem)] lg:min-h-screen">
           {children}
         </main>
       </div>
