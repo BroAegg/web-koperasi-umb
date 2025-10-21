@@ -36,7 +36,7 @@ export async function GET(request: NextRequest) {
 
     // Get payment history
     const payments = await prisma.supplier_payments.findMany({
-      where: { supplierProfileId: supplier.id },
+      where: { supplierId: supplier.id },
       orderBy: { createdAt: 'desc' },
       select: {
         id: true,

@@ -88,7 +88,7 @@ export async function POST(request: NextRequest) {
     const payment = await prisma.supplier_payments.create({
       data: {
         id: `PAY-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        supplierProfileId: supplier.id,
+        supplierId: supplier.id,
         amount: parseFloat(amount),
         paymentProof: paymentProofPath,
         status: 'PENDING',
