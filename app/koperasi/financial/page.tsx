@@ -286,35 +286,31 @@ export default function FinancialPage() {
         </div>
       </div>
 
-      {/* Financial Summary Cards with Visual Hierarchy */}
+      {/* Financial Summary Card - Full Width */}
       {dailySummary && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
-          {/* LEFT SIDE: Summary Card (Takes 1 column) */}
-          <div className="lg:col-span-1">
-            <FinancialSummaryCard
-              summary={dailySummary}
-              selectedDate={selectedDate}
-              onDateChange={setSelectedDate}
-              financialPeriod={financialPeriod}
-              onPeriodChange={setFinancialPeriod}
-              isCustomDate={isCustomDate}
-              onCustomDateToggle={setIsCustomDate}
-            />
-          </div>
-
-          {/* RIGHT SIDE: Metrics Cards (Takes 2 columns) */}
-          <div className="lg:col-span-2">
-            <FinancialMetricsCards
-              transactions={transactions}
-              dailySummary={dailySummary}
-            />
-          </div>
+        <div className="max-w-md mx-auto lg:mx-0">
+          <FinancialSummaryCard
+            summary={dailySummary}
+            selectedDate={selectedDate}
+            onDateChange={setSelectedDate}
+            financialPeriod={financialPeriod}
+            onPeriodChange={setFinancialPeriod}
+            isCustomDate={isCustomDate}
+            onCustomDateToggle={setIsCustomDate}
+          />
         </div>
+      )}
+
+      {/* 3 Metrics Cards - Below Summary, Above Chart */}
+      {dailySummary && (
+        <FinancialMetricsCards
+          transactions={transactions}
+          dailySummary={dailySummary}
+        />
       )}
 
       {/* Financial Chart - Dynamic based on period */}
       <FinancialChart period={financialPeriod} />
-
 
       {/* Transactions Table */}
       <Card>
