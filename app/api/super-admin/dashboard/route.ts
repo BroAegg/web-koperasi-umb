@@ -17,14 +17,14 @@ export async function GET(req: NextRequest) {
     }
 
     // Supplier Statistics
-    const totalSuppliers = await prisma.supplier_profiles.count();
-    const pendingSuppliers = await prisma.supplier_profiles.count({
+    const totalSuppliers = await prisma.suppliers.count();
+    const pendingSuppliers = await prisma.suppliers.count({
       where: { status: "PENDING" },
     });
-    const activeSuppliers = await prisma.supplier_profiles.count({
-      where: { status: "ACTIVE" },
+    const activeSuppliers = await prisma.suppliers.count({
+      where: { status: "APPROVED" },
     });
-    const paymentPendingSuppliers = await prisma.supplier_profiles.count({
+    const paymentPendingSuppliers = await prisma.suppliers.count({
       where: { paymentStatus: "PAID_PENDING_APPROVAL" },
     });
 
@@ -67,21 +67,17 @@ export async function GET(req: NextRequest) {
     });
 
     // Recent Activities - Supplier Approvals
-    const recentSuppliers = await prisma.supplier_profiles.findMany({
+    const recentSuppliers = await prisma.suppliers.findMany({
       take: 5,
       orderBy: { createdAt: "desc" },
       select: {
         id: true,
         businessName: true,
+        ownerName: true,
+        email: true,
         status: true,
         paymentStatus: true,
         createdAt: true,
-        users: {
-          select: {
-            name: true,
-            email: true,
-          },
-        },
       },
     });
 
@@ -109,14 +105,11 @@ export async function GET(req: NextRequest) {
       take: 5,
       orderBy: { createdAt: "desc" },
       include: {
-        supplier_profiles: {
+        suppliers: {
           select: {
             businessName: true,
-            users: {
-              select: {
-                name: true,
-              },
-            },
+            ownerName: true,
+            email: true,
           },
         },
       },

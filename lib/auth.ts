@@ -42,18 +42,18 @@ export async function getUserFromToken(token?: string) {
 
   // If developerSession present in token and activeRole set, use activeRole when returning user-like object
   if (data.developerSession && data.developerSession.activeRole && data.developerSession.actualRole === 'DEVELOPER') {
-    // If activeRole is SUPPLIER, try supplier_profiles
+    // If activeRole is SUPPLIER, try unified suppliers table
     const activeRole = data.developerSession.activeRole;
     if (activeRole === 'SUPPLIER') {
       // @ts-ignore
-      const supplier = await prisma.supplier_profiles.findUnique({
+      const supplier = await prisma.suppliers.findUnique({
         where: { id: data.userId },
-        select: { id: true, businessName: true, status: true }
+        select: { id: true, businessName: true, email: true, status: true }
       });
       if (!supplier) return null;
       return {
         id: supplier.id,
-        email: '',
+        email: supplier.email,
         name: supplier.businessName,
         role: 'SUPPLIER' as const,
         developerSession: data.developerSession as DeveloperSession
@@ -75,17 +75,17 @@ export async function getUserFromToken(token?: string) {
   const user = await prisma.users.findUnique({ where: { id: data.userId } });
   if (user) return user;
 
-  // If role is SUPPLIER, try supplier_profiles
+  // If role is SUPPLIER, try unified suppliers table
   if (data.role === 'SUPPLIER') {
     // @ts-ignore
-    const supplier = await prisma.supplier_profiles.findUnique({
+    const supplier = await prisma.suppliers.findUnique({
       where: { id: data.userId },
-      select: { id: true, businessName: true, status: true }
+      select: { id: true, businessName: true, email: true, status: true }
     });
     if (!supplier) return null;
     return {
       id: supplier.id,
-      email: '',
+      email: supplier.email,
       name: supplier.businessName,
       role: 'SUPPLIER' as const,
     } as any;

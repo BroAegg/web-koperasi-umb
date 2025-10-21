@@ -35,8 +35,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get supplier profile for payment info
-    const supplierProfile = await prisma.supplier_profiles.findFirst({
+    // Get supplier data (already have it, but get full data for payment info)
+    const supplierData = await prisma.suppliers.findFirst({
       where: { email: user.email },
     });
 
@@ -149,12 +149,12 @@ export async function GET(request: NextRequest) {
       ? ((completedOrders / totalOrders) * 100).toFixed(1)
       : 0;
 
-    // Payment status info (from supplier_profiles if exists)
-    const paymentInfo = supplierProfile ? {
-      status: supplierProfile.paymentStatus,
-      isActive: supplierProfile.isPaymentActive,
-      nextDue: supplierProfile.nextPaymentDue,
-      monthlyFee: Number(supplierProfile.monthlyFee),
+    // Payment status info from unified suppliers table
+    const paymentInfo = supplierData ? {
+      status: supplierData.paymentStatus,
+      isActive: supplierData.isPaymentActive,
+      nextDue: supplierData.nextPaymentDue,
+      monthlyFee: Number(supplierData.monthlyFee),
     } : null;
 
     return NextResponse.json({
