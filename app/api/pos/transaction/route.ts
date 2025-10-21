@@ -3,10 +3,37 @@ import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { getUserFromToken } from "@/lib/auth";
 import { withDeveloperSession } from "@/lib/prisma-middleware";
-import { createActivityLog } from "@/lib/developer-helpers";
+import { withActivityLog } from "@/lib/with-activity-log";
 import { randomUUID } from "crypto";
 
 export async function POST(req: NextRequest) {
+  return withActivityLog({
+    module: 'POS',
+    action: 'CREATE_TRANSACTION',
+    getDescription: (req, result) => {
+      const data = result?.data;
+      const customer = data?.customerName || 'Walk-in Customer';
+      const amount = data?.totalAmount;
+      return amount
+        ? `POS transaction: ${customer} - Rp ${amount.toLocaleString()}`
+        : 'Created POS transaction';
+    },
+    getMetadata: (req, result) => {
+      const data = result?.data;
+      return data
+        ? {
+            transactionId: data.transactionId,
+            totalAmount: data.totalAmount,
+            itemCount: data.items?.length,
+            paymentMethod: data.paymentMethod,
+            customerName: data.customerName,
+          }
+        : undefined;
+    },
+  })(handlePOSTransaction)(req);
+}
+
+async function handlePOSTransaction(req: NextRequest) {
   return withDeveloperSession(req, async () => {
     try {
       const auth = req.headers.get("authorization");
@@ -179,22 +206,6 @@ export async function POST(req: NextRequest) {
       transactionId: result.transaction.id,
       itemsProcessed: result.transactionItems.length,
       totalAmount
-    });
-
-    // Log activity
-    await createActivityLog({
-      userId: user.id,
-      userRole: user.role,
-      action: 'CREATE',
-      module: 'POS',
-      description: `Created POS transaction ${result.transaction.id}`,
-      metadata: {
-        transactionId: result.transaction.id,
-        totalAmount,
-        itemCount: result.transactionItems.length,
-        paymentMethod,
-        customerName: customerName || 'Walk-in Customer'
-      },
     });
 
     // Return success with transaction details
