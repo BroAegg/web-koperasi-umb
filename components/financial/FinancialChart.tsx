@@ -1,12 +1,10 @@
 // Financial Chart Component with Recharts
-// Beautiful line chart showing income vs expense trends
+// Beautiful chart showing income vs expense trends based on selected period
 
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
-import { TrendingUp } from 'lucide-react';
+import { TrendingUp, BarChart3 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import {
-  LineChart,
-  Line,
   AreaChart,
   Area,
   XAxis,
@@ -16,73 +14,131 @@ import {
   Legend,
   ResponsiveContainer
 } from 'recharts';
-import type { Transaction } from '@/types/financial';
+import type { Transaction, FinancialPeriod } from '@/types/financial';
 
 interface FinancialChartProps {
   transactions: Transaction[];
   totalIncome: number;
   totalExpense: number;
   netIncome: number;
+  period: FinancialPeriod;
 }
 
 export function FinancialChart({
   transactions,
   totalIncome,
   totalExpense,
-  netIncome
+  netIncome,
+  period
 }: FinancialChartProps) {
   
-  // Aggregate transactions by hour for today
-  const aggregateByHour = () => {
-    const hourlyData: { [key: string]: { income: number; expense: number } } = {};
+  // Aggregate transactions based on period
+  const aggregateData = () => {
+    if (transactions.length === 0) return [];
+    
+    const dataMap: { [key: string]: { income: number; expense: number } } = {};
     
     transactions.forEach(transaction => {
-      const hour = new Date(transaction.createdAt).getHours();
-      const hourLabel = `${hour.toString().padStart(2, '0')}:00`;
+      const date = new Date(transaction.createdAt);
+      let key: string;
       
-      if (!hourlyData[hourLabel]) {
-        hourlyData[hourLabel] = { income: 0, expense: 0 };
+      // Determine grouping based on period
+      switch (period) {
+        case 'today':
+          // Group by hour
+          key = `${date.getHours().toString().padStart(2, '0')}:00`;
+          break;
+        case '7days':
+          // Group by day (last 7 days)
+          key = date.toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
+          break;
+        case '1month':
+          // Group by day (last 30 days)
+          key = date.toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
+          break;
+        case '3months':
+        case '6months':
+          // Group by week
+          const weekStart = new Date(date);
+          weekStart.setDate(date.getDate() - date.getDay());
+          key = weekStart.toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
+          break;
+        case '1year':
+          // Group by month
+          key = date.toLocaleDateString('id-ID', { month: 'short', year: '2-digit' });
+          break;
+        default:
+          key = date.toLocaleDateString('id-ID', { day: '2-digit', month: 'short' });
+      }
+      
+      if (!dataMap[key]) {
+        dataMap[key] = { income: 0, expense: 0 };
       }
       
       if (transaction.type === 'SALE' || transaction.type === 'INCOME') {
-        hourlyData[hourLabel].income += transaction.amount;
+        dataMap[key].income += transaction.amount;
       } else if (transaction.type === 'PURCHASE' || transaction.type === 'EXPENSE') {
-        hourlyData[hourLabel].expense += transaction.amount;
+        dataMap[key].expense += transaction.amount;
       }
     });
     
-    // Convert to array and fill missing hours
-    const currentHour = new Date().getHours();
-    const chartData = [];
-    
-    for (let i = 0; i <= currentHour; i++) {
-      const hourLabel = `${i.toString().padStart(2, '0')}:00`;
-      chartData.push({
-        time: hourLabel,
-        pemasukan: hourlyData[hourLabel]?.income || 0,
-        pengeluaran: hourlyData[hourLabel]?.expense || 0,
-      });
-    }
-    
-    return chartData;
+    // Convert to array and sort
+    return Object.entries(dataMap)
+      .map(([time, data]) => ({
+        time,
+        pemasukan: data.income,
+        pengeluaran: data.expense,
+      }))
+      .sort((a, b) => {
+        // Simple string comparison works for our formatted dates
+        if (period === 'today') {
+          return a.time.localeCompare(b.time);
+        }
+        return 0; // Keep insertion order for date-based grouping
+      })
+      .slice(-20); // Limit to last 20 data points for readability
   };
   
-  const chartData = aggregateByHour();
+  const chartData = aggregateData();
+  
+  const getPeriodLabel = () => {
+    switch (period) {
+      case 'today': return 'Hari Ini';
+      case '7days': return '7 Hari Terakhir';
+      case '1month': return '30 Hari Terakhir';
+      case '3months': return '3 Bulan Terakhir';
+      case '6months': return '6 Bulan Terakhir';
+      case '1year': return '1 Tahun Terakhir';
+      default: return 'Hari Ini';
+    }
+  };
+  
+  const getTimeLabel = () => {
+    switch (period) {
+      case 'today': return 'per jam';
+      case '7days':
+      case '1month': return 'per hari';
+      case '3months':
+      case '6months': return 'per minggu';
+      case '1year': return 'per bulan';
+      default: return 'per hari';
+    }
+  };
   
   // Custom tooltip
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-white p-4 rounded-lg shadow-lg border border-gray-200">
-          <p className="font-semibold text-gray-900 mb-2">{label}</p>
+        <div className="bg-white p-3 rounded-lg shadow-xl border border-gray-200">
+          <p className="font-semibold text-gray-900 mb-2 text-sm">{label}</p>
           {payload.map((entry: any, index: number) => (
-            <div key={index} className="flex items-center justify-between gap-4 text-sm">
+            <div key={index} className="flex items-center justify-between gap-3 text-sm">
               <span className="flex items-center gap-2">
                 <div 
-                  className="w-3 h-3 rounded" 
+                  className="w-2.5 h-2.5 rounded-full" 
                   style={{ backgroundColor: entry.color }}
                 ></div>
-                {entry.name}
+                <span className="text-gray-700">{entry.name}</span>
               </span>
               <span className="font-bold" style={{ color: entry.color }}>
                 {formatCurrency(entry.value)}
@@ -96,78 +152,59 @@ export function FinancialChart({
   };
   
   return (
-    <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
-      <CardHeader className="border-b border-gray-100">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="p-2.5 rounded-lg bg-gradient-to-br from-blue-500 to-indigo-600">
-              <TrendingUp className="w-5 h-5 text-white" />
-            </div>
-            <div>
-              <h3 className="text-lg font-bold text-gray-900">Grafik Keuangan Hari Ini</h3>
-              <p className="text-xs text-gray-500">Trend pemasukan & pengeluaran per jam</p>
-            </div>
+    <Card className="border-0 shadow-lg hover:shadow-xl transition-all">
+      <CardHeader className="border-b border-gray-100 bg-gradient-to-r from-blue-50 to-indigo-50">
+        <div className="flex items-center gap-3">
+          <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500 to-indigo-600 shadow-md">
+            <BarChart3 className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <h3 className="text-xl font-bold text-gray-900">Grafik Keuangan - {getPeriodLabel()}</h3>
+            <p className="text-sm text-gray-600">Trend pemasukan & pengeluaran {getTimeLabel()}</p>
           </div>
         </div>
       </CardHeader>
       
       <CardContent className="p-6">
-        {/* Summary Stats */}
-        <div className="grid grid-cols-3 gap-4 mb-6">
-          <div className="text-center p-3 rounded-lg bg-emerald-50 border border-emerald-100">
-            <p className="text-xs text-emerald-700 font-medium mb-1">Total Pemasukan</p>
-            <p className="text-lg font-bold text-emerald-600">{formatCurrency(totalIncome)}</p>
-          </div>
-          <div className="text-center p-3 rounded-lg bg-red-50 border border-red-100">
-            <p className="text-xs text-red-700 font-medium mb-1">Total Pengeluaran</p>
-            <p className="text-lg font-bold text-red-600">{formatCurrency(totalExpense)}</p>
-          </div>
-          <div className={`text-center p-3 rounded-lg ${netIncome >= 0 ? 'bg-blue-50 border-blue-100' : 'bg-orange-50 border-orange-100'} border`}>
-            <p className={`text-xs font-medium mb-1 ${netIncome >= 0 ? 'text-blue-700' : 'text-orange-700'}`}>
-              Keuntungan Bersih
-            </p>
-            <p className={`text-lg font-bold ${netIncome >= 0 ? 'text-blue-600' : 'text-orange-600'}`}>
-              {formatCurrency(netIncome)}
-            </p>
-          </div>
-        </div>
-        
-        {/* Line Chart */}
+        {/* Chart */}
         {chartData.length > 0 ? (
-          <ResponsiveContainer width="100%" height={300}>
+          <ResponsiveContainer width="100%" height={400}>
             <AreaChart
               data={chartData}
-              margin={{ top: 10, right: 30, left: 0, bottom: 0 }}
+              margin={{ top: 10, right: 10, left: 0, bottom: 0 }}
             >
               <defs>
                 <linearGradient id="colorIncome" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor="#10b981" stopOpacity={0}/>
+                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.4}/>
+                  <stop offset="95%" stopColor="#10b981" stopOpacity={0.05}/>
                 </linearGradient>
                 <linearGradient id="colorExpense" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3}/>
-                  <stop offset="95%" stopColor="#ef4444" stopOpacity={0}/>
+                  <stop offset="5%" stopColor="#ef4444" stopOpacity={0.4}/>
+                  <stop offset="95%" stopColor="#ef4444" stopOpacity={0.05}/>
                 </linearGradient>
               </defs>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" vertical={false} />
               <XAxis 
                 dataKey="time" 
-                tick={{ fontSize: 12 }}
-                stroke="#9ca3af"
+                tick={{ fontSize: 12, fill: '#6b7280' }}
+                stroke="#d1d5db"
+                tickLine={false}
               />
               <YAxis 
-                tick={{ fontSize: 12 }}
-                stroke="#9ca3af"
+                tick={{ fontSize: 12, fill: '#6b7280' }}
+                stroke="#d1d5db"
+                tickLine={false}
                 tickFormatter={(value) => {
                   if (value >= 1000000) return `${(value / 1000000).toFixed(1)}jt`;
                   if (value >= 1000) return `${(value / 1000).toFixed(0)}rb`;
-                  return value;
+                  return value.toString();
                 }}
               />
-              <Tooltip content={<CustomTooltip />} />
+              <Tooltip content={<CustomTooltip />} cursor={{ stroke: '#cbd5e1', strokeWidth: 1 }} />
               <Legend 
                 wrapperStyle={{ paddingTop: '20px' }}
                 iconType="circle"
+                formatter={(value) => <span className="text-sm font-medium text-gray-700">{value}</span>}
               />
               <Area
                 type="monotone"
@@ -176,6 +213,7 @@ export function FinancialChart({
                 strokeWidth={3}
                 fill="url(#colorIncome)"
                 name="Pemasukan"
+                animationDuration={800}
               />
               <Area
                 type="monotone"
@@ -184,14 +222,16 @@ export function FinancialChart({
                 strokeWidth={3}
                 fill="url(#colorExpense)"
                 name="Pengeluaran"
+                animationDuration={800}
               />
             </AreaChart>
           </ResponsiveContainer>
         ) : (
-          <div className="h-[300px] flex items-center justify-center text-gray-400">
+          <div className="h-[400px] flex items-center justify-center">
             <div className="text-center">
-              <TrendingUp className="w-12 h-12 mx-auto mb-2 opacity-30" />
-              <p>Belum ada data transaksi hari ini</p>
+              <BarChart3 className="w-16 h-16 mx-auto mb-3 text-gray-300" />
+              <p className="text-gray-500 font-medium">Belum ada data transaksi</p>
+              <p className="text-gray-400 text-sm mt-1">untuk periode {getPeriodLabel().toLowerCase()}</p>
             </div>
           </div>
         )}

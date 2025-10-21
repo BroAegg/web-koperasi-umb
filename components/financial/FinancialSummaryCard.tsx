@@ -101,71 +101,67 @@ export function FinancialSummaryCard({
   };
 
   return (
-    <Card className="border border-blue-200 shadow-lg hover:shadow-xl transition-all bg-gradient-to-br from-blue-50 to-indigo-50">
-      <CardHeader className="border-b border-blue-100 pb-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 shadow-md">
-              <DollarSign className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h3 className="text-lg font-bold text-gray-900">Ringkasan Keuangan</h3>
-              <p className="text-xs text-gray-600">Analisis performa keuangan harian</p>
-            </div>
+    <Card className="border-0 shadow-lg hover:shadow-xl transition-all h-full">
+      <CardHeader className="border-b border-gray-100 bg-gradient-to-br from-emerald-50 to-green-50 pb-3">
+        <div className="flex items-center gap-2.5">
+          <div className="p-2 rounded-lg bg-gradient-to-br from-emerald-500 to-green-600 shadow-md">
+            <PiggyBank className="w-5 h-5 text-white" />
+          </div>
+          <div className="flex-1">
+            <h3 className="text-base font-bold text-gray-900">Saldo Tersedia</h3>
+            <p className="text-xs text-gray-600">{getPeriodDisplayLabel()}</p>
           </div>
           
-          {/* Period Dropdown & Calendar */}
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-gray-600 font-medium hidden sm:inline">Periode:</span>
-            
+          {/* Period Dropdown & Calendar - Compact */}
+          <div className="flex items-center gap-1.5">
             {/* Period Selector Button with Dropdown */}
             <div className="relative" ref={dropdownRef}>
               <button
                 onClick={() => setShowPeriodDropdown(!showPeriodDropdown)}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-lg border border-blue-200 bg-white shadow-sm hover:bg-blue-50 transition-colors"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border border-gray-200 bg-white shadow-sm hover:bg-gray-50 transition-colors"
               >
                 <span className="text-xs font-medium text-gray-700">
                   {getPeriodLabel()}
                 </span>
-                <ChevronDown className={`h-3.5 w-3.5 text-gray-500 transition-transform ${showPeriodDropdown ? 'rotate-180' : ''}`} />
+                <ChevronDown className={`h-3 w-3 text-gray-500 transition-transform ${showPeriodDropdown ? 'rotate-180' : ''}`} />
               </button>
               
               {/* Dropdown Menu */}
               {showPeriodDropdown && (
-                <div className="absolute top-full mt-1 right-0 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50 min-w-[140px]">
+                <div className="absolute top-full mt-1 right-0 bg-white rounded-lg shadow-xl border border-gray-200 py-1 z-50 min-w-[120px]">
                   <button
                     onClick={() => handlePeriodSelect('today')}
-                    className={`w-full text-left px-4 py-2 text-sm hover:bg-blue-50 transition-colors ${financialPeriod === 'today' && !isCustomDate ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'}`}
+                    className={`w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 transition-colors ${financialPeriod === 'today' && !isCustomDate ? 'bg-gray-50 text-blue-700 font-medium' : 'text-gray-700'}`}
                   >
                     Hari Ini
                   </button>
                   <button
                     onClick={() => handlePeriodSelect('7days')}
-                    className={`w-full text-left px-4 py-2 text-sm hover:bg-blue-50 transition-colors ${financialPeriod === '7days' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'}`}
+                    className={`w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 transition-colors ${financialPeriod === '7days' ? 'bg-gray-50 text-blue-700 font-medium' : 'text-gray-700'}`}
                   >
                     7 Hari
                   </button>
                   <button
                     onClick={() => handlePeriodSelect('1month')}
-                    className={`w-full text-left px-4 py-2 text-sm hover:bg-blue-50 transition-colors ${financialPeriod === '1month' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'}`}
+                    className={`w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 transition-colors ${financialPeriod === '1month' ? 'bg-gray-50 text-blue-700 font-medium' : 'text-gray-700'}`}
                   >
                     1 Bulan
                   </button>
                   <button
                     onClick={() => handlePeriodSelect('3months')}
-                    className={`w-full text-left px-4 py-2 text-sm hover:bg-blue-50 transition-colors ${financialPeriod === '3months' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'}`}
+                    className={`w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 transition-colors ${financialPeriod === '3months' ? 'bg-gray-50 text-blue-700 font-medium' : 'text-gray-700'}`}
                   >
                     3 Bulan
                   </button>
                   <button
                     onClick={() => handlePeriodSelect('6months')}
-                    className={`w-full text-left px-4 py-2 text-sm hover:bg-blue-50 transition-colors ${financialPeriod === '6months' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'}`}
+                    className={`w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 transition-colors ${financialPeriod === '6months' ? 'bg-gray-50 text-blue-700 font-medium' : 'text-gray-700'}`}
                   >
                     6 Bulan
                   </button>
                   <button
                     onClick={() => handlePeriodSelect('1year')}
-                    className={`w-full text-left px-4 py-2 text-sm hover:bg-blue-50 transition-colors ${financialPeriod === '1year' ? 'bg-blue-50 text-blue-700 font-medium' : 'text-gray-700'}`}
+                    className={`w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 transition-colors ${financialPeriod === '1year' ? 'bg-gray-50 text-blue-700 font-medium' : 'text-gray-700'}`}
                   >
                     1 Tahun
                   </button>
@@ -183,7 +179,7 @@ export function FinancialSummaryCard({
                 title="Pilih tanggal"
               />
               <button 
-                className="px-2.5 py-1.5 rounded-lg border border-blue-200 bg-white text-gray-600 hover:bg-blue-50 transition-colors shadow-sm"
+                className="px-2 py-1.5 rounded-lg border border-gray-200 bg-white text-gray-600 hover:bg-gray-50 transition-colors shadow-sm"
                 title="Pilih tanggal"
               >
                 <Calendar className="h-3.5 w-3.5" />
@@ -192,12 +188,12 @@ export function FinancialSummaryCard({
           </div>
         </div>
         
-        {/* Period Display */}
-        <div className="mt-2">
+        {/* Period Display - Removed duplicate */}
+        {/*<div className="mt-2">
           <span className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
             {getPeriodDisplayLabel()}
           </span>
-        </div>
+        </div>*/}
       </CardHeader>
       
       <CardContent className="p-6 space-y-6">

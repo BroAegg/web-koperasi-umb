@@ -312,23 +312,14 @@ export default function FinancialPage() {
         </div>
       )}
 
-      {/* Financial Chart - Replacing old bar chart */}
+      {/* Financial Chart - Dynamic based on period */}
       {dailySummary && (
         <FinancialChart
           transactions={transactions}
           totalIncome={dailySummary.totalIncome}
           totalExpense={dailySummary.totalExpense}
           netIncome={dailySummary.netIncome}
-        />
-      )}
-
-      {/* Financial Chart - Replacing old bar chart */}
-      {dailySummary && (
-        <FinancialChart
-          transactions={transactions}
-          totalIncome={dailySummary.totalIncome}
-          totalExpense={dailySummary.totalExpense}
-          netIncome={dailySummary.netIncome}
+          period={financialPeriod}
         />
       )}
 
