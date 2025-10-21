@@ -89,7 +89,7 @@ export async function GET(request: NextRequest) {
                 suppliers: {
                   select: {
                     id: true,
-                    name: true,
+                    businessName: true,
                   },
                 },
               },
