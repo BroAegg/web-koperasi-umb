@@ -23,7 +23,10 @@ import {
   Wrench,
   Activity,
   Database,
-  Code
+  Code,
+  ShoppingCart,
+  Receipt,
+  User
 } from "lucide-react";
 
 function KoperasiContent({ children }: { children: React.ReactNode }) {
@@ -68,6 +71,17 @@ function KoperasiContent({ children }: { children: React.ReactNode }) {
         { name: "Dashboard", href: "/koperasi/dashboard", icon: LayoutDashboard, roles: ["ADMIN", "SUPER_ADMIN"] },
         { name: "POS Kasir", href: "/koperasi/pos", icon: CreditCard, roles: ["ADMIN", "SUPER_ADMIN"] },
         { name: "Inventory", href: "/koperasi/inventory", icon: Package, roles: ["ADMIN", "SUPER_ADMIN"] },
+      ]
+    },
+    {
+      title: "SUPPLIER",
+      items: [
+        { name: "Dashboard", href: "/koperasi/supplier", icon: LayoutDashboard, roles: ["SUPPLIER"] },
+        { name: "Produk Saya", href: "/koperasi/supplier/products", icon: Package, roles: ["SUPPLIER"] },
+        { name: "Pesanan", href: "/koperasi/supplier/orders", icon: ShoppingCart, roles: ["SUPPLIER"] },
+        { name: "Transaksi", href: "/koperasi/supplier/transactions", icon: Receipt, roles: ["SUPPLIER"] },
+        { name: "Broadcast", href: "/koperasi/supplier/broadcast", icon: Megaphone, roles: ["SUPPLIER"] },
+        { name: "Profil", href: "/koperasi/supplier/profile", icon: User, roles: ["SUPPLIER"] },
       ]
     },
     {
@@ -123,9 +137,11 @@ function KoperasiContent({ children }: { children: React.ReactNode }) {
   };
 
   // Determine portal name and icon based on role
-  const portalConfig = user?.role === "SUPER_ADMIN" 
-    ? { name: "Super Admin", icon: Shield }
-    : { name: "Admin Portal", icon: UserCog };
+  const portalConfig = 
+    user?.role === "SUPER_ADMIN" ? { name: "Super Admin", icon: Shield } :
+    user?.role === "SUPPLIER" ? { name: "Supplier Portal", icon: Package } :
+    user?.role === "DEVELOPER" ? { name: "Developer Mode", icon: Code } :
+    { name: "Admin Portal", icon: UserCog };
 
   const PortalIcon = portalConfig.icon;
 
