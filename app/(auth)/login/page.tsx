@@ -34,16 +34,13 @@ export default function LoginPage() {
 
       console.log('Response status:', res.status);
       
-      if (!res.ok) {
-        const errorText = await res.text();
-        console.error('Login failed:', errorText);
-        throw new Error(`HTTP error! status: ${res.status}`);
-      }
-
+      // Parse JSON first to get error message
       const data = await res.json();
-      console.log('Login response:', { success: data.success, error: data.error });
+      console.log('Login response:', { success: data.success, error: data.error, status: data.status });
 
-      if (!data.success) {
+      // Check if login failed
+      if (!res.ok || !data.success) {
+        // Show error message from API
         alert(data.error || 'Gagal login');
         setIsLoading(false);
         return;
