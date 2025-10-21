@@ -63,7 +63,20 @@ async function main() {
     },
   });
 
-  console.log('✅ Core users (superadmin/admin/supplier) ensured. Default password for all:', 'Password123!');
+  const developer = await prisma.users.upsert({
+    where: { email: 'developer@koperasi.com' },
+    update: { password: hashed, name: 'Developer', role: Role.DEVELOPER },
+    create: { 
+      id: randomUUID(),
+      email: 'developer@koperasi.com', 
+      name: 'Developer', 
+      password: hashed, 
+      role: Role.DEVELOPER,
+      updatedAt: new Date(),
+    },
+  });
+
+  console.log('✅ Core users (superadmin/admin/supplier/developer) ensured. Default password for all:', 'Password123!');
 
   // Generate supplier code
   const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');

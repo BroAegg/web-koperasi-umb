@@ -110,6 +110,7 @@ function KoperasiContent({ children }: { children: React.ReactNode }) {
         { name: "Activity Logs", href: "/koperasi/developer-dashboard/activity-logs", icon: Activity, roles: ["DEVELOPER"] },
         { name: "Data Management", href: "/koperasi/developer-dashboard/data-management", icon: Database, roles: ["DEVELOPER"] },
         { name: "API Tester", href: "/koperasi/developer-dashboard/api-tester", icon: Code, roles: ["DEVELOPER"] },
+        { name: "Pengaturan Akun", href: "/koperasi/developer/settings", icon: Settings, roles: ["DEVELOPER"] },
       ]
     }
   ];
