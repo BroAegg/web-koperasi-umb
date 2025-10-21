@@ -65,8 +65,15 @@ async function main() {
 
   console.log('✅ Core users (superadmin/admin/supplier) ensured. Default password for all:', 'Password123!');
 
-  // Create supplier profile for supplier@koperasi.com
-  const supplierProfile = await prisma.supplier_profiles.upsert({
+  // Generate supplier code
+  const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+  const supplierCode = `SUP-${dateStr}-001`;
+
+  // Hash password for supplier
+  const supplierPassword = await bcrypt.hash('Password123!', 10);
+
+  // Create supplier in unified suppliers table
+  const supplierEntry = await prisma.suppliers.upsert({
     where: { email: 'supplier@koperasi.com' },
     update: {
       businessName: 'CV Makmur Jaya',
@@ -78,6 +85,7 @@ async function main() {
       status: 'APPROVED',
       paymentStatus: 'PAID_APPROVED',
       isPaymentActive: true,
+      isActive: true,
       lastPaymentDate: new Date(),
       nextPaymentDue: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
       approvedAt: new Date(),
@@ -85,10 +93,11 @@ async function main() {
     },
     create: {
       id: randomUUID(),
-      userId: supplier.id,
+      code: supplierCode,
       businessName: 'CV Makmur Jaya',
       ownerName: 'Budi Santoso',
       email: 'supplier@koperasi.com',
+      password: supplierPassword,
       phone: '081234567890',
       address: 'Jl. Raya No. 123, Jakarta',
       productCategory: 'Sembako',
@@ -96,15 +105,17 @@ async function main() {
       status: 'APPROVED',
       paymentStatus: 'PAID_APPROVED',
       isPaymentActive: true,
+      isActive: true,
       monthlyFee: 25000,
       lastPaymentDate: new Date(),
       nextPaymentDue: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
       approvedAt: new Date(),
+      createdAt: new Date(),
       updatedAt: new Date(),
     },
   });
 
-  console.log('✅ Supplier profile created for supplier@koperasi.com:', supplierProfile.businessName);
+  console.log('✅ Supplier created for supplier@koperasi.com:', supplierEntry.businessName, 'Code:', supplierEntry.code);
 
   // Create categories
   const categories = await Promise.all([
