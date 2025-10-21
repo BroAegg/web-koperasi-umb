@@ -20,7 +20,7 @@ export async function POST(
     }
 
     // Check if supplier exists
-    const supplier = await prisma.supplier_profiles.findUnique({
+    const supplier = await prisma.suppliers.findUnique({
       where: { id: supplierId },
     });
 
@@ -32,7 +32,7 @@ export async function POST(
     }
 
     // Reject supplier
-    const updatedSupplier = await prisma.supplier_profiles.update({
+    const updatedSupplier = await prisma.suppliers.update({
       where: { id: supplierId },
       data: {
         status: 'REJECTED',

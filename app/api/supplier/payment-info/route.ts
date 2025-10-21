@@ -22,8 +22,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get supplier profile
-    const supplier = await prisma.supplier_profiles.findFirst({
+    // Get supplier payment info
+    const supplier = await prisma.suppliers.findFirst({
       where: { email: user.email },
       select: {
         monthlyFee: true,

@@ -22,8 +22,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get supplier profile
-    const supplier = await prisma.supplier_profiles.findFirst({
+    // Get supplier data
+    const supplier = await prisma.suppliers.findFirst({
       where: { email: user.email },
     });
 
@@ -99,7 +99,7 @@ export async function POST(request: NextRequest) {
     });
 
     // Update supplier payment status
-    await prisma.supplier_profiles.update({
+    await prisma.suppliers.update({
       where: { id: supplier.id },
       data: {
         paymentStatus: 'PAID_PENDING_APPROVAL',

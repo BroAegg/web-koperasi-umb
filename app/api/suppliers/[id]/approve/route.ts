@@ -11,7 +11,7 @@ export async function POST(
     const { id: supplierId } = await params;
 
     // Check if supplier exists
-    const supplier = await prisma.supplier_profiles.findUnique({
+    const supplier = await prisma.suppliers.findUnique({
       where: { id: supplierId },
     });
 
@@ -30,11 +30,11 @@ export async function POST(
       );
     }
 
-    // Approve supplier and set to ACTIVE
-    const updatedSupplier = await prisma.supplier_profiles.update({
+    // Approve supplier and set to APPROVED
+    const updatedSupplier = await prisma.suppliers.update({
       where: { id: supplierId },
       data: {
-        status: 'ACTIVE',
+        status: 'APPROVED',
         approvedAt: new Date(),
         isPaymentActive: true,
         // Set next payment due to 30 days from now
