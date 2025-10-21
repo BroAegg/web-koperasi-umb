@@ -18,7 +18,7 @@ async function main() {
       name: 'Reyvan Developer',
       email: 'reyvan.dev@koperasi-umb.com',
       password: hashedPassword,
-      role: 'DEVELOPER' as Role,
+      role: 'DEVELOPER' as Role, // Use string literal with type assertion
       isActive: true,
       updatedAt: new Date(),
     },
@@ -34,7 +34,7 @@ async function main() {
       name: 'Aegner Developer',
       email: 'aegner.dev@koperasi-umb.com',
       password: hashedPassword,
-      role: 'DEVELOPER' as Role,
+      role: 'DEVELOPER' as Role, // Use string literal with type assertion
       isActive: true,
       updatedAt: new Date(),
     },

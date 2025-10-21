@@ -30,11 +30,13 @@ export async function POST(request: NextRequest) {
 
       console.log('Password correct, generating token for user:', email);
       let token: string;
-      if (user.role === 'DEVELOPER') {
+      // Check if user has DEVELOPER role (string comparison to handle new enum value)
+      const isDeveloper = String(user.role) === 'DEVELOPER';
+      if (isDeveloper) {
         // default developerSession: activeRole = DEVELOPER, DEV mode
         token = signDeveloperToken(user.id, user.role, {
-          actualRole: 'DEVELOPER',
-          activeRole: 'DEVELOPER',
+          actualRole: 'DEVELOPER' as any,
+          activeRole: 'DEVELOPER' as any,
           isProduction: false,
         });
       } else {

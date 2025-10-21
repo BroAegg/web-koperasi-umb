@@ -102,7 +102,29 @@ export async function POST(req: NextRequest) {
 
       // Process each item
       for (const item of items) {
-        // Create transaction item (isProduction handled by middleware)
+        // ✅ FIX: Get product data untuk calculate COGS (harga beli)
+        const product = await tx.products.findUnique({
+          where: { id: item.productId },
+          select: {
+            id: true,
+            name: true,
+            buyPrice: true,
+            avgCost: true,
+            ownershipType: true,
+            isConsignment: true,
+          }
+        });
+
+        if (!product) {
+          throw new Error(`Product not found: ${item.productId}`);
+        }
+
+        // ✅ KONSINYASI PAYMENT LOGIC: Harga Beli × Jumlah Stok Keluar
+        // Gunakan avgCost (average cost) jika ada, fallback ke buyPrice
+        const unitCost = product.avgCost || product.buyPrice || 0;
+        const totalCogs = Number(unitCost) * item.quantity;
+
+        // Create transaction item dengan totalCogs
         const transactionItem = await tx.transaction_items.create({
           data: {
             id: randomUUID(),
@@ -111,6 +133,7 @@ export async function POST(req: NextRequest) {
             quantity: item.quantity,
             unitPrice: item.unitPrice,
             totalPrice: item.subtotal,
+            totalCogs: totalCogs, // ✅ CRITICAL: Harga beli × quantity untuk pembayaran konsinyasi
           },
         });
 
@@ -127,13 +150,14 @@ export async function POST(req: NextRequest) {
           },
         });
 
-        // Create stock movement record (isProduction handled by middleware)
+        // ✅ Create stock movement record dengan unitCost untuk tracking pembayaran konsinyasi
         const stockMovement = await tx.stock_movements.create({
           data: {
             id: randomUUID(),
             productId: item.productId,
             movementType: 'SALE_OUT',
             quantity: -item.quantity, // Negative for outgoing
+            unitCost: unitCost, // ✅ CRITICAL: Unit cost untuk calculate pembayaran konsinyasi
             referenceType: 'SALE', // ✅ FIX: Use correct enum value (not TRANSACTION)
             referenceId: transaction.id,
             note: `POS Sale - ${customerName || 'Walk-in Customer'}`,
