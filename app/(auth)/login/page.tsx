@@ -40,7 +40,15 @@ export default function LoginPage() {
 
       // Check if login failed
       if (!res.ok || !data.success) {
-        // Show error message from API
+        // If supplier is PENDING, redirect to pending page instead of showing alert
+        if (data.status === 'PENDING') {
+          // Store email in sessionStorage to display on pending page
+          sessionStorage.setItem('pendingSupplierEmail', formData.email);
+          window.location.href = '/supplier/pending';
+          return;
+        }
+        
+        // For other errors, show alert
         alert(data.error || 'Gagal login');
         setIsLoading(false);
         return;
