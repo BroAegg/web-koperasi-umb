@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { Decimal } from '@prisma/client/runtime/library';
 import { randomUUID } from 'crypto';
+import { logFromRequest } from '@/lib/activity-logger';
 
 // GET /api/members - Get all members with optional filtering
 export async function GET(request: NextRequest) {
@@ -169,6 +170,21 @@ export async function POST(request: NextRequest) {
         },
       },
     });
+
+    // Log activity
+    await logFromRequest(
+      request,
+      'MEMBER_CREATE',
+      'MEMBER',
+      `Created member: ${name} (${memberNumber})`,
+      {
+        memberId: member.id,
+        name,
+        email,
+        memberNumber,
+        unitKerja,
+      }
+    ).catch((err) => console.error('[Activity Logger] Failed to log member creation:', err));
 
     return NextResponse.json({
       success: true,

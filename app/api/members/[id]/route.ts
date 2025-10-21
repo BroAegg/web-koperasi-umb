@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { Decimal } from '@prisma/client/runtime/library';
+import { logFromRequest } from '@/lib/activity-logger';
 
 // GET /api/members/[id] - Get member by ID
 export async function GET(
@@ -130,6 +131,20 @@ export async function PUT(
       },
     });
 
+    // Log activity
+    await logFromRequest(
+      request,
+      'MEMBER_UPDATE',
+      'MEMBER',
+      `Updated member: ${updatedMember.name} (${updatedMember.nomorAnggota})`,
+      {
+        memberId: id,
+        name: updatedMember.name,
+        email: updatedMember.email,
+        updatedFields: Object.keys(body),
+      }
+    ).catch((err) => console.error('[Activity Logger] Failed to log member update:', err));
+
     return NextResponse.json({
       success: true,
       data: {
@@ -173,6 +188,20 @@ export async function DELETE(
     await prisma.members.delete({
       where: { id },
     });
+
+    // Log activity
+    await logFromRequest(
+      request,
+      'MEMBER_DELETE',
+      'MEMBER',
+      `Deleted member: ${member.name} (${member.nomorAnggota})`,
+      {
+        memberId: id,
+        name: member.name,
+        email: member.email,
+        memberNumber: member.nomorAnggota,
+      }
+    ).catch((err) => console.error('[Activity Logger] Failed to log member deletion:', err));
 
     return NextResponse.json({
       success: true,
