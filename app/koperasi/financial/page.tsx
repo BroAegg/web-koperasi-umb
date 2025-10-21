@@ -14,6 +14,7 @@ import { FinancialMetricsCards } from '@/components/financial/FinancialMetricsCa
 import { TransactionTable } from '@/components/financial/TransactionTable';
 import { TransactionModal } from '@/components/financial/TransactionModal';
 import { FinancialChart } from '@/components/financial/FinancialChart';
+import { TransactionDetailModal } from '@/components/financial/TransactionDetailModal';
 import type { 
   Transaction,
   NewTransaction,
@@ -36,6 +37,8 @@ export default function FinancialPage() {
   const [isCustomDate, setIsCustomDate] = useState(false);
   const [filterType, setFilterType] = useState('');
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showDetailModal, setShowDetailModal] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState<Transaction | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<string | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
@@ -233,11 +236,9 @@ export default function FinancialPage() {
   };
 
   const handleViewTransaction = (transaction: Transaction) => {
-    // Show notification with transaction details
-    info(
-      'Detail Transaksi',
-      `${getCategoryFromType(transaction.type)} - ${formatCurrency(transaction.amount)}: ${transaction.description}`
-    );
+    // Open detail modal to show products
+    setSelectedTransaction(transaction);
+    setShowDetailModal(true);
   };
 
   const handleEditTransaction = (transaction: Transaction) => {
@@ -345,6 +346,16 @@ export default function FinancialPage() {
         onClose={handleTransactionModalClose}
         onSubmit={handleTransactionSubmit}
         isSubmitting={isSubmitting}
+      />
+
+      {/* Transaction Detail Modal */}
+      <TransactionDetailModal
+        isOpen={showDetailModal}
+        transaction={selectedTransaction}
+        onClose={() => {
+          setShowDetailModal(false);
+          setSelectedTransaction(null);
+        }}
       />
 
     </div>

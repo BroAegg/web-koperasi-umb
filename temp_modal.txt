@@ -1,0 +1,10 @@
+﻿
+      {/* Transaction Detail Modal */}
+      <TransactionDetailModal
+        isOpen={showDetailModal}
+        transaction={selectedTransaction}
+        onClose={() => {
+          setShowDetailModal(false);
+          setSelectedTransaction(null);
+        }}
+      />
