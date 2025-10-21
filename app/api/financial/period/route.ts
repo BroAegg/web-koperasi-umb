@@ -89,7 +89,7 @@ export async function GET(request: NextRequest) {
                 suppliers: {
                   select: {
                     id: true,
-                    name: true,
+                    businessName: true, // Changed from 'name'
                   },
                 },
               },
@@ -155,7 +155,7 @@ export async function GET(request: NextRequest) {
             
             // Track consignment by supplier
             const supplierId = item.products?.supplierId || 'unknown';
-            const supplierName = item.products?.suppliers?.name || 'Supplier Tidak Diketahui';
+            const supplierName = item.products?.suppliers?.businessName || 'Supplier Tidak Diketahui'; // Changed from 'name'
             const itemProfit = itemRevenue - itemCOGS;
             
             const existingSupplier = consignmentSupplierMap.get(supplierId);
