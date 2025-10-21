@@ -13,7 +13,7 @@ export async function POST(
     const { approve } = body; // true = approve, false = reject
 
     // Check if supplier exists
-    const supplier = await prisma.supplier_profiles.findUnique({
+    const supplier = await prisma.suppliers.findUnique({
       where: { id: supplierId },
       include: {
         supplier_payments: {
@@ -56,7 +56,7 @@ export async function POST(
           },
         }),
         // Update supplier payment status
-        prisma.supplier_profiles.update({
+        prisma.suppliers.update({
           where: { id: supplierId },
           data: {
             paymentStatus: 'PAID_APPROVED',
@@ -96,7 +96,7 @@ export async function POST(
           },
         }),
         // Update supplier payment status
-        prisma.supplier_profiles.update({
+        prisma.suppliers.update({
           where: { id: supplierId },
           data: {
             paymentStatus: 'PAID_REJECTED',
