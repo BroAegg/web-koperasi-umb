@@ -3,7 +3,21 @@
 **Objective:** Implement proper supplier product flow with dynamic max products limit (2-3 products per supplier, configurable by super admin)
 
 **Date Started:** 21 Oktober 2025  
-**Status:** 🟡 In Progress - Phase 1
+**Status:** 🟡 In Progress - Phase 2 (50% complete)
+
+---
+
+## 📊 PROGRESS SUMMARY
+
+- ✅ **Phase 1:** Fix Bugs & Basic Setup (100% - 6/6 tasks)
+- 🟡 **Phase 2:** Request Product Flow (50% - 2/4 tasks)
+- ⏳ **Phase 3:** Super Admin Approval (0% - 0/5 tasks)
+- ⏳ **Phase 4:** Notifications & Polish (0% - 0/4 tasks)
+
+**Commits:**
+- b6f1ba0: Phase 1.1 - Roadmap + Settings API
+- 2041bee: Phase 1.2-1.4 - Rewrite products page (512→370 lines)
+- 9f54fc6: Phase 2.1-2.2 - Request product modal + form submission
 
 ---
 
@@ -270,47 +284,24 @@ export function StatusBadge({ status }: { status: string }) {
 
 ### **Tasks:**
 
-#### **2.1 Create Request Product Modal** ⏳
+#### **2.1 Create Request Product Modal** ✅
 **File:** `app/koperasi/supplier/products/page.tsx`
+**Status:** COMPLETE (Commit: 9f54fc6)
 
-**Modal Component:**
-```tsx
-<Modal isOpen={showModal} onClose={closeModal}>
-  <div className="max-w-2xl">
-    <h2 className="text-2xl font-bold mb-6">Request Produk Baru</h2>
-    
-    <form onSubmit={handleSubmit}>
-      {/* Form fields */}
-      <div className="space-y-4">
-        <Input label="Nama Produk" required />
-        <Select label="Kategori" options={categories} required />
-        <TextArea label="Deskripsi" rows={3} />
-        <Input label="Harga Jual" type="number" prefix="Rp" required />
-        <Input label="Stok Awal" type="number" suffix="pcs" required />
-        <Select label="Unit" options={['pcs', 'kg', 'liter', 'box']} />
-        <Select label="Siklus Stok" options={['Harian', 'Mingguan', 'Bulanan']} />
-        
-        {/* Image Upload */}
-        <FileUpload 
-          label="Foto Produk" 
-          accept="image/*"
-          preview={imagePreview}
-          onChange={handleImageUpload}
-        />
-      </div>
-      
-      <div className="flex space-x-3 mt-6">
-        <Button type="button" variant="outline" onClick={closeModal}>
-          Batalkan
-        </Button>
-        <Button type="submit" disabled={isSubmitting}>
-          {isSubmitting ? 'Mengirim...' : 'Request Produk'}
-        </Button>
-      </div>
-    </form>
-  </div>
-</Modal>
-```
+**Implementation:**
+- ✅ Added modal state management (showModal, categories, formData, imagePreview, isSubmitting)
+- ✅ Implemented fetchCategories to get dropdown options from /api/categories
+- ✅ Created comprehensive form with 7 fields:
+  * Nama Produk (text input, 3-100 chars, required)
+  * Kategori (dropdown from API, required)
+  * Deskripsi (textarea, optional)
+  * Harga Jual (number, min Rp 1.000, required)
+  * Stok Awal (number, 0-10.000, required)
+  * Satuan (dropdown: pcs/kg/liter/box/pack/lusin, required)
+  * Siklus Stok (dropdown: Harian/Mingguan/Bulanan, required)
+- ✅ Modal opens from 3 entry points (header button, empty state, add product card)
+- ✅ Form resets on close, proper disabled states
+- ✅ Image upload UI prepared (placeholder for Phase 2.3)
 
 ---
 
@@ -368,9 +359,26 @@ const handleSubmit = async (e: FormEvent) => {
 };
 ```
 
----
+#### **2.2 Handle Form Submission** ✅
+**Status:** COMPLETE (Commit: 9f54fc6)
 
-#### **2.3 Add Image Upload Handler** ⏳
+**Implementation:**
+- ✅ Implemented handleSubmit with form validation:
+  * Name required (trim whitespace)
+  * Category required
+  * Price min Rp 1.000
+  * Stock non-negative
+- ✅ POST to /api/supplier/products with proper payload:
+  * Auto-assigns supplierId via JWT token
+  * Sets status='INACTIVE' and isActive=false (needs admin approval)
+  * Includes all form fields (name, categoryId, description, sellPrice, stock, unit, stockCycle)
+- ✅ Success/error feedback with alert dialogs
+- ✅ Modal auto-closes on success
+- ✅ Product list auto-refreshes after successful submission
+- ✅ Loading state during submission (button disabled with spinner)
+- ✅ Form resets on close
+
+**API Used:** `/api/supplier/products` POST (already exists, no changes needed)
 
 **File:** `lib/image-upload.ts` (new)
 
