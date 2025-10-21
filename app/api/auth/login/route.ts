@@ -74,8 +74,8 @@ export async function POST(request: NextRequest) {
       return NextResponse.json(response);
     }
 
-    // If not found in User, try SupplierProfile (direct supplier registration)
-    const supplier = await prisma.supplier_profiles.findUnique({ 
+    // If not found in User, try Supplier (merged table)
+    const supplier = await prisma.suppliers.findUnique({ 
       where: { email },
       select: {
         id: true,
@@ -129,45 +129,8 @@ export async function POST(request: NextRequest) {
       }, { status: 403 });
     }
 
-    // 🔥 QUICK FIX: Auto-create entry in suppliers table if not exists (only for APPROVED suppliers)
-    // Use ID instead of email to avoid duplicate entries
-    let supplierEntry = await prisma.suppliers.findFirst({
-      where: { id: supplier.id }
-    });
-
-    console.log('Checking suppliers table - ID:', supplier.id, 'Email:', supplier.email, 'Found:', !!supplierEntry);
-
-    if (!supplierEntry) {
-      console.log('Creating suppliers table entry for:', email);
-      
-      // Generate unique supplier code (SUP-YYYYMMDD-XXX)
-      const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
-      const randomSuffix = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
-      const supplierCode = `SUP-${dateStr}-${randomSuffix}`;
-      
-      try {
-        supplierEntry = await prisma.suppliers.create({
-          data: {
-            id: supplier.id, // Use same ID from supplier_profiles
-            code: supplierCode,
-            name: supplier.businessName,
-            contact: supplier.ownerName || supplier.businessName,
-            email: supplier.email,
-            phone: supplier.phone || '',
-            address: supplier.address || '',
-            isActive: supplier.status === 'APPROVED',
-            createdAt: new Date(),
-            updatedAt: new Date(),
-          }
-        });
-        console.log('✅ Suppliers table entry created:', supplierEntry.id, 'code:', supplierCode);
-      } catch (createError) {
-        console.error('❌ Failed to create suppliers entry:', createError);
-      }
-    } else {
-      console.log('✅ Suppliers table entry already exists:', supplierEntry.id);
-    }
-
+    // ✅ Supplier found in single unified table - no sync needed!
+    
     // Generate token for supplier (role: SUPPLIER)
     console.log('Password correct, generating token for supplier:', email);
     const token = signToken({ 

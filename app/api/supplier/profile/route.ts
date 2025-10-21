@@ -22,11 +22,12 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Get supplier profile from supplier_profiles
-    const supplierProfile = await prisma.supplier_profiles.findFirst({
+    // Get supplier from unified suppliers table
+    const supplier = await prisma.suppliers.findUnique({
       where: { email: user.email },
       select: {
         id: true,
+        code: true,
         businessName: true,
         ownerName: true,
         email: true,
@@ -40,39 +41,22 @@ export async function GET(request: NextRequest) {
         lastPaymentDate: true,
         nextPaymentDue: true,
         isPaymentActive: true,
+        isActive: true,
         createdAt: true,
         updatedAt: true,
       },
     });
 
-    if (!supplierProfile) {
+    if (!supplier) {
       return NextResponse.json(
         { success: false, error: 'Supplier profile not found' },
         { status: 404 }
       );
     }
 
-    // Get supplier from suppliers table (for products relation)
-    const supplier = await prisma.suppliers.findFirst({
-      where: { email: user.email },
-      select: {
-        id: true,
-        code: true,
-        name: true,
-        contact: true,
-        phone: true,
-        email: true,
-        address: true,
-        isActive: true,
-      },
-    });
-
     return NextResponse.json({
       success: true,
-      data: {
-        profile: supplierProfile,
-        supplier: supplier,
-      },
+      data: supplier, // Single unified object
     });
   } catch (error: any) {
     console.error('Error fetching supplier profile:', error);
@@ -106,27 +90,27 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const { businessName, ownerName, phone, address, description } = body;
 
-    // Get supplier profile
-    const supplierProfile = await prisma.supplier_profiles.findFirst({
+    // Get supplier from unified table
+    const supplier = await prisma.suppliers.findUnique({
       where: { email: user.email },
     });
 
-    if (!supplierProfile) {
+    if (!supplier) {
       return NextResponse.json(
-        { success: false, error: 'Supplier profile not found' },
+        { success: false, error: 'Supplier not found' },
         { status: 404 }
       );
     }
 
-    // Update profile
-    const updated = await prisma.supplier_profiles.update({
-      where: { id: supplierProfile.id },
+    // Update supplier
+    const updated = await prisma.suppliers.update({
+      where: { id: supplier.id },
       data: {
-        businessName: businessName || supplierProfile.businessName,
-        ownerName: ownerName || supplierProfile.ownerName,
-        phone: phone || supplierProfile.phone,
-        address: address || supplierProfile.address,
-        description: description !== undefined ? description : supplierProfile.description,
+        businessName: businessName || supplier.businessName,
+        ownerName: ownerName || supplier.ownerName,
+        phone: phone || supplier.phone,
+        address: address || supplier.address,
+        description: description !== undefined ? description : supplier.description,
         updatedAt: new Date(),
       },
     });
