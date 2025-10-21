@@ -120,9 +120,7 @@ export default function SupplierRegisterPage() {
 
       // Success
       setSuccess(true);
-      setTimeout(() => {
-        router.push('/login');
-      }, 3000);
+      // Don't auto-redirect - let user stay on success page
     } catch (err) {
       console.error('Registration error:', err);
       setError('Terjadi kesalahan saat mendaftar. Silakan coba lagi.');

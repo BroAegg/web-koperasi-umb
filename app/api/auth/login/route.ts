@@ -110,7 +110,26 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ success: false, error: 'Password salah' }, { status: 401 });
     }
 
-    // 🔥 QUICK FIX: Auto-create entry in suppliers table if not exists
+    // 🔥 CHECK: Block login if supplier not approved yet
+    if (supplier.status === 'PENDING') {
+      console.log('Supplier status PENDING, blocking login:', email);
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Akun Anda masih menunggu persetujuan admin. Kami akan menghubungi Anda melalui email setelah akun disetujui.',
+        status: 'PENDING'
+      }, { status: 403 });
+    }
+
+    if (supplier.status === 'REJECTED') {
+      console.log('Supplier status REJECTED, blocking login:', email);
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Pendaftaran Anda ditolak oleh admin. Silakan hubungi admin untuk informasi lebih lanjut.',
+        status: 'REJECTED'
+      }, { status: 403 });
+    }
+
+    // 🔥 QUICK FIX: Auto-create entry in suppliers table if not exists (only for APPROVED suppliers)
     let supplierEntry = await prisma.suppliers.findFirst({
       where: { email: supplier.email }
     });
