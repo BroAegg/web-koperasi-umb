@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { logFromRequest } from '@/lib/activity-logger';
 
 const prisma = new PrismaClient();
 
@@ -151,6 +152,22 @@ export async function POST(request: NextRequest) {
         },
       },
     });
+
+    // Log activity
+    await logFromRequest(
+      request,
+      'BROADCAST_CREATE',
+      'BROADCAST',
+      `Created broadcast: ${title}`,
+      {
+        broadcastId: broadcast.id,
+        title,
+        type: broadcast.type,
+        targetAudience: broadcast.targetAudience,
+        status: broadcast.status,
+        totalRecipients,
+      }
+    ).catch((err) => console.error('[Activity Logger] Failed to log broadcast creation:', err));
 
     return NextResponse.json({
       success: true,

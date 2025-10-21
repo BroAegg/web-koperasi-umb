@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { logFromRequest } from '@/lib/activity-logger';
 
 const prisma = new PrismaClient();
 
@@ -124,6 +125,21 @@ export async function PUT(
       },
     });
 
+    // Log activity
+    await logFromRequest(
+      request,
+      'BROADCAST_UPDATE',
+      'BROADCAST',
+      `Updated broadcast: ${broadcast.title}`,
+      {
+        broadcastId: id,
+        title: broadcast.title,
+        type: broadcast.type,
+        targetAudience: broadcast.targetAudience,
+        updatedFields: Object.keys(body),
+      }
+    ).catch((err) => console.error('[Activity Logger] Failed to log broadcast update:', err));
+
     return NextResponse.json({
       success: true,
       data: broadcast,
@@ -168,6 +184,20 @@ export async function DELETE(
     await prisma.broadcasts.delete({
       where: { id },
     });
+
+    // Log activity
+    await logFromRequest(
+      request,
+      'BROADCAST_DELETE',
+      'BROADCAST',
+      `Deleted broadcast: ${existingBroadcast.title}`,
+      {
+        broadcastId: id,
+        title: existingBroadcast.title,
+        type: existingBroadcast.type,
+        targetAudience: existingBroadcast.targetAudience,
+      }
+    ).catch((err) => console.error('[Activity Logger] Failed to log broadcast deletion:', err));
 
     return NextResponse.json({
       success: true,
