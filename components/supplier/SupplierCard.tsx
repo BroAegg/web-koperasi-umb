@@ -96,7 +96,7 @@ export default function SupplierCard({
               <div>
                 <p className="text-xs text-gray-500 mb-1">Fee Bulanan</p>
                 <span className="text-sm font-medium text-gray-900">
-                  {formatCurrency(supplier.monthlyFee)}
+                  {supplier.monthlyFee ? formatCurrency(Number(supplier.monthlyFee)) : 'Rp 0'}
                 </span>
               </div>
             </div>
