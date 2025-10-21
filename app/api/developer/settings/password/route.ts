@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getUserFromToken, hashPassword, verifyPassword } from '@/lib/auth';
+import { getUserFromToken, hashPassword, comparePassword } from '@/lib/auth';
 
 // PUT /api/developer/settings/password - Update developer password
 export async function PUT(request: NextRequest) {
@@ -56,7 +56,7 @@ export async function PUT(request: NextRequest) {
     }
 
     // Verify current password
-    const isPasswordValid = await verifyPassword(currentPassword, fullUser.password);
+    const isPasswordValid = await comparePassword(currentPassword, fullUser.password);
     if (!isPasswordValid) {
       return NextResponse.json(
         { success: false, error: 'Password saat ini salah' },
