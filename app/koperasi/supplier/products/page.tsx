@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { 
   Plus, 
   Edit, 
@@ -12,7 +13,9 @@ import {
   Loader2,
   CheckCircle,
   Clock,
-  XCircle
+  XCircle,
+  X,
+  Upload
 } from "lucide-react";
 
 interface Product {
@@ -38,11 +41,43 @@ interface SupplierConfig {
   requireImageUpload: boolean;
 }
 
+interface Category {
+  id: string;
+  name: string;
+}
+
+interface ProductFormData {
+  name: string;
+  categoryId: string;
+  description: string;
+  sellPrice: string;
+  stock: string;
+  unit: string;
+  stockCycle: string;
+  imageUrl: string;
+}
+
 export default function SupplierProducts() {
   const [products, setProducts] = useState<Product[]>([]);
   const [config, setConfig] = useState<SupplierConfig | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  
+  // Modal states
+  const [showModal, setShowModal] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [formData, setFormData] = useState<ProductFormData>({
+    name: '',
+    categoryId: '',
+    description: '',
+    sellPrice: '',
+    stock: '',
+    unit: 'pcs',
+    stockCycle: 'Harian',
+    imageUrl: ''
+  });
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     fetchConfig();
@@ -109,6 +144,117 @@ export default function SupplierProducts() {
       setError('Failed to fetch products. Please try again.');
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const fetchCategories = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      const response = await fetch('/api/categories', {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        setCategories(result.data);
+      }
+    } catch (error) {
+      console.error('Error fetching categories:', error);
+    }
+  };
+
+  const handleOpenModal = () => {
+    fetchCategories();
+    setShowModal(true);
+  };
+
+  const handleCloseModal = () => {
+    setShowModal(false);
+    setFormData({
+      name: '',
+      categoryId: '',
+      description: '',
+      sellPrice: '',
+      stock: '',
+      unit: 'pcs',
+      stockCycle: 'Harian',
+      imageUrl: ''
+    });
+    setImagePreview(null);
+    setIsSubmitting(false);
+  };
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    // Validation
+    if (!formData.name.trim()) {
+      alert('Nama produk wajib diisi');
+      return;
+    }
+    if (!formData.categoryId) {
+      alert('Kategori wajib dipilih');
+      return;
+    }
+    if (!formData.sellPrice || parseFloat(formData.sellPrice) < 1000) {
+      alert('Harga jual minimal Rp 1.000');
+      return;
+    }
+    if (!formData.stock || parseInt(formData.stock) < 0) {
+      alert('Stok tidak boleh negatif');
+      return;
+    }
+
+    setIsSubmitting(true);
+
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        alert('Unauthorized - Please login');
+        setIsSubmitting(false);
+        return;
+      }
+
+      const response = await fetch('/api/supplier/products', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name: formData.name.trim(),
+          categoryId: formData.categoryId,
+          description: formData.description.trim() || null,
+          sellPrice: parseFloat(formData.sellPrice),
+          stock: parseInt(formData.stock),
+          unit: formData.unit,
+          stockCycle: formData.stockCycle,
+          imageUrl: formData.imageUrl || null
+        })
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        alert('Produk berhasil direquest! Menunggu approval admin.');
+        handleCloseModal();
+        fetchProducts(); // Refresh list
+      } else {
+        alert(result.error || 'Gagal membuat request produk');
+      }
+    } catch (error) {
+      console.error('Error submitting product:', error);
+      alert('Terjadi kesalahan. Silakan coba lagi.');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -215,7 +361,7 @@ export default function SupplierProducts() {
           </div>
           
           <Button 
-            onClick={() => console.log('Open add product modal')}
+            onClick={handleOpenModal}
             disabled={!canAddMore}
           >
             <Plus className="w-4 h-4 mr-2" />
@@ -234,7 +380,7 @@ export default function SupplierProducts() {
             <p className="text-gray-600 mb-6">
               Anda belum memiliki produk. Mulai dengan request produk baru untuk dijual di BSM Mart.
             </p>
-            <Button onClick={() => console.log('Open add product modal')}>
+            <Button onClick={handleOpenModal}>
               <Plus className="w-4 h-4 mr-2" />
               Request Produk Pertama
             </Button>
@@ -311,7 +457,7 @@ export default function SupplierProducts() {
             <Card className="border-2 border-dashed border-gray-300 hover:border-blue-500 cursor-pointer transition-colors">
               <CardContent 
                 className="p-6 flex flex-col items-center justify-center h-full min-h-[400px]"
-                onClick={() => console.log('Open add product modal')}
+                onClick={handleOpenModal}
               >
                 <Plus className="w-16 h-16 text-gray-400 mb-4" />
                 <p className="text-gray-600 font-medium">Request Produk Baru</p>
@@ -321,6 +467,204 @@ export default function SupplierProducts() {
               </CardContent>
             </Card>
           )}
+        </div>
+      )}
+
+      {/* Modal Request Produk */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-2xl w-full max-h-[90vh] overflow-y-auto">
+            <div className="sticky top-0 bg-white border-b px-6 py-4 flex justify-between items-center">
+              <h2 className="text-xl font-semibold text-gray-900">Request Produk Baru</h2>
+              <button
+                onClick={handleCloseModal}
+                className="text-gray-400 hover:text-gray-600"
+                disabled={isSubmitting}
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            <form onSubmit={handleSubmit} className="p-6 space-y-6">
+              {/* Nama Produk */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Nama Produk <span className="text-red-500">*</span>
+                </label>
+                <Input
+                  type="text"
+                  name="name"
+                  value={formData.name}
+                  onChange={handleInputChange}
+                  placeholder="Contoh: Indomie Goreng Jumbo"
+                  required
+                  maxLength={100}
+                  disabled={isSubmitting}
+                />
+                <p className="text-xs text-gray-500 mt-1">Min 3 karakter, max 100 karakter</p>
+              </div>
+
+              {/* Kategori */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Kategori <span className="text-red-500">*</span>
+                </label>
+                <select
+                  name="categoryId"
+                  value={formData.categoryId}
+                  onChange={handleInputChange}
+                  required
+                  disabled={isSubmitting}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">Pilih Kategori</option>
+                  {categories.map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Deskripsi */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Deskripsi
+                </label>
+                <textarea
+                  name="description"
+                  value={formData.description}
+                  onChange={handleInputChange}
+                  rows={3}
+                  placeholder="Deskripsi produk (opsional)"
+                  disabled={isSubmitting}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
+
+              {/* Harga & Stok */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Harga Jual (Rp) <span className="text-red-500">*</span>
+                  </label>
+                  <Input
+                    type="number"
+                    name="sellPrice"
+                    value={formData.sellPrice}
+                    onChange={handleInputChange}
+                    placeholder="10000"
+                    required
+                    min="1000"
+                    max="10000000"
+                    step="100"
+                    disabled={isSubmitting}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Min Rp 1.000</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Stok Awal <span className="text-red-500">*</span>
+                  </label>
+                  <Input
+                    type="number"
+                    name="stock"
+                    value={formData.stock}
+                    onChange={handleInputChange}
+                    placeholder="100"
+                    required
+                    min="0"
+                    max="10000"
+                    disabled={isSubmitting}
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Max 10.000</p>
+                </div>
+              </div>
+
+              {/* Unit & Siklus */}
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Satuan <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    name="unit"
+                    value={formData.unit}
+                    onChange={handleInputChange}
+                    required
+                    disabled={isSubmitting}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="pcs">Pcs (Pieces)</option>
+                    <option value="kg">Kg (Kilogram)</option>
+                    <option value="liter">Liter</option>
+                    <option value="box">Box</option>
+                    <option value="pack">Pack</option>
+                    <option value="lusin">Lusin</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Siklus Stok <span className="text-red-500">*</span>
+                  </label>
+                  <select
+                    name="stockCycle"
+                    value={formData.stockCycle}
+                    onChange={handleInputChange}
+                    required
+                    disabled={isSubmitting}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="Harian">Harian</option>
+                    <option value="Mingguan">Mingguan</option>
+                    <option value="Bulanan">Bulanan</option>
+                  </select>
+                </div>
+              </div>
+
+              {/* Image Upload (Optional for now) */}
+              {config?.allowImageUpload && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Foto Produk {config?.requireImageUpload && <span className="text-red-500">*</span>}
+                  </label>
+                  <div className="border-2 border-dashed border-gray-300 rounded-lg p-4 text-center">
+                    <Upload className="w-8 h-8 text-gray-400 mx-auto mb-2" />
+                    <p className="text-sm text-gray-600">Upload foto produk (coming soon)</p>
+                    <p className="text-xs text-gray-500 mt-1">Max 2MB, format: JPG/PNG</p>
+                  </div>
+                </div>
+              )}
+
+              {/* Submit Buttons */}
+              <div className="flex gap-3 pt-4 border-t">
+                <Button
+                  type="button"
+                  onClick={handleCloseModal}
+                  disabled={isSubmitting}
+                  className="flex-1 bg-gray-200 text-gray-700 hover:bg-gray-300"
+                >
+                  Batal
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="flex-1 bg-blue-600 text-white hover:bg-blue-700"
+                >
+                  {isSubmitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Mengirim Request...
+                    </>
+                  ) : (
+                    'Submit Request'
+                  )}
+                </Button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>
