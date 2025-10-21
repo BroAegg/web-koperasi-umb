@@ -81,6 +81,9 @@ export async function POST(request: NextRequest) {
         id: true,
         email: true,
         businessName: true,
+        ownerName: true,
+        phone: true,
+        address: true,
         password: true,
         status: true,
         paymentStatus: true
@@ -105,6 +108,36 @@ export async function POST(request: NextRequest) {
     if (!supplierPasswordOk) {
       console.log('Password incorrect for supplier:', email);
       return NextResponse.json({ success: false, error: 'Password salah' }, { status: 401 });
+    }
+
+    // 🔥 QUICK FIX: Auto-create entry in suppliers table if not exists
+    let supplierEntry = await prisma.suppliers.findFirst({
+      where: { email: supplier.email }
+    });
+
+    if (!supplierEntry) {
+      console.log('Creating suppliers table entry for:', email);
+      
+      // Generate unique supplier code (SUP-YYYYMMDD-XXX)
+      const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+      const randomSuffix = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+      const supplierCode = `SUP-${dateStr}-${randomSuffix}`;
+      
+      supplierEntry = await prisma.suppliers.create({
+        data: {
+          id: supplier.id, // Use same ID from supplier_profiles
+          code: supplierCode,
+          name: supplier.businessName,
+          contact: supplier.ownerName || supplier.businessName,
+          email: supplier.email,
+          phone: supplier.phone || '',
+          address: supplier.address || '',
+          isActive: supplier.status === 'APPROVED',
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        }
+      });
+      console.log('Suppliers table entry created:', supplierEntry.id, 'code:', supplierCode);
     }
 
     // Generate token for supplier (role: SUPPLIER)
