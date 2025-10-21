@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { logFromRequest } from '@/lib/activity-logger';
+import { withActivityLog } from '@/lib/with-activity-log';
 
 // POST /api/suppliers/[id]/verify-payment - Verify supplier payment (Super Admin only)
-export async function POST(
+async function handleVerifyPayment(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -65,24 +65,16 @@ export async function POST(
         }),
       ]);
 
-      // Log activity
-      await logFromRequest(
-        request,
-        'SUPPLIER_VERIFY_PAYMENT',
-        'SUPPLIER',
-        `Verified payment for supplier: ${supplier.businessName}`,
-        {
-          supplierId,
-          businessName: supplier.businessName,
-          paymentId: payment.id,
-          amount: Number(payment.amount),
-          action: 'APPROVED',
-        }
-      ).catch((err) => console.error('[Activity Logger] Failed to log payment verification:', err));
-
       return NextResponse.json({
         success: true,
         message: 'Pembayaran berhasil diverifikasi',
+        data: {
+          supplierId,
+          supplierName: supplier.businessName,
+          paymentId: payment.id,
+          amount: Number(payment.amount),
+          action: 'APPROVED',
+        },
       });
     } else {
       // Reject payment
@@ -104,24 +96,16 @@ export async function POST(
         }),
       ]);
 
-      // Log activity
-      await logFromRequest(
-        request,
-        'SUPPLIER_REJECT_PAYMENT',
-        'SUPPLIER',
-        `Rejected payment for supplier: ${supplier.businessName}`,
-        {
-          supplierId,
-          businessName: supplier.businessName,
-          paymentId: payment.id,
-          amount: Number(payment.amount),
-          action: 'REJECTED',
-        }
-      ).catch((err) => console.error('[Activity Logger] Failed to log payment rejection:', err));
-
       return NextResponse.json({
         success: true,
         message: 'Pembayaran ditolak',
+        data: {
+          supplierId,
+          supplierName: supplier.businessName,
+          paymentId: payment.id,
+          amount: Number(payment.amount),
+          action: 'REJECTED',
+        },
       });
     }
   } catch (error) {
@@ -132,3 +116,28 @@ export async function POST(
     );
   }
 }
+
+export const POST = withActivityLog({
+  module: 'SUPPLIER',
+  action: 'VERIFY_PAYMENT',
+  getDescription: (req, result) => {
+    const data = result?.data;
+    const action = data?.action === 'APPROVED' ? 'Verified' : 'Rejected';
+    const amount = data?.amount?.toLocaleString('id-ID') || '0';
+    return data?.supplierName
+      ? `${action} payment for ${data.supplierName} - Rp ${amount}`
+      : `${action} supplier payment`;
+  },
+  getMetadata: (req, result) => {
+    const data = result?.data;
+    return data
+      ? {
+          supplierId: data.supplierId,
+          businessName: data.supplierName,
+          paymentId: data.paymentId,
+          amount: data.amount,
+          action: data.action,
+        }
+      : undefined;
+  },
+})(handleVerifyPayment);

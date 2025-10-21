@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { logFromRequest } from '@/lib/activity-logger';
+import { withActivityLog } from '@/lib/with-activity-log';
 
 // POST /api/suppliers/[id]/approve - Approve supplier (Super Admin only)
-export async function POST(
+async function handleApproveSupplier(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -42,24 +42,13 @@ export async function POST(
       },
     });
 
-    // Log activity
-    await logFromRequest(
-      request,
-      'SUPPLIER_APPROVE',
-      'SUPPLIER',
-      `Approved supplier: ${supplier.businessName}`,
-      {
-        supplierId,
-        businessName: supplier.businessName,
-        email: supplier.email,
-        status: 'ACTIVE',
-      }
-    ).catch((err) => console.error('[Activity Logger] Failed to log supplier approval:', err));
-
     return NextResponse.json({
       success: true,
       message: 'Supplier berhasil diapprove dan diaktifkan',
-      data: updatedSupplier,
+      data: {
+        ...updatedSupplier,
+        supplierName: supplier.businessName,
+      },
     });
   } catch (error) {
     console.error('Error approving supplier:', error);
@@ -69,3 +58,25 @@ export async function POST(
     );
   }
 }
+
+export const POST = withActivityLog({
+  module: 'SUPPLIER',
+  action: 'APPROVE_SUPPLIER',
+  getDescription: (req, result) => {
+    const data = result?.data;
+    return data?.supplierName
+      ? `Approved supplier: ${data.supplierName}`
+      : 'Approved supplier';
+  },
+  getMetadata: (req, result) => {
+    const data = result?.data;
+    return data
+      ? {
+          supplierId: data.id,
+          businessName: data.businessName,
+          email: data.email,
+          status: data.status,
+        }
+      : undefined;
+  },
+})(handleApproveSupplier);

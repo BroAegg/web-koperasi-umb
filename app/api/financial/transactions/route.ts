@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
 import { randomUUID } from 'crypto';
-import { logFromRequest } from '@/lib/activity-logger';
+import { withActivityLog } from '@/lib/with-activity-log';
 
 const prisma = new PrismaClient();
 
@@ -93,7 +93,8 @@ export async function GET(request: NextRequest) {
 }
 
 // POST /api/financial/transactions - Create new transaction
-export async function POST(request: NextRequest) {
+// POST /api/financial/transactions - Create financial transaction
+async function handleCreateFinancialTransaction(request: NextRequest) {
   try {
     const body = await request.json();
     const {
@@ -166,21 +167,6 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // ✅ Activity Logging
-    await logFromRequest(
-      request,
-      'TRANSACTION_CREATE',
-      'FINANCIAL',
-      `Created ${type.toUpperCase()} transaction: ${description} (Rp ${Number(amount).toLocaleString('id-ID')})`,
-      { 
-        transactionId: transaction.id,
-        type: type.toUpperCase(),
-        amount: Number(amount),
-        category,
-        paymentMethod: paymentMethod?.toUpperCase() || 'CASH',
-      }
-    ).catch(err => console.error('[Activity Logger] Failed:', err));
-
     return NextResponse.json({
       success: true,
       data: {
@@ -200,3 +186,27 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+export const POST = withActivityLog({
+  module: 'FINANCIAL',
+  action: 'CREATE_TRANSACTION',
+  getDescription: (req, result) => {
+    const data = result?.data;
+    const type = data?.type || 'transaction';
+    const desc = data?.description || '';
+    const amount = data?.amount || 0;
+    return `Created ${type} transaction: ${desc} (Rp ${amount.toLocaleString('id-ID')})`;
+  },
+  getMetadata: (req, result) => {
+    const data = result?.data;
+    return data
+      ? {
+          transactionId: data.id,
+          type: data.type,
+          amount: data.amount,
+          category: data.category,
+          paymentMethod: data.paymentMethod,
+        }
+      : undefined;
+  },
+})(handleCreateFinancialTransaction);
