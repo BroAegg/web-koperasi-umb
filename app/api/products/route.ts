@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { Decimal } from '@prisma/client/runtime/library';
 import { randomUUID } from 'crypto';
-import { logFromRequest } from '@/lib/activity-logger';
+import { withActivityLog } from '@/lib/with-activity-log';
 
 // GET /api/products - Get all products with filtering
 export async function GET(request: NextRequest) {
@@ -91,7 +91,7 @@ export async function GET(request: NextRequest) {
 }
 
 // POST /api/products - Create new product
-export async function POST(request: NextRequest) {
+async function handleCreateProduct(request: NextRequest) {
   try {
     const body = await request.json();
     const {
@@ -201,19 +201,6 @@ export async function POST(request: NextRequest) {
       });
     }
 
-    // Log activity
-    try {
-      await logFromRequest(
-        request,
-        'CREATE',
-        'INVENTORY',
-        `Created product: ${name}`,
-        { productId: product.id, name, ownershipType, stock }
-      );
-    } catch (logError) {
-      console.error('[Activity Logger] Failed to log:', logError);
-    }
-
     return NextResponse.json({
       success: true,
       data: {
@@ -231,3 +218,26 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+export const POST = withActivityLog({
+  module: 'INVENTORY',
+  action: 'CREATE_PRODUCT',
+  getDescription: (req, result) => {
+    const product = result?.data;
+    return product
+      ? `Created product: ${product.name} (${product.ownershipType})`
+      : 'Created new product';
+  },
+  getMetadata: (req, result) => {
+    const product = result?.data;
+    return product
+      ? {
+          productId: product.id,
+          name: product.name,
+          ownershipType: product.ownershipType,
+          stock: product.stock,
+          sellPrice: product.sellPrice,
+        }
+      : undefined;
+  },
+})(handleCreateProduct);

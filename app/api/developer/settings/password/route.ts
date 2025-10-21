@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getUserFromToken, hashPassword, comparePassword } from '@/lib/auth';
+import { withActivityLog } from '@/lib/with-activity-log';
 
 // PUT /api/developer/settings/password - Update developer password
-export async function PUT(request: NextRequest) {
+async function handleChangePassword(request: NextRequest) {
   try {
     const token = request.headers.get('authorization')?.replace('Bearer ', '');
     if (!token) {
@@ -88,3 +89,10 @@ export async function PUT(request: NextRequest) {
     );
   }
 }
+
+export const PUT = withActivityLog({
+  module: 'AUTH',
+  action: 'CHANGE_PASSWORD',
+  getDescription: () => 'Changed account password',
+  getMetadata: () => ({ securityAction: true }),
+})(handleChangePassword);

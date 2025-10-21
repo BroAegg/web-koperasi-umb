@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireRole } from '@/lib/auth';
-import { logFromRequest } from '@/lib/activity-logger';
+import { withActivityLog } from '@/lib/with-activity-log';
 
 // PUT - Update product
-export async function PUT(
+async function handleUpdateProduct(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -52,15 +52,6 @@ export async function PUT(
       },
     });
 
-    // Log activity
-    await logFromRequest(
-      request,
-      'UPDATE',
-      'INVENTORY',
-      `Updated product: ${product.name}`,
-      { productId: id, changes: Object.keys(productData) }
-    ).catch(err => console.error('[Activity Logger] Failed:', err));
-
     return NextResponse.json({
       success: true,
       data: product,
@@ -78,8 +69,25 @@ export async function PUT(
   }
 }
 
+export const PUT = withActivityLog({
+  module: 'INVENTORY',
+  action: 'UPDATE_PRODUCT',
+  getDescription: (req, result) => {
+    const product = result?.data;
+    return product
+      ? `Updated product: ${product.name}`
+      : 'Updated product';
+  },
+  getMetadata: (req, result) => {
+    const product = result?.data;
+    return product
+      ? { productId: product.id, name: product.name }
+      : undefined;
+  },
+})(handleUpdateProduct);
+
 // DELETE - Delete product
-export async function DELETE(
+async function handleDeleteProduct(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -135,22 +143,16 @@ export async function DELETE(
 
     // 7. Finally, delete the product
     const product = await prisma.products.findUnique({ where: { id } });
+    const productName = product?.name || id;
+    
     await prisma.products.delete({
       where: { id },
     });
 
-    // Log activity
-    await logFromRequest(
-      request,
-      'DELETE',
-      'INVENTORY',
-      `Deleted product: ${product?.name || id}`,
-      { productId: id }
-    ).catch(err => console.error('[Activity Logger] Failed:', err));
-
     return NextResponse.json({
       success: true,
       message: 'Produk dan semua riwayat terkait berhasil dihapus',
+      deletedProduct: { id, name: productName },
     });
   } catch (error: any) {
     console.error('Error deleting product:', error);
@@ -174,6 +176,23 @@ export async function DELETE(
     );
   }
 }
+
+export const DELETE = withActivityLog({
+  module: 'INVENTORY',
+  action: 'DELETE_PRODUCT',
+  getDescription: (req, result) => {
+    const product = result?.deletedProduct;
+    return product
+      ? `Deleted product: ${product.name}`
+      : 'Deleted product';
+  },
+  getMetadata: (req, result) => {
+    const product = result?.deletedProduct;
+    return product
+      ? { productId: product.id, productName: product.name }
+      : undefined;
+  },
+})(handleDeleteProduct);
 
 // GET - Get single product
 export async function GET(

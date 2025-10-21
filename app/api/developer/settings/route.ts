@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getUserFromToken } from '@/lib/auth';
+import { withActivityLog } from '@/lib/with-activity-log';
 
 // PUT /api/developer/settings - Update developer profile
-export async function PUT(request: NextRequest) {
+async function handleUpdateProfile(request: NextRequest) {
   try {
     const token = request.headers.get('authorization')?.replace('Bearer ', '');
     if (!token) {
@@ -75,3 +76,18 @@ export async function PUT(request: NextRequest) {
     );
   }
 }
+
+export const PUT = withActivityLog({
+  module: 'AUTH',
+  action: 'UPDATE_PROFILE',
+  getDescription: (req, result) => {
+    const data = result?.data;
+    return data
+      ? `Updated profile: ${data.name} (${data.email})`
+      : 'Updated profile';
+  },
+  getMetadata: (req, result) => ({
+    name: result?.data?.name,
+    email: result?.data?.email,
+  }),
+})(handleUpdateProfile);
