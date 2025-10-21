@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { logFromRequest } from '@/lib/activity-logger';
 
 // POST /api/suppliers/[id]/reject - Reject supplier (Super Admin only)
 export async function POST(
@@ -38,6 +39,21 @@ export async function POST(
         rejectedReason: reason,
       },
     });
+
+    // Log activity
+    await logFromRequest(
+      request,
+      'SUPPLIER_REJECT',
+      'SUPPLIER',
+      `Rejected supplier: ${supplier.businessName}`,
+      {
+        supplierId,
+        businessName: supplier.businessName,
+        email: supplier.email,
+        status: 'REJECTED',
+        reason,
+      }
+    ).catch((err) => console.error('[Activity Logger] Failed to log supplier rejection:', err));
 
     return NextResponse.json({
       success: true,

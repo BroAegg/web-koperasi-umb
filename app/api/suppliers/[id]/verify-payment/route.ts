@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { logFromRequest } from '@/lib/activity-logger';
 
 // POST /api/suppliers/[id]/verify-payment - Verify supplier payment (Super Admin only)
 export async function POST(
@@ -64,6 +65,21 @@ export async function POST(
         }),
       ]);
 
+      // Log activity
+      await logFromRequest(
+        request,
+        'SUPPLIER_VERIFY_PAYMENT',
+        'SUPPLIER',
+        `Verified payment for supplier: ${supplier.businessName}`,
+        {
+          supplierId,
+          businessName: supplier.businessName,
+          paymentId: payment.id,
+          amount: Number(payment.amount),
+          action: 'APPROVED',
+        }
+      ).catch((err) => console.error('[Activity Logger] Failed to log payment verification:', err));
+
       return NextResponse.json({
         success: true,
         message: 'Pembayaran berhasil diverifikasi',
@@ -87,6 +103,21 @@ export async function POST(
           },
         }),
       ]);
+
+      // Log activity
+      await logFromRequest(
+        request,
+        'SUPPLIER_REJECT_PAYMENT',
+        'SUPPLIER',
+        `Rejected payment for supplier: ${supplier.businessName}`,
+        {
+          supplierId,
+          businessName: supplier.businessName,
+          paymentId: payment.id,
+          amount: Number(payment.amount),
+          action: 'REJECTED',
+        }
+      ).catch((err) => console.error('[Activity Logger] Failed to log payment rejection:', err));
 
       return NextResponse.json({
         success: true,
