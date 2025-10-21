@@ -313,37 +313,70 @@ model stock_movements {
 }
 
 model supplier_payments {
-  id                String                    @id
-  supplierProfileId String
-  amount            Decimal
-  paymentMethod     PaymentMethod             @default(TRANSFER)
-  paymentDate       DateTime                  @default(now())
-  periodStart       DateTime
-  periodEnd         DateTime
-  referenceNo       String?
-  paymentProof      String?
-  verifiedBy        String?
-  verifiedAt        DateTime?
-  status            PaymentVerificationStatus @default(PENDING)
-  note              String?
-  createdAt         DateTime                  @default(now())
-  updatedAt         DateTime
-  supplier_profiles supplier_profiles         @relation(fields: [supplierProfileId], references: [id], onDelete: Cascade)
+  id              String                    @id
+  supplierId      String                    // Changed from supplierProfileId
+  amount          Decimal
+  paymentMethod   PaymentMethod             @default(TRANSFER)
+  paymentDate     DateTime                  @default(now())
+  periodStart     DateTime
+  periodEnd       DateTime
+  referenceNo     String?
+  paymentProof    String?
+  verifiedBy      String?
+  verifiedAt      DateTime?
+  status          PaymentVerificationStatus @default(PENDING)
+  note            String?
+  createdAt       DateTime                  @default(now())
+  updatedAt       DateTime
+  suppliers       suppliers                 @relation(fields: [supplierId], references: [id], onDelete: Cascade)
 
-  @@index([supplierProfileId, paymentDate])
+  @@index([supplierId, paymentDate])
 }
 
-model supplier_profiles {
+// 🔥 DEPRECATED: Merged into suppliers table
+// model supplier_profiles {
+//   id                String              @id
+//   userId            String?             @unique
+//   businessName      String
+//   ownerName         String
+//   email             String?             @unique
+//   phone             String
+//   address           String
+//   productCategory   String
+//   description       String?
+//   password          String?
+//   status            SupplierStatus      @default(PENDING)
+//   paymentStatus     PaymentStatus       @default(UNPAID)
+//   approvedById      String?
+//   approvedAt        DateTime?
+//   rejectedReason    String?
+//   monthlyFee        Decimal             @default(25000)
+//   lastPaymentDate   DateTime?
+//   nextPaymentDue    DateTime?
+//   isPaymentActive   Boolean             @default(false)
+//   createdAt         DateTime            @default(now())
+//   updatedAt         DateTime
+//   supplier_payments supplier_payments[]
+//   users             users?              @relation(fields: [userId], references: [id], onDelete: Cascade)
+// }
+
+model suppliers {
   id                String              @id
-  userId            String?             @unique
-  businessName      String
-  ownerName         String
-  email             String?             @unique
+  code              String              @unique
+  
+  // Business Info (merged from supplier_profiles)
+  businessName      String              // was: name
+  ownerName         String              // was: contact
+  email             String              @unique
   phone             String
   address           String
-  productCategory   String
+  productCategory   String?
   description       String?
-  password          String?
+  
+  // Auth (from supplier_profiles)
+  password          String
+  
+  // Status & Payment (from supplier_profiles)
   status            SupplierStatus      @default(PENDING)
   paymentStatus     PaymentStatus       @default(UNPAID)
   approvedById      String?
@@ -353,27 +386,20 @@ model supplier_profiles {
   lastPaymentDate   DateTime?
   nextPaymentDue    DateTime?
   isPaymentActive   Boolean             @default(false)
+  
+  // Legacy fields (optional)
+  paymentTerms      String?
+  isActive          Boolean             @default(true)
+  note              String?
+  
+  // System
   createdAt         DateTime            @default(now())
   updatedAt         DateTime
+  
+  // Relations
+  products          products[]
+  purchases         purchases[]
   supplier_payments supplier_payments[]
-  users             users?              @relation(fields: [userId], references: [id], onDelete: Cascade)
-}
-
-model suppliers {
-  id           String      @id
-  code         String      @unique
-  name         String
-  contact      String?
-  phone        String?
-  email        String?
-  address      String?
-  paymentTerms String?
-  isActive     Boolean     @default(true)
-  note         String?
-  createdAt    DateTime    @default(now())
-  updatedAt    DateTime
-  products     products[]
-  purchases    purchases[]
 }
 
 model transaction_items {
@@ -427,7 +453,7 @@ model users {
   activity_logs     activity_logs[]
   broadcasts        broadcasts[]
   members           members?
-  supplier_profiles supplier_profiles?
+  // supplier_profiles supplier_profiles? // DEPRECATED: merged to suppliers
 }
 
 enum BatchStatus {

@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if email already exists
-    const existingSupplier = await prisma.supplier_profiles.findUnique({
+    const existingSupplier = await prisma.suppliers.findUnique({
       where: { email },
     });
 
@@ -80,10 +80,16 @@ export async function POST(request: NextRequest) {
     // Hash password
     const hashedPassword = await hashPassword(password);
 
-    // Create supplier profile (without user account first)
-    const supplierProfile = await prisma.supplier_profiles.create({
+    // Generate supplier code
+    const dateStr = new Date().toISOString().slice(0, 10).replace(/-/g, '');
+    const randomSuffix = Math.floor(Math.random() * 1000).toString().padStart(3, '0');
+    const supplierCode = `SUP-${dateStr}-${randomSuffix}`;
+
+    // Create supplier (merged table)
+    const supplier = await prisma.suppliers.create({
       data: {
         id: randomUUID(),
+        code: supplierCode,
         businessName: name,
         ownerName: name,
         email: email,
@@ -94,15 +100,17 @@ export async function POST(request: NextRequest) {
         description: description || null,
         status: 'PENDING',
         paymentStatus: 'UNPAID',
+        isActive: false,
+        createdAt: new Date(),
         updatedAt: new Date(),
       },
     });
 
-    console.log('Supplier profile created:', supplierProfile.id);
+    console.log('Supplier created:', supplier.id, 'code:', supplierCode);
 
     // Save payment proof (in production, upload to cloud storage)
     // For now, we'll store the filename and create a payment record
-    const filename = `payment-${supplierProfile.id}-${Date.now()}-${paymentProofFile.name}`;
+    const filename = `payment-${supplier.id}-${Date.now()}-${paymentProofFile.name}`;
     const paymentProofPath = `/uploads/payments/${filename}`;
 
     // TODO: In production, upload file to cloud storage here
@@ -112,12 +120,13 @@ export async function POST(request: NextRequest) {
     const payment = await prisma.supplier_payments.create({
       data: {
         id: `PAY-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-        supplierProfileId: supplierProfile.id,
+        supplierId: supplier.id, // Changed from supplierProfileId
         amount: 25000, // Monthly fee
         paymentProof: paymentProofPath,
         status: 'PENDING',
         periodStart: new Date(),
         periodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
+        createdAt: new Date(),
         updatedAt: new Date(),
       },
     });
@@ -125,8 +134,8 @@ export async function POST(request: NextRequest) {
     console.log('Payment record created:', payment.id);
 
     // Update supplier payment status
-    await prisma.supplier_profiles.update({
-      where: { id: supplierProfile.id },
+    await prisma.suppliers.update({
+      where: { id: supplier.id },
       data: {
         paymentStatus: 'PAID_PENDING_APPROVAL',
         updatedAt: new Date(),
@@ -137,10 +146,10 @@ export async function POST(request: NextRequest) {
       success: true,
       message: 'Registrasi berhasil! Bukti pembayaran telah diterima. Silakan login dengan email dan password Anda.',
       data: {
-        id: supplierProfile.id,
-        name: supplierProfile.businessName,
-        email: supplierProfile.email,
-        status: supplierProfile.status,
+        id: supplier.id,
+        name: supplier.businessName,
+        email: supplier.email,
+        status: supplier.status,
         paymentStatus: 'PAID_PENDING_APPROVAL',
         paymentId: payment.id,
       },
