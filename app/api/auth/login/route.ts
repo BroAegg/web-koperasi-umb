@@ -170,7 +170,11 @@ export async function POST(request: NextRequest) {
 
     // Generate token for supplier (role: SUPPLIER)
     console.log('Password correct, generating token for supplier:', email);
-    const token = signToken({ userId: supplier.id, role: 'SUPPLIER' });
+    const token = signToken({ 
+      userId: supplier.id, 
+      email: supplier.email, 
+      role: 'SUPPLIER' 
+    });
 
     const response = { 
       success: true, 
