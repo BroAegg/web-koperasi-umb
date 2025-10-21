@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
 import { PrismaClient } from '@prisma/client';
+import { logFromRequest } from '@/lib/activity-logger';
 
 const prisma = new PrismaClient();
 
@@ -241,6 +242,22 @@ export async function POST(request: NextRequest) {
 
       return { stockMovement, updatedProduct, transaction, productDetails };
     });
+
+    // Log activity
+    await logFromRequest(
+      request,
+      type.toUpperCase() === 'IN' ? 'STOCK_IN' : type.toUpperCase() === 'OUT' ? 'STOCK_OUT' : 'STOCK_ADJUSTMENT',
+      'INVENTORY',
+      `Stock ${type}: ${result.productDetails.name} (${quantity} ${result.productDetails.unit})`,
+      { 
+        productId, 
+        productName: result.productDetails.name,
+        quantity,
+        type,
+        movementType,
+        transactionId: result.transaction?.id 
+      }
+    ).catch(err => console.error('[Activity Logger] Failed:', err));
 
     return NextResponse.json({
       success: true,

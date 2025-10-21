@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { Decimal } from '@prisma/client/runtime/library';
 import { randomUUID } from 'crypto';
+import { logFromRequest } from '@/lib/activity-logger';
 
 // GET /api/products - Get all products with filtering
 export async function GET(request: NextRequest) {
@@ -198,6 +199,19 @@ export async function POST(request: NextRequest) {
           note: 'Initial stock',
         },
       });
+    }
+
+    // Log activity
+    try {
+      await logFromRequest(
+        request,
+        'CREATE',
+        'INVENTORY',
+        `Created product: ${name}`,
+        { productId: product.id, name, ownershipType, stock }
+      );
+    } catch (logError) {
+      console.error('[Activity Logger] Failed to log:', logError);
     }
 
     return NextResponse.json({

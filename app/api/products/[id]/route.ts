@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { requireRole } from '@/lib/auth';
+import { logFromRequest } from '@/lib/activity-logger';
 
 // PUT - Update product
 export async function PUT(
@@ -50,6 +51,15 @@ export async function PUT(
         categories: true,
       },
     });
+
+    // Log activity
+    await logFromRequest(
+      request,
+      'UPDATE',
+      'INVENTORY',
+      `Updated product: ${product.name}`,
+      { productId: id, changes: Object.keys(productData) }
+    ).catch(err => console.error('[Activity Logger] Failed:', err));
 
     return NextResponse.json({
       success: true,
@@ -124,9 +134,19 @@ export async function DELETE(
     });
 
     // 7. Finally, delete the product
+    const product = await prisma.products.findUnique({ where: { id } });
     await prisma.products.delete({
       where: { id },
     });
+
+    // Log activity
+    await logFromRequest(
+      request,
+      'DELETE',
+      'INVENTORY',
+      `Deleted product: ${product?.name || id}`,
+      { productId: id }
+    ).catch(err => console.error('[Activity Logger] Failed:', err));
 
     return NextResponse.json({
       success: true,
