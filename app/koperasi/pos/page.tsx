@@ -5,6 +5,7 @@ import { useAuth } from '@/lib/use-auth';
 import { useNotification } from '@/lib/notification-context';
 import { Card, CardHeader, CardContent, Button, Input, Badge } from '@/components/ui';
 import { PaymentModal } from '@/components/pos/PaymentModal';
+import QuickTransactionHistory from '@/components/pos/QuickTransactionHistory';
 import { 
   Search, 
   ShoppingCart, 
@@ -375,6 +376,9 @@ export default function POSPage() {
             )}
           </div>
         </div>
+
+        {/* Quick Transaction History */}
+        <QuickTransactionHistory onReprint={(id) => console.log('Print receipt:', id)} />
 
         {/* Payment Modal */}
         <PaymentModal
