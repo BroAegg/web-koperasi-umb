@@ -14,7 +14,7 @@ export default function TransactionsPage() {
   const { user } = useAuth();
   const { success, error: notifyError } = useNotification();
   const { transactions, summary, pagination, loading, error, fetchTransactions } = useTransactions();
-  const { isDeveloperMode } = useDeveloper();
+  const { isDeveloper: isDeveloperContext } = useDeveloper();
   
   // Filter state
   const [search, setSearch] = useState('');
@@ -39,8 +39,8 @@ export default function TransactionsPage() {
   const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
 
-  // Check if user is developer (real developer OR switched to any role in dev mode)
-  const isDeveloper = user?.role === 'DEVELOPER' || isDeveloperMode;
+  // Check if user is developer (real developer OR in developer context)
+  const isDeveloper = user?.role === 'DEVELOPER' || isDeveloperContext;
 
   const handleViewReceipt = (transaction: any) => {
     setSelectedTransaction(transaction);
