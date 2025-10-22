@@ -38,17 +38,39 @@ export function PaymentModal({
   const [isProcessing, setIsProcessing] = useState(false);
   const [customerName, setCustomerName] = useState('');
 
+  // Format number with thousand separators (titik)
+  const formatNumberWithDots = (value: string): string => {
+    // Remove all non-digit characters
+    const numbers = value.replace(/\D/g, '');
+    if (!numbers) return '';
+    
+    // Add thousand separators with dots
+    return numbers.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+  };
+
+  // Handle amount input with auto-formatting
+  const handleAmountChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const inputValue = e.target.value;
+    const formatted = formatNumberWithDots(inputValue);
+    setAmountPaid(formatted);
+  };
+
+  // Get numeric value from formatted string
+  const getNumericValue = (formattedValue: string): number => {
+    return parseFloat(formattedValue.replace(/\./g, '')) || 0;
+  };
+
   const calculateChange = () => {
-    const paid = parseFloat(amountPaid) || 0;
+    const paid = getNumericValue(amountPaid);
     return paid - total;
   };
 
   const canProcessPayment = () => {
     if (paymentMethod === 'CASH') {
-      return parseFloat(amountPaid) >= total;
+      return getNumericValue(amountPaid) >= total;
     } else {
       // For transfer, assume payment is confirmed
-      return parseFloat(amountPaid) >= total;
+      return getNumericValue(amountPaid) >= total;
     }
   };
 
@@ -78,7 +100,7 @@ export function PaymentModal({
           })),
           totalAmount: total,
           paymentMethod,
-          amountPaid: parseFloat(amountPaid),
+          amountPaid: getNumericValue(amountPaid),
           customerName: customerName || 'Walk-in Customer',
           change: paymentMethod === 'CASH' ? calculateChange() : 0
         }),
@@ -122,6 +144,10 @@ export function PaymentModal({
 
   const quickAmountButtons = [
     { label: 'Exact', value: total },
+    { label: '2k', value: 2000 },
+    { label: '5k', value: 5000 },
+    { label: '10k', value: 10000 },
+    { label: '20k', value: 20000 },
     { label: '50k', value: 50000 },
     { label: '100k', value: 100000 },
     { label: '200k', value: 200000 },
@@ -208,10 +234,10 @@ export function PaymentModal({
               Amount Paid
             </label>
             <Input
-              type="number"
+              type="text"
               placeholder="0"
               value={amountPaid}
-              onChange={(e) => setAmountPaid(e.target.value)}
+              onChange={handleAmountChange}
               className="text-lg"
             />
             
@@ -222,7 +248,7 @@ export function PaymentModal({
                   key={button.label}
                   variant="outline"
                   size="sm"
-                  onClick={() => setAmountPaid(button.value.toString())}
+                  onClick={() => setAmountPaid(formatNumberWithDots(button.value.toString()))}
                   className="text-xs"
                 >
                   {button.label}
