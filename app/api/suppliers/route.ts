@@ -148,9 +148,26 @@ export async function GET(request: NextRequest) {
       orderBy: { createdAt: 'desc' },
     });
 
+    // Map to match frontend Supplier type (name instead of businessName)
+    const mappedSuppliers = suppliers.map(supplier => ({
+      id: supplier.id,
+      code: supplier.code,
+      name: supplier.businessName, // Map businessName to name for frontend
+      ownerName: supplier.ownerName,
+      email: supplier.email,
+      phone: supplier.phone,
+      address: supplier.address,
+      productCategory: supplier.productCategory,
+      status: supplier.status,
+      paymentStatus: supplier.paymentStatus,
+      isActive: supplier.isActive,
+      createdAt: supplier.createdAt,
+      updatedAt: supplier.updatedAt,
+    }));
+
     return NextResponse.json({
       success: true,
-      data: suppliers,
+      data: mappedSuppliers,
     });
 
   } catch (error) {
