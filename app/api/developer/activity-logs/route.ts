@@ -1,10 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PrismaClient } from '@prisma/client';
+import { getUserFromToken } from '@/lib/auth';
 
 const prisma = new PrismaClient();
 
 export async function GET(req: NextRequest) {
   try {
+    // Authorization check - only developers can access
+    const auth = req.headers.get('authorization') || '';
+    const token = auth.replace(/^Bearer\s+/i, '');
+    const user = await getUserFromToken(token);
+    
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+    
+    // Check if user is developer (either actual role or active role in developer session)
+    const isDeveloper = user.role === 'DEVELOPER' || 
+                       (user.developerSession && user.developerSession.actualRole === 'DEVELOPER');
+    
+    if (!isDeveloper) {
+      return NextResponse.json({ error: 'Forbidden: Developers only' }, { status: 403 });
+    }
+
     // Parse query parameters
     const searchParams = req.nextUrl.searchParams;
     const page = parseInt(searchParams.get('page') || '1');

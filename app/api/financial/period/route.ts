@@ -228,6 +228,17 @@ export async function GET(request: NextRequest) {
         profitMargin,
         transactionCount: transactions.length,
 
+        // NEW: Return transactions array for chart visualization
+        transactions: transactions.map((t: any) => ({
+          id: t.id,
+          type: t.type,
+          totalAmount: t.totalAmount,
+          date: t.date,
+          createdAt: t.createdAt,
+          paymentMethod: t.paymentMethod,
+          note: t.note || '',
+        })),
+
         // new breakdown
         toko: {
           revenue: tokoRevenue,

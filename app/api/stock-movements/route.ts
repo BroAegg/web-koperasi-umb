@@ -13,6 +13,7 @@ export async function GET(request: NextRequest) {
     const productId = searchParams.get('productId');
     const type = searchParams.get('type');
     const date = searchParams.get('date');
+    const period = searchParams.get('period'); // Add period support
     const limit = parseInt(searchParams.get('limit') || '50');
     const offset = parseInt(searchParams.get('offset') || '0');
 
@@ -26,8 +27,41 @@ export async function GET(request: NextRequest) {
       where.movementType = type.toUpperCase();
     }
 
-    // Date filtering
-    if (date) {
+    // Period-based filtering (takes precedence over date)
+    if (period) {
+      const now = new Date();
+      let startDate = new Date();
+
+      switch (period) {
+        case 'today':
+          startDate.setHours(0, 0, 0, 0);
+          break;
+        case '7days':
+          startDate.setDate(now.getDate() - 7);
+          break;
+        case '1month':
+          startDate.setMonth(now.getMonth() - 1);
+          break;
+        case '3months':
+          startDate.setMonth(now.getMonth() - 3);
+          break;
+        case '6months':
+          startDate.setMonth(now.getMonth() - 6);
+          break;
+        case '1year':
+          startDate.setFullYear(now.getFullYear() - 1);
+          break;
+        default:
+          startDate.setHours(0, 0, 0, 0);
+      }
+
+      where.createdAt = {
+        gte: startDate,
+        lte: now,
+      };
+    }
+    // Fallback to date filtering if no period specified
+    else if (date) {
       const startDate = new Date(date);
       startDate.setHours(0, 0, 0, 0);
       

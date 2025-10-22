@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input';
 import { Loading } from '@/components/ui/loading';
 import { formatCurrency, formatDate, formatCurrencyInput, parseCurrencyInput } from '@/lib/utils';
 import { useNotification } from '@/lib/notification-context';
+import { useAuth } from '@/lib/use-auth';
 import { getCategoryFromType } from '@/lib/financial-helpers';
 import { TransactionFilters } from '@/components/financial/TransactionFilters';
 import { FinancialSummaryCard } from '@/components/financial/FinancialSummaryCard';
@@ -29,6 +30,9 @@ import {
 import { ShoppingCart, Receipt, TrendingDown } from 'lucide-react';
 
 export default function FinancialPage() {
+  // Authorization check - Only SUPER_ADMIN and ADMIN can access
+  const { user, loading: authLoading, authorized } = useAuth(['SUPER_ADMIN', 'ADMIN']);
+  
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
@@ -68,10 +72,19 @@ export default function FinancialPage() {
     setNewTransaction(prev => ({ ...prev, amount: numericValue }));
   };
 
+  // Early return if not authorized
   useEffect(() => {
-    fetchTransactions();
-    fetchDailySummary();
-  }, [selectedDate, financialPeriod]);
+    if (!authLoading && !authorized) {
+      window.location.href = '/login';
+    }
+  }, [authLoading, authorized]);
+
+  useEffect(() => {
+    if (authorized) {
+      fetchTransactions();
+      fetchDailySummary();
+    }
+  }, [financialPeriod, authorized]); // Remove selectedDate, only use financialPeriod
 
   // Effect untuk menginisialisasi formatted amount ketika editing
   useEffect(() => {
@@ -85,11 +98,46 @@ export default function FinancialPage() {
   const fetchTransactions = async () => {
     try {
       setLoading(true);
-      const response = await fetch(`/api/financial/transactions?date=${selectedDate}`);
+      const token = localStorage.getItem('token');
+      if (!token) {
+        error('Sesi Berakhir', 'Silakan login kembali');
+        window.location.href = '/login';
+        return;
+      }
+
+      // Use period API instead of date-specific API to follow dropdown period
+      const response = await fetch(`/api/financial/period?period=${financialPeriod}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+
       const result = await response.json();
       
       if (result.success) {
-        setTransactions(result.data);
+        // Extract transactions from period API response
+        const periodTransactions = result.data.transactions || [];
+        
+        // Map to Transaction format expected by TransactionTable
+        const mappedTransactions = periodTransactions.map((t: any) => ({
+          id: t.id,
+          type: t.type,
+          amount: Number(t.totalAmount),
+          description: t.note || getDefaultDescription(t.type),
+          category: getCategoryFromType(t.type),
+          paymentMethod: t.paymentMethod || 'CASH',
+          reference: t.id.slice(0, 8),
+          date: t.date,
+          createdAt: t.createdAt,
+          items: [], // Items not needed in table view
+        }));
+        
+        setTransactions(mappedTransactions);
       } else {
         error('Gagal Memuat Data', result.error || 'Terjadi kesalahan saat memuat data transaksi');
       }
@@ -101,9 +149,34 @@ export default function FinancialPage() {
     }
   };
 
+  // Helper function to get default description based on transaction type
+  const getDefaultDescription = (type: string): string => {
+    switch (type) {
+      case 'SALE': return 'Penjualan';
+      case 'PURCHASE': return 'Pembelian';
+      case 'INCOME': return 'Pemasukan';
+      case 'EXPENSE': return 'Pengeluaran';
+      default: return 'Transaksi';
+    }
+  };
+
   const fetchDailySummary = async () => {
     try {
-      const response = await fetch(`/api/financial/period?period=today`);
+      const token = localStorage.getItem('token');
+      if (!token) return;
+
+      // Use current financialPeriod instead of hardcoded 'today'
+      const response = await fetch(`/api/financial/period?period=${financialPeriod}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      if (!response.ok) {
+        throw new Error(`API error: ${response.status}`);
+      }
+
       const result = await response.json();
       
       if (result.success) {
@@ -139,6 +212,13 @@ export default function FinancialPage() {
     setIsSubmitting(true);
     
     try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        error('Sesi Berakhir', 'Silakan login kembali');
+        window.location.href = '/login';
+        return;
+      }
+
       const url = editingTransaction 
         ? `/api/financial/transactions/${editingTransaction}`
         : '/api/financial/transactions';
@@ -148,6 +228,7 @@ export default function FinancialPage() {
       const response = await fetch(url, {
         method,
         headers: {
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -214,10 +295,25 @@ export default function FinancialPage() {
     
     if (confirmed) {
       try {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          error('Sesi Berakhir', 'Silakan login kembali');
+          window.location.href = '/login';
+          return;
+        }
+
         const response = await fetch(`/api/financial/transactions/${transactionId}`, {
           method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
         });
         
+        if (!response.ok) {
+          throw new Error(`API error: ${response.status}`);
+        }
+
         const result = await response.json();
         
         if (result.success) {
@@ -264,6 +360,16 @@ export default function FinancialPage() {
     
     return matchesSearch && matchesType;
   });
+
+  // Show loading while checking authorization
+  if (authLoading) {
+    return <Loading />;
+  }
+
+  // Show loading while fetching data
+  if (loading && authorized) {
+    return <Loading />;
+  }
 
   return (
     <div className="space-y-6">

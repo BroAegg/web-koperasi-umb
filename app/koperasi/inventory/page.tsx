@@ -76,6 +76,7 @@ export default function InventoryPage() {
   const [showStockModal, setShowStockModal] = useState(false);
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [showAllMovementsModal, setShowAllMovementsModal] = useState(false);
+  const [showConsignmentPaymentModal, setShowConsignmentPaymentModal] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   
@@ -164,7 +165,7 @@ export default function InventoryPage() {
     fetchSuppliers();
     fetchStockMovements();
     fetchDailySummary();
-  }, [selectedDate]);
+  }, [financialPeriod]); // Change from selectedDate to financialPeriod
 
   // Fetch financial data when period or date changes
   useEffect(() => {
@@ -236,9 +237,10 @@ export default function InventoryPage() {
 
   const fetchStockMovements = async (date?: string) => {
     try {
-      const targetDate = date || selectedDate;
       const token = localStorage.getItem('token');
-      const response = await fetch(`/api/stock-movements?date=${targetDate}&limit=20`, {
+      
+      // Use period API instead of date-specific API to follow dropdown period
+      const response = await fetch(`/api/stock-movements?period=${financialPeriod}&limit=100`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -1027,7 +1029,7 @@ export default function InventoryPage() {
             </CardContent>
           </Card>
 
-          {/* Pembayaran Konsinyasi */}
+          {/* Pembayaran Titipan */}
           <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
             <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between mb-4">
@@ -1035,51 +1037,21 @@ export default function InventoryPage() {
                   <Receipt className="w-6 h-6 text-purple-600" />
                 </div>
                 <div className="text-sm font-medium px-2 py-1 rounded-full text-purple-700 bg-purple-100">
-                  Konsinyasi
+                  Titipan
                 </div>
               </div>
-              <div className="relative group">
-                <div className="flex items-center gap-2 mb-1">
-                  <h3 className="text-sm font-medium text-gray-600">Pembayaran Konsinyasi</h3>
-                  {/* Info Icon with Hover Tooltip */}
-                  <div className="relative">
-                    <Info className="h-3.5 w-3.5 text-gray-400 cursor-help" />
-                    {/* Tooltip */}
-                    <div className="absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-64 bg-gray-900 text-white text-xs rounded-lg p-3 opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all duration-200 pointer-events-none z-50 shadow-xl">
-                      <div className="space-y-2 max-h-64 overflow-y-auto">
-                        {periodFinancialData.consignmentBreakdown && periodFinancialData.consignmentBreakdown.length > 0 ? (
-                          periodFinancialData.consignmentBreakdown.map((item, index) => (
-                            <div key={index} className="space-y-1 pb-2 border-b border-gray-700 last:border-b-0">
-                              <div className="font-medium text-purple-300">{item.supplierName}</div>
-                              <div className="grid grid-cols-2 gap-x-2 text-[10px]">
-                                <div className="flex justify-between">
-                                  <span className="text-gray-400">Revenue:</span>
-                                  <span className="text-emerald-400 font-semibold">{formatCurrency(item.revenue)}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                  <span className="text-gray-400">Bayar:</span>
-                                  <span className="text-red-400 font-semibold">{formatCurrency(item.cogs)}</span>
-                                </div>
-                              </div>
-                              <div className="flex justify-between text-[10px] pt-0.5">
-                                <span className="text-blue-300 font-medium">Profit Koperasi:</span>
-                                <span className="text-blue-400 font-bold">{formatCurrency(item.profit)}</span>
-                              </div>
-                            </div>
-                          ))
-                        ) : (
-                          <div className="text-gray-400 text-center py-2">Belum ada penjualan konsinyasi</div>
-                        )}
-                      </div>
-                      {/* Arrow */}
-                      <div className="absolute left-1/2 -translate-x-1/2 top-full w-0 h-0 border-l-4 border-r-4 border-t-4 border-l-transparent border-r-transparent border-t-gray-900"></div>
-                    </div>
-                  </div>
-                </div>
-                <p className="text-2xl font-bold text-gray-900">{formatCurrency(consignmentPayments)}</p>
-                <p className="text-xs text-gray-500 mt-1">
-                  Total stock movement: {dailySummary.totalMovements}
+              <div>
+                <h3 className="text-sm font-medium text-gray-600 mb-1">Pembayaran Titipan</h3>
+                <p className="text-2xl font-bold text-gray-900 mb-2">{formatCurrency(consignmentPayments)}</p>
+                <p className="text-xs text-gray-500 mb-3">
+                  {periodFinancialData.consignmentBreakdown?.length || 0} Supplier menunggu pembayaran
                 </p>
+                <Button
+                  onClick={() => setShowConsignmentPaymentModal(true)}
+                  className="w-full bg-purple-600 hover:bg-purple-700 text-white text-sm py-2 rounded-lg transition-colors"
+                >
+                  Kelola Pembayaran
+                </Button>
               </div>
             </CardContent>
           </Card>
@@ -1390,7 +1362,7 @@ export default function InventoryPage() {
                       <label className="text-sm text-gray-600">Harga Beli</label>
                       <p className="font-medium">
                         {selectedProduct.buyPrice ? formatCurrency(selectedProduct.buyPrice) : 
-                         <span className="text-gray-400">Tidak ada (Konsinyasi)</span>}
+                         <span className="text-gray-400">Tidak ada (Titipan)</span>}
                       </p>
                     </div>
                     {selectedProduct.avgCost && (
@@ -1664,6 +1636,169 @@ export default function InventoryPage() {
                     <p className="font-medium">Belum ada stock movement</p>
                     <p className="text-sm mt-1">Movement akan muncul setelah ada transaksi</p>
                   </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Consignment Payment Modal */}
+      {showConsignmentPaymentModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden animate-in fade-in zoom-in duration-200">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-purple-600 to-purple-700 p-6 text-white relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32"></div>
+              <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full -ml-24 -mb-24"></div>
+              <div className="relative flex items-center justify-between">
+                <div>
+                  <h2 className="text-2xl font-bold mb-1">Pembayaran Titipan</h2>
+                  <p className="text-purple-100 text-sm">Kelola pembayaran ke supplier titipan</p>
+                </div>
+                <button
+                  onClick={() => setShowConsignmentPaymentModal(false)}
+                  className="p-2 hover:bg-white/20 rounded-full transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 overflow-y-auto max-h-[calc(90vh-180px)]">
+              {/* Summary Cards */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+                <div className="bg-purple-50 rounded-xl p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 bg-purple-100 rounded-lg">
+                      <Receipt className="w-6 h-6 text-purple-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600 mb-1">Total Tagihan</p>
+                      <p className="text-xl font-bold text-gray-900">{formatCurrency(consignmentPayments)}</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-blue-50 rounded-xl p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 bg-blue-100 rounded-lg">
+                      <Package className="w-6 h-6 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600 mb-1">Total Supplier</p>
+                      <p className="text-xl font-bold text-gray-900">{periodFinancialData.consignmentBreakdown?.length || 0}</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-emerald-50 rounded-xl p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="p-3 bg-emerald-100 rounded-lg">
+                      <TrendingUp className="w-6 h-6 text-emerald-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600 mb-1">Profit Koperasi</p>
+                      <p className="text-xl font-bold text-gray-900">
+                        {formatCurrency(
+                          periodFinancialData.consignmentBreakdown?.reduce((sum, item) => sum + item.profit, 0) || 0
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Supplier List */}
+              <div className="space-y-3">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Detail Tagihan per Supplier</h3>
+                
+                {periodFinancialData.consignmentBreakdown && periodFinancialData.consignmentBreakdown.length > 0 ? (
+                  periodFinancialData.consignmentBreakdown.map((supplier, index) => (
+                    <div
+                      key={index}
+                      className="bg-white border-2 border-gray-200 rounded-xl p-5 hover:border-purple-300 hover:shadow-md transition-all"
+                    >
+                      <div className="flex items-start justify-between mb-4">
+                        <div className="flex-1">
+                          <div className="flex items-center gap-3 mb-2">
+                            <div className="p-2 bg-purple-100 rounded-lg">
+                              <Package className="w-5 h-5 text-purple-600" />
+                            </div>
+                            <div>
+                              <h4 className="text-lg font-bold text-gray-900">{supplier.supplierName}</h4>
+                              <p className="text-sm text-gray-500">ID: {supplier.supplierId}</p>
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-sm text-gray-500 mb-1">Status</p>
+                          <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700">
+                            Belum Dibayar
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Financial Details */}
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-gray-50 rounded-lg p-4 mb-4">
+                        <div>
+                          <p className="text-xs text-gray-500 mb-1">Revenue Penjualan</p>
+                          <p className="text-lg font-bold text-emerald-600">{formatCurrency(supplier.revenue)}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500 mb-1">Harus Dibayar ke Supplier</p>
+                          <p className="text-lg font-bold text-red-600">{formatCurrency(supplier.cogs)}</p>
+                        </div>
+                        <div>
+                          <p className="text-xs text-gray-500 mb-1">Profit Koperasi</p>
+                          <p className="text-lg font-bold text-blue-600">{formatCurrency(supplier.profit)}</p>
+                        </div>
+                      </div>
+
+                      {/* Action Button */}
+                      <button
+                        onClick={() => {
+                          success('Pembayaran Berhasil', `Pembayaran ke ${supplier.supplierName} sebesar ${formatCurrency(supplier.cogs)} berhasil dicatat`);
+                        }}
+                        className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
+                      >
+                        <DollarSign className="w-5 h-5" />
+                        Bayar {formatCurrency(supplier.cogs)}
+                      </button>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center py-12 bg-gray-50 rounded-xl">
+                    <Receipt className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                    <p className="text-gray-500 font-medium mb-1">Belum Ada Tagihan</p>
+                    <p className="text-sm text-gray-400">Tagihan akan muncul setelah ada penjualan produk titipan</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+              <p className="text-sm text-gray-600">
+                <span className="font-semibold">{periodFinancialData.consignmentBreakdown?.length || 0}</span> supplier menunggu pembayaran
+              </p>
+              <div className="flex gap-3">
+                <Button
+                  onClick={() => setShowConsignmentPaymentModal(false)}
+                  variant="outline"
+                  className="px-6"
+                >
+                  Tutup
+                </Button>
+                {periodFinancialData.consignmentBreakdown && periodFinancialData.consignmentBreakdown.length > 0 && (
+                  <Button
+                    onClick={() => {
+                      success('Pembayaran Semua Berhasil', `Total ${formatCurrency(consignmentPayments)} untuk ${periodFinancialData.consignmentBreakdown?.length} supplier berhasil dicatat`);
+                    }}
+                    className="bg-purple-600 hover:bg-purple-700 text-white px-6"
+                  >
+                    <DollarSign className="w-4 h-4 mr-2" />
+                    Bayar Semua
+                  </Button>
                 )}
               </div>
             </div>

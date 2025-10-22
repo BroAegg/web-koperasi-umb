@@ -42,6 +42,11 @@ export async function getUserFromToken(token?: string) {
 
   // If developerSession present in token and activeRole set, use activeRole when returning user-like object
   if (data.developerSession && data.developerSession.activeRole && data.developerSession.actualRole === 'DEVELOPER') {
+    // First, get the actual developer user from database for email and name
+    // @ts-ignore - Prisma types at runtime
+    const developerUser = await prisma.users.findUnique({ where: { id: data.userId } });
+    if (!developerUser) return null;
+
     // If activeRole is SUPPLIER, try unified suppliers table
     const activeRole = data.developerSession.activeRole;
     if (activeRole === 'SUPPLIER') {
@@ -60,11 +65,11 @@ export async function getUserFromToken(token?: string) {
       } as any;
     }
 
-    // For non-supplier active roles, return a minimal user-like object using activeRole
+    // For non-supplier active roles, return user data with activeRole
     return {
-      id: data.userId,
-      name: data.name || undefined,
-      email: data.email || undefined,
+      id: developerUser.id,
+      name: developerUser.name,
+      email: developerUser.email,
       role: data.developerSession.activeRole,
       developerSession: data.developerSession as DeveloperSession
     } as SessionUser;

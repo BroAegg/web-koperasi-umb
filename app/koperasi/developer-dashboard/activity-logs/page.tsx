@@ -80,7 +80,13 @@ export default function ActivityLogsPage() {
       if (dateFrom) params.append('dateFrom', dateFrom);
       if (dateTo) params.append('dateTo', dateTo);
 
-      const response = await fetch(`/api/developer/activity-logs?${params.toString()}`);
+      const token = localStorage.getItem('token');
+      const response = await fetch(`/api/developer/activity-logs?${params.toString()}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        }
+      });
       
       if (!response.ok) {
         throw new Error('Failed to fetch activity logs');
