@@ -101,8 +101,8 @@ async function handleCreateProduct(request: NextRequest) {
       sku,
       buyPrice,
       sellPrice,
-      stock = 0,
-      threshold = 5,
+      stock,
+      threshold,
       unit = 'pcs',
       isActive = true,
       ownershipType = 'TOKO', // Default to store-owned
@@ -115,6 +115,30 @@ async function handleCreateProduct(request: NextRequest) {
     if (!name || !categoryId || !sellPrice) {
       return NextResponse.json(
         { success: false, error: 'Missing required fields' },
+        { status: 400 }
+      );
+    }
+
+    // Parse and validate stock (handle empty string, null, undefined)
+    const stockNum = stock !== null && stock !== undefined && stock !== '' 
+      ? parseInt(stock.toString(), 10) 
+      : 0;
+    
+    if (isNaN(stockNum) || stockNum < 0) {
+      return NextResponse.json(
+        { success: false, error: 'Stok harus berupa angka positif atau 0' },
+        { status: 400 }
+      );
+    }
+
+    // Parse and validate threshold
+    const thresholdNum = threshold !== null && threshold !== undefined && threshold !== '' 
+      ? parseInt(threshold.toString(), 10) 
+      : 5;
+    
+    if (isNaN(thresholdNum) || thresholdNum < 0) {
+      return NextResponse.json(
+        { success: false, error: 'Threshold harus berupa angka positif' },
         { status: 400 }
       );
     }
@@ -157,8 +181,8 @@ async function handleCreateProduct(request: NextRequest) {
         buyPrice: buyPrice ? new Decimal(buyPrice) : null,
         sellPrice: new Decimal(sellPrice),
         avgCost: buyPrice ? new Decimal(buyPrice) : null,
-        stock: parseInt(stock.toString()),
-        threshold: parseInt(threshold.toString()),
+        stock: stockNum,           // Use validated stockNum
+        threshold: thresholdNum,   // Use validated thresholdNum
         unit,
         isActive,
         ownershipType,

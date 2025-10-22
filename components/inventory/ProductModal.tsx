@@ -222,7 +222,7 @@ export default function ProductModal({
                 {showSupplierDropdown && formData.supplierName && formData.supplierName.trim() && (
                   <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-48 overflow-y-auto">
                     {suppliers
-                      .filter(s => s.name.toLowerCase().includes(formData.supplierName!.toLowerCase()))
+                      .filter(s => s?.name && s.name.toLowerCase().includes(formData.supplierName!.toLowerCase()))
                       .map((supplier) => (
                         <button
                           key={supplier.id}

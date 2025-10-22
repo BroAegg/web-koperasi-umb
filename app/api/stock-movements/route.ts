@@ -2,7 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { randomUUID } from 'crypto';
 import { PrismaClient } from '@prisma/client';
-import { logFromRequest } from '@/lib/activity-logger';
+import { withActivityLog } from '@/lib/with-activity-log';
 
 const prisma = new PrismaClient();
 
@@ -90,7 +90,8 @@ export async function GET(request: NextRequest) {
 }
 
 // POST /api/stock-movements - Create new stock movement
-export async function POST(request: NextRequest) {
+// POST /api/stock-movements - Create stock movement
+async function handleCreateStockMovement(request: NextRequest) {
   try {
     const body = await request.json();
     const { productId, type, quantity, note } = body;
@@ -243,22 +244,6 @@ export async function POST(request: NextRequest) {
       return { stockMovement, updatedProduct, transaction, productDetails };
     });
 
-    // Log activity
-    await logFromRequest(
-      request,
-      type.toUpperCase() === 'IN' ? 'STOCK_IN' : type.toUpperCase() === 'OUT' ? 'STOCK_OUT' : 'STOCK_ADJUSTMENT',
-      'INVENTORY',
-      `Stock ${type}: ${result.productDetails.name} (${quantity} ${result.productDetails.unit})`,
-      { 
-        productId, 
-        productName: result.productDetails.name,
-        quantity,
-        type,
-        movementType,
-        transactionId: result.transaction?.id 
-      }
-    ).catch(err => console.error('[Activity Logger] Failed:', err));
-
     return NextResponse.json({
       success: true,
       data: {
@@ -277,6 +262,34 @@ export async function POST(request: NextRequest) {
     );
   }
 }
+
+export const POST = withActivityLog({
+  module: 'INVENTORY',
+  action: 'CREATE_STOCK_MOVEMENT',
+  getDescription: (req, result) => {
+    const data = result?.data;
+    const productName = data?.product?.name;
+    const movement = data?.stockMovement;
+    const type = movement?.movementType;
+    const qty = Math.abs(movement?.quantity || 0);
+    
+    return productName && type
+      ? `Stock movement: ${productName} - ${type} (${qty} units)`
+      : 'Created stock movement';
+  },
+  getMetadata: (req, result) => {
+    const data = result?.data;
+    return data
+      ? {
+          productId: data.product?.id,
+          productName: data.product?.name,
+          movementType: data.stockMovement?.movementType,
+          quantity: data.stockMovement?.quantity,
+          newStock: data.updatedProduct?.stock,
+        }
+      : undefined;
+  },
+})(handleCreateStockMovement);
 
 // DELETE /api/stock-movements - Bulk delete stock movements by date (DEVELOPMENT ONLY)
 export async function DELETE(request: NextRequest) {

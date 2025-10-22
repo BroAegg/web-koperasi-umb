@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { Decimal } from '@prisma/client/runtime/library';
-import { logFromRequest } from '@/lib/activity-logger';
+import { withActivityLog } from '@/lib/with-activity-log';
 
 // GET /api/members/[id] - Get member by ID
 export async function GET(
@@ -71,7 +71,7 @@ export async function GET(
 }
 
 // PUT /api/members/[id] - Update member
-export async function PUT(
+async function handleUpdateMember(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -131,20 +131,6 @@ export async function PUT(
       },
     });
 
-    // Log activity
-    await logFromRequest(
-      request,
-      'MEMBER_UPDATE',
-      'MEMBER',
-      `Updated member: ${updatedMember.name} (${updatedMember.nomorAnggota})`,
-      {
-        memberId: id,
-        name: updatedMember.name,
-        email: updatedMember.email,
-        updatedFields: Object.keys(body),
-      }
-    ).catch((err) => console.error('[Activity Logger] Failed to log member update:', err));
-
     return NextResponse.json({
       success: true,
       data: {
@@ -164,8 +150,30 @@ export async function PUT(
   }
 }
 
+export const PUT = withActivityLog({
+  module: 'MEMBER',
+  action: 'UPDATE_MEMBER',
+  getDescription: (req, result) => {
+    const member = result?.data;
+    return member
+      ? `Updated member: ${member.name} (${member.nomorAnggota})`
+      : 'Updated member';
+  },
+  getMetadata: (req, result) => {
+    const member = result?.data;
+    return member
+      ? {
+          memberId: member.id,
+          name: member.name,
+          email: member.email,
+          memberNumber: member.nomorAnggota,
+        }
+      : undefined;
+  },
+})(handleUpdateMember);
+
 // DELETE /api/members/[id] - Delete member
-export async function DELETE(
+async function handleDeleteMember(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
@@ -189,23 +197,14 @@ export async function DELETE(
       where: { id },
     });
 
-    // Log activity
-    await logFromRequest(
-      request,
-      'MEMBER_DELETE',
-      'MEMBER',
-      `Deleted member: ${member.name} (${member.nomorAnggota})`,
-      {
-        memberId: id,
-        name: member.name,
-        email: member.email,
-        memberNumber: member.nomorAnggota,
-      }
-    ).catch((err) => console.error('[Activity Logger] Failed to log member deletion:', err));
-
     return NextResponse.json({
       success: true,
       message: 'Anggota berhasil dihapus',
+      deletedMember: {
+        id: member.id,
+        name: member.name,
+        memberNumber: member.nomorAnggota,
+      },
     });
   } catch (error) {
     console.error('Error deleting member:', error);
@@ -215,3 +214,24 @@ export async function DELETE(
     );
   }
 }
+
+export const DELETE = withActivityLog({
+  module: 'MEMBER',
+  action: 'DELETE_MEMBER',
+  getDescription: (req, result) => {
+    const member = result?.deletedMember;
+    return member
+      ? `Deleted member: ${member.name} (${member.memberNumber})`
+      : 'Deleted member';
+  },
+  getMetadata: (req, result) => {
+    const member = result?.deletedMember;
+    return member
+      ? {
+          memberId: member.id,
+          name: member.name,
+          memberNumber: member.memberNumber,
+        }
+      : undefined;
+  },
+})(handleDeleteMember);
