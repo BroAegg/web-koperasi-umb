@@ -60,6 +60,12 @@ export function useTransactions(): UseTransactionsReturn {
     setError(null);
 
     try {
+      // Get token from localStorage for authentication
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('Authentication required. Please login again.');
+      }
+
       const params = new URLSearchParams();
       
       if (filters.dateFrom) params.append('dateFrom', filters.dateFrom);
@@ -72,7 +78,10 @@ export function useTransactions(): UseTransactionsReturn {
       params.append('limit', filters.limit.toString());
 
       const response = await fetch(`/api/transactions?${params.toString()}`, {
-        credentials: 'include', // Include cookies for authentication
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        credentials: 'include',
       });
       const data = await response.json();
 

@@ -4,8 +4,12 @@ import { getUserFromToken } from '@/lib/auth';
 
 export async function GET(req: NextRequest) {
   try {
-    // Authentication check
-    const token = req.cookies.get('token')?.value;
+    // Authentication check - Support both cookie and Authorization header
+    const cookieToken = req.cookies.get('token')?.value;
+    const authHeader = req.headers.get('authorization');
+    const headerToken = authHeader?.replace(/^Bearer\s+/i, '');
+    const token = headerToken || cookieToken;
+    
     const user = await getUserFromToken(token);
     
     if (!user) {

@@ -33,6 +33,12 @@ export function useQuickHistory(cashierId?: string): UseQuickHistoryReturn {
     setError(null);
 
     try {
+      // Get token from localStorage for authentication
+      const token = localStorage.getItem('token');
+      if (!token) {
+        throw new Error('Authentication required. Please login again.');
+      }
+
       const params = new URLSearchParams();
       if (cashierId) {
         params.append('cashierId', cashierId);
@@ -40,7 +46,10 @@ export function useQuickHistory(cashierId?: string): UseQuickHistoryReturn {
       params.append('limit', '10');
 
       const response = await fetch(`/api/transactions/quick-history?${params.toString()}`, {
-        credentials: 'include', // Include cookies for authentication
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        credentials: 'include',
       });
       const data = await response.json();
 
