@@ -10,7 +10,6 @@ import { useNotification } from '@/lib/notification-context';
 import { getCategoryFromType } from '@/lib/financial-helpers';
 import { TransactionFilters } from '@/components/financial/TransactionFilters';
 import { FinancialSummaryCard } from '@/components/financial/FinancialSummaryCard';
-import { FinancialMetricsCards } from '@/components/financial/FinancialMetricsCards';
 import { TransactionTable } from '@/components/financial/TransactionTable';
 import { TransactionModal } from '@/components/financial/TransactionModal';
 import { FinancialChart } from '@/components/financial/FinancialChart';
@@ -299,16 +298,12 @@ export default function FinancialPage() {
         />
       )}
 
-      {/* 3 Metrics Cards - Below Summary, Above Chart */}
-      {dailySummary && (
-        <FinancialMetricsCards
-          transactions={transactions}
-          dailySummary={dailySummary}
-        />
-      )}
-
-      {/* Financial Chart - Dynamic based on period */}
-      <FinancialChart period={financialPeriod} />
+      {/* Financial Chart - HERO SECTION (Enlarged & Prominent) */}
+      <FinancialChart 
+        period={financialPeriod}
+        transactions={transactions}
+        dailySummary={dailySummary}
+      />
 
       {/* Transactions Table */}
       <Card>
