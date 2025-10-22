@@ -111,3 +111,6 @@ body {
   outline: 2px solid var(--koperasi-primary);
   outline-offset: 2px;
 }
+
+/* Import print styles */
+@import "./print.css";

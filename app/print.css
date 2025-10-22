@@ -1,0 +1,130 @@
+/* Print-specific styles for receipts */
+@media print {
+  /* Hide everything except the receipt */
+  body * {
+    visibility: hidden;
+  }
+
+  /* Show only the receipt content */
+  .print\:block,
+  .print\:block * {
+    visibility: visible;
+  }
+
+  /* Receipt container styling */
+  @page {
+    size: 80mm auto; /* Thermal printer width */
+    margin: 0;
+  }
+
+  body {
+    margin: 0;
+    padding: 0;
+  }
+
+  /* Make sure receipt is positioned correctly */
+  .fixed {
+    position: static !important;
+  }
+
+  /* Remove shadows and borders for print */
+  .shadow-xl,
+  .rounded-lg {
+    box-shadow: none !important;
+    border-radius: 0 !important;
+  }
+
+  /* Optimize font sizes for print */
+  .print\:text-3xl {
+    font-size: 1.875rem !important;
+  }
+
+  .print\:p-8 {
+    padding: 2rem !important;
+  }
+
+  .print\:mb-8 {
+    margin-bottom: 2rem !important;
+  }
+
+  /* Ensure proper spacing */
+  .print\:w-auto {
+    width: auto !important;
+  }
+
+  .print\:max-w-none {
+    max-width: none !important;
+  }
+
+  .print\:shadow-none {
+    box-shadow: none !important;
+  }
+
+  .print\:rounded-none {
+    border-radius: 0 !important;
+  }
+
+  .print\:p-0 {
+    padding: 0 !important;
+  }
+
+  /* Hide non-print elements */
+  .print\:hidden {
+    display: none !important;
+  }
+
+  /* Show print-only elements */
+  .hidden.print\:block {
+    display: block !important;
+    visibility: visible !important;
+  }
+
+  /* Ensure proper color rendering */
+  * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  /* Prevent page breaks within elements */
+  .no-break {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+
+  /* Optimize table printing */
+  table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  /* Ensure borders are visible */
+  .border-t,
+  .border-b,
+  .border-t-2 {
+    border-color: #000 !important;
+  }
+
+  /* Make dashed borders print properly */
+  .border-dashed {
+    border-style: dashed !important;
+  }
+}
+
+/* Thermal printer optimization (80mm width) */
+@media print and (max-width: 80mm) {
+  body {
+    font-size: 12px;
+  }
+
+  h1 {
+    font-size: 18px;
+  }
+
+  .text-sm {
+    font-size: 11px;
+  }
+
+  .text-xs {
+    font-size: 10px;
+  }
+}

@@ -378,7 +378,7 @@ export default function POSPage() {
         </div>
 
         {/* Quick Transaction History */}
-        <QuickTransactionHistory onReprint={(id) => console.log('Print receipt:', id)} />
+        <QuickTransactionHistory />
 
         {/* Payment Modal */}
         <PaymentModal

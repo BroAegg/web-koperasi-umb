@@ -5,6 +5,7 @@ import { useQuickHistory } from '@/hooks/useQuickHistory';
 import { formatCurrency } from '@/lib/utils';
 import { ChevronDown, ChevronUp, Printer, ExternalLink } from 'lucide-react';
 import { useRouter } from 'next/navigation';
+import ReceiptModal from '@/components/transactions/ReceiptModal';
 
 interface QuickTransactionHistoryProps {
   onReprint?: (transactionId: string) => void;
@@ -15,15 +16,18 @@ export default function QuickTransactionHistory({ onReprint }: QuickTransactionH
   const { transactions, loading, error, refetch } = useQuickHistory();
   const router = useRouter();
 
+  // Receipt modal state
+  const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
+
   const formatTime = (isoString: string) => {
     const date = new Date(isoString);
     return date.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
   };
 
-  const handlePrint = (transactionId: string) => {
-    if (onReprint) {
-      onReprint(transactionId);
-    }
+  const handlePrint = (transaction: any) => {
+    setSelectedTransaction(transaction);
+    setShowReceiptModal(true);
   };
 
   const handleViewAll = () => {
@@ -100,7 +104,7 @@ export default function QuickTransactionHistory({ onReprint }: QuickTransactionH
                         </div>
                       </div>
                       <button
-                        onClick={() => handlePrint(transaction.id)}
+                        onClick={() => handlePrint(transaction)}
                         className="ml-4 p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                         title="Print Receipt"
                       >
@@ -123,6 +127,13 @@ export default function QuickTransactionHistory({ onReprint }: QuickTransactionH
           )}
         </div>
       )}
+
+      {/* Receipt Modal */}
+      <ReceiptModal
+        isOpen={showReceiptModal}
+        onClose={() => setShowReceiptModal(false)}
+        transaction={selectedTransaction}
+      />
     </div>
   );
 }

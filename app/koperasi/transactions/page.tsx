@@ -5,6 +5,7 @@ import { useTransactions } from '@/hooks/useTransactions';
 import { Card, CardHeader, CardContent, Button, Input } from '@/components/ui';
 import { Search, Filter, Download, Printer, Eye } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
+import ReceiptModal from '@/components/transactions/ReceiptModal';
 
 export default function TransactionsPage() {
   const { transactions, summary, pagination, loading, error, fetchTransactions } = useTransactions();
@@ -15,6 +16,21 @@ export default function TransactionsPage() {
   const [dateTo, setDateTo] = useState('');
   const [selectedPaymentMethods, setSelectedPaymentMethods] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
+
+  // Receipt modal state
+  const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
+  const [showReceiptModal, setShowReceiptModal] = useState(false);
+
+  const handleViewReceipt = (transaction: any) => {
+    setSelectedTransaction(transaction);
+    setShowReceiptModal(true);
+  };
+
+  const handlePrintReceipt = (transaction: any) => {
+    setSelectedTransaction(transaction);
+    setShowReceiptModal(true);
+    // Print will be triggered by user clicking print button in modal
+  };
 
   // Load transactions on mount and when filters change
   useEffect(() => {
@@ -267,12 +283,14 @@ export default function TransactionsPage() {
                           <td className="px-4 py-3">
                             <div className="flex items-center justify-center gap-2">
                               <button
+                                onClick={() => handleViewReceipt(transaction)}
                                 className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                                 title="Lihat Detail"
                               >
                                 <Eye className="w-4 h-4" />
                               </button>
                               <button
+                                onClick={() => handlePrintReceipt(transaction)}
                                 className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
                                 title="Print Receipt"
                               >
@@ -340,6 +358,13 @@ export default function TransactionsPage() {
           </div>
         )}
       </div>
+
+      {/* Receipt Modal */}
+      <ReceiptModal
+        isOpen={showReceiptModal}
+        onClose={() => setShowReceiptModal(false)}
+        transaction={selectedTransaction}
+      />
     </div>
   );
 }
