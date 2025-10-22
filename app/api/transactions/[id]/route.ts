@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { verifyAuth } from '@/lib/auth';
+import { verifyToken } from '@/lib/auth';
 
 /**
  * DELETE /api/transactions/[id]
@@ -12,17 +12,42 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    // Verify authentication
-    const authResult = await verifyAuth(request);
-    if (!authResult.authenticated || !authResult.user) {
+    // Get token from Authorization header or cookie
+    const authHeader = request.headers.get('authorization');
+    const cookieToken = request.cookies.get('token')?.value;
+    const tokenString = authHeader?.replace('Bearer ', '') || cookieToken;
+
+    if (!tokenString) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
+    // Verify token
+    const decoded = verifyToken(tokenString);
+    if (!decoded || !decoded.userId) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid token' },
+        { status: 401 }
+      );
+    }
+
+    // Get user role
+    const user = await prisma.users.findUnique({
+      where: { id: decoded.userId },
+      select: { role: true },
+    });
+
+    if (!user) {
+      return NextResponse.json(
+        { success: false, error: 'User not found' },
+        { status: 404 }
+      );
+    }
+
     // Check if user is DEVELOPER
-    if (authResult.user.role !== 'DEVELOPER') {
+    if (user.role !== 'DEVELOPER') {
       return NextResponse.json(
         { success: false, error: 'Forbidden: Only developers can delete transactions' },
         { status: 403 }
@@ -32,10 +57,10 @@ export async function DELETE(
     const transactionId = params.id;
 
     // Check if transaction exists
-    const existingTransaction = await prisma.transaction.findUnique({
+    const existingTransaction = await prisma.transactions.findUnique({
       where: { id: transactionId },
       include: {
-        items: true,
+        transaction_items: true,
       },
     });
 
@@ -47,12 +72,12 @@ export async function DELETE(
     }
 
     // Delete transaction items first (cascade)
-    await prisma.transactionItem.deleteMany({
-      where: { transactionId },
+    await prisma.transaction_items.deleteMany({
+      where: { transactionId: transactionId },
     });
 
     // Delete the transaction
-    await prisma.transaction.delete({
+    await prisma.transactions.delete({
       where: { id: transactionId },
     });
 
@@ -61,7 +86,7 @@ export async function DELETE(
       message: 'Transaction deleted successfully',
       data: {
         deletedTransactionId: transactionId,
-        receiptId: existingTransaction.receiptId,
+        receiptId: existingTransaction.id.slice(0, 6).toUpperCase(),
       },
     });
 

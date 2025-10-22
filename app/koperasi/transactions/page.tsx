@@ -367,18 +367,6 @@ export default function TransactionsPage() {
                               )}
                             </div>
                           </td>
-                              >
-                                <Eye className="w-4 h-4" />
-                              </button>
-                              <button
-                                onClick={() => handlePrintReceipt(transaction)}
-                                className="p-2 text-gray-600 hover:text-green-600 hover:bg-green-50 rounded-lg transition-colors"
-                                title="Print Receipt"
-                              >
-                                <Printer className="w-4 h-4" />
-                              </button>
-                            </div>
-                          </td>
                         </tr>
                       ))}
                     </tbody>
