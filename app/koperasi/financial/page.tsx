@@ -288,17 +288,15 @@ export default function FinancialPage() {
 
       {/* Financial Summary Card - Full Width */}
       {dailySummary && (
-        <div className="max-w-md mx-auto lg:mx-0">
-          <FinancialSummaryCard
-            summary={dailySummary}
-            selectedDate={selectedDate}
-            onDateChange={setSelectedDate}
-            financialPeriod={financialPeriod}
-            onPeriodChange={setFinancialPeriod}
-            isCustomDate={isCustomDate}
-            onCustomDateToggle={setIsCustomDate}
-          />
-        </div>
+        <FinancialSummaryCard
+          summary={dailySummary}
+          selectedDate={selectedDate}
+          onDateChange={setSelectedDate}
+          financialPeriod={financialPeriod}
+          onPeriodChange={setFinancialPeriod}
+          isCustomDate={isCustomDate}
+          onCustomDateToggle={setIsCustomDate}
+        />
       )}
 
       {/* 3 Metrics Cards - Below Summary, Above Chart */}

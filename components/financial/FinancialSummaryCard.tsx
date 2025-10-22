@@ -197,7 +197,7 @@ export function FinancialSummaryCard({
       </CardHeader>
       
       <CardContent className="p-6 space-y-6">
-        {/* PRIMARY: Saldo Tersedia - Vertical Layout */}
+        {/* PRIMARY: Saldo Tersedia - Horizontal Full Width Layout */}
         <div className="relative overflow-hidden bg-gradient-to-br from-emerald-50 via-green-50 to-emerald-100 border-2 border-emerald-300 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300">
           {/* Animated Background Pattern */}
           <div className="absolute inset-0 opacity-5">
@@ -206,68 +206,74 @@ export function FinancialSummaryCard({
           </div>
           
           <div className="relative z-10">
-            {/* Header - Centered */}
-            <div className="text-center mb-6">
-              <div className="inline-flex items-center justify-center p-3 bg-gradient-to-br from-emerald-500 to-green-600 rounded-xl shadow-lg mb-3">
-                <PiggyBank className="h-8 w-8 text-white" />
-              </div>
-              <p className="text-sm font-semibold text-gray-700 uppercase tracking-wider">Saldo Tersedia</p>
-              <div className="flex items-center justify-center gap-1.5 mt-1">
-                <div className="h-1.5 w-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
-                <p className="text-xs text-gray-600">{summary.transactionCount} transaksi periode ini</p>
-              </div>
-            </div>
-            
-            {/* Amount - Large & Centered */}
-            <div className="text-center mb-6">
-              <p className="text-4xl font-bold bg-gradient-to-r from-emerald-600 via-green-600 to-emerald-500 bg-clip-text text-transparent mb-1">
-                {formatCurrency(summary.netIncome)}
-              </p>
-              <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full ${summary.netIncome > 0 ? 'bg-emerald-100 text-emerald-700' : summary.netIncome < 0 ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'}`}>
-                {summary.netIncome > 0 ? (
-                  <>
-                    <TrendingUp className="h-4 w-4" />
-                    <span className="text-sm font-semibold">Surplus</span>
-                  </>
-                ) : summary.netIncome < 0 ? (
-                  <>
-                    <TrendingDown className="h-4 w-4" />
-                    <span className="text-sm font-semibold">Defisit</span>
-                  </>
-                ) : (
-                  <span className="text-sm font-semibold">Break Even</span>
-                )}
-              </div>
-            </div>
-            
-            {/* Breakdown - Stacked Vertically */}
-            <div className="space-y-3 mb-4">
-              {/* Toko */}
-              <div className="bg-white/60 backdrop-blur-sm rounded-xl p-3 border border-emerald-200/50">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                    <span className="text-sm font-medium text-gray-700">Toko</span>
+            {/* Grid Layout: Left side (Icon + Amount) | Right side (Breakdown) */}
+            <div className="grid md:grid-cols-[1fr_auto] gap-6 items-center">
+              
+              {/* Left Section: Icon, Title, Amount, Status */}
+              <div className="flex items-center gap-6">
+                {/* Icon */}
+                <div className="flex-shrink-0">
+                  <div className="inline-flex items-center justify-center p-4 bg-gradient-to-br from-emerald-500 to-green-600 rounded-2xl shadow-lg">
+                    <PiggyBank className="h-10 w-10 text-white" />
                   </div>
-                  <span className="text-sm font-bold text-gray-900">{formatCurrency(summary.toko?.profit || 0)}</span>
+                </div>
+                
+                {/* Title, Amount & Status */}
+                <div className="flex-1 min-w-0">
+                  <div className="mb-2">
+                    <p className="text-sm font-semibold text-gray-700 uppercase tracking-wider mb-1">Saldo Tersedia</p>
+                    <div className="flex items-center gap-1.5">
+                      <div className="h-1.5 w-1.5 bg-emerald-500 rounded-full animate-pulse"></div>
+                      <p className="text-xs text-gray-600">{summary.transactionCount} transaksi periode ini</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-baseline gap-3 flex-wrap">
+                    <p className="text-4xl font-bold bg-gradient-to-r from-emerald-600 via-green-600 to-emerald-500 bg-clip-text text-transparent">
+                      {formatCurrency(summary.netIncome)}
+                    </p>
+                    <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full ${summary.netIncome > 0 ? 'bg-emerald-100 text-emerald-700' : summary.netIncome < 0 ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'}`}>
+                      {summary.netIncome > 0 ? (
+                        <>
+                          <TrendingUp className="h-4 w-4" />
+                          <span className="text-sm font-semibold">Surplus</span>
+                        </>
+                      ) : summary.netIncome < 0 ? (
+                        <>
+                          <TrendingDown className="h-4 w-4" />
+                          <span className="text-sm font-semibold">Defisit</span>
+                        </>
+                      ) : (
+                        <span className="text-sm font-semibold">Break Even</span>
+                      )}
+                    </div>
+                  </div>
+                  
+                  <p className="text-xs text-gray-600 mt-2">Data periode: {getPeriodDisplayLabel()}</p>
                 </div>
               </div>
               
-              {/* Titipan */}
-              <div className="bg-white/60 backdrop-blur-sm rounded-xl p-3 border border-emerald-200/50">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-2">
+              {/* Right Section: Breakdown Cards (Toko & Titipan) */}
+              <div className="flex flex-col sm:flex-row gap-3 md:min-w-[400px]">
+                {/* Toko */}
+                <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-emerald-200/50 flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
+                    <span className="text-sm font-medium text-gray-700">Toko</span>
+                  </div>
+                  <span className="text-xl font-bold text-gray-900">{formatCurrency(summary.toko?.profit || 0)}</span>
+                </div>
+                
+                {/* Titipan */}
+                <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-emerald-200/50 flex-1">
+                  <div className="flex items-center gap-2 mb-2">
                     <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
                     <span className="text-sm font-medium text-gray-700">Titipan</span>
                   </div>
-                  <span className="text-sm font-bold text-gray-900">{formatCurrency(summary.consignment?.profit || 0)}</span>
+                  <span className="text-xl font-bold text-gray-900">{formatCurrency(summary.consignment?.profit || 0)}</span>
                 </div>
               </div>
-            </div>
-            
-            {/* Footer Info */}
-            <div className="text-center pt-3 border-t border-emerald-200">
-              <p className="text-xs text-gray-600">Data periode: {getPeriodDisplayLabel()}</p>
+              
             </div>
           </div>
         </div>
