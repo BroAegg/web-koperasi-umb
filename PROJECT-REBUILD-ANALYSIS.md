@@ -22,6 +22,58 @@ Project Web Koperasi UMB telah menghadapi berbagai masalah teknis yang berulang.
 
 ## 🔥 MASALAH YANG SUDAH DIHADAPI
 
+---
+
+## 📋 REYVAN'S FIELD REPORT (22 Oktober 2025)
+
+**Context:** Setelah 14 jam marathon session implementing activity logging system (16+ routes, 6 modules), gw discover berbagai masalah yang menjadi bukti nyata dari analisis Aegner di bawah.
+
+### Real-World Bugs Encountered Today:
+
+#### Bug #1: Supplier Name Mapping Error
+```
+❌ ERROR: Cannot read property 'name' of undefined
+🔍 ROOT CAUSE: API returns `businessName`, frontend expects `name`
+🏷️ CATEGORY: Database Schema Inconsistency
+✅ FIXED: Added API mapping layer (supplier.name = supplier.businessName)
+⏱️ TIME WASTED: 30 minutes debugging
+```
+
+#### Bug #2: Stock Validation Error  
+```
+❌ ERROR: PrismaClientValidationError - Invalid value for field `stock`
+🔍 ROOT CAUSE: Form sends empty string "", parseInt("") = NaN
+🏷️ CATEGORY: No Input Validation
+✅ FIXED: Explicit validation with null/undefined/empty check
+⏱️ TIME WASTED: 45 minutes debugging + testing edge cases
+```
+
+#### Bug #3: Duplicate Activity Logging
+```
+❌ ERROR: ReferenceError: logFromRequest is not defined
+🔍 ROOT CAUSE: Route using withActivityLog wrapper but has manual logging inside
+🏷️ CATEGORY: Code Architecture Inconsistency
+✅ FIXED: Removed 16 lines of duplicate manual logging
+⏱️ TIME WASTED: 20 minutes
+```
+
+### Pattern Gw Notice:
+- 🔴 **Every bug is a SYMPTOM of architectural issues**
+- 🔴 **Fixing one bug doesn't prevent similar bugs elsewhere**
+- 🔴 **No type safety = bugs discovered at RUNTIME, not compile-time**
+- 🔴 **No automated tests = manual testing every single time**
+
+### Gw Setuju 100% dengan Full Rebuild karena:
+1. ✅ Sudah experience semua pain points yang Aegner mention
+2. ✅ Current approach = whack-a-mole (fix bug → bug muncul lagi)
+3. ✅ Better invest 4 weeks now than 6 months debugging terus
+4. ✅ Want to learn modern stack (tRPC, Zod, TanStack Query)
+5. ✅ Need proper testing (Vitest + Playwright) untuk peace of mind
+
+**Status:** READY TO COMMIT TO FULL REBUILD 🚀
+
+---
+
 ### 1. **Database Schema Issues** 🔴 CRITICAL
 
 #### Masalah Berulang:
