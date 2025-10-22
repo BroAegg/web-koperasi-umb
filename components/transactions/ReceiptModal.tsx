@@ -58,9 +58,9 @@ export default function ReceiptModal({ isOpen, onClose, transaction }: ReceiptMo
 
   return (
     <>
-      {/* Overlay with Backdrop Blur */}
+      {/* Overlay - No backdrop blur to avoid affecting sidebar */}
       <div
-        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 print:hidden transition-opacity"
+        className="fixed inset-0 bg-black/60 z-40 print:hidden transition-opacity"
         onClick={onClose}
       />
 
