@@ -70,6 +70,7 @@ function KoperasiContent({ children }: { children: React.ReactNode }) {
       items: [
         { name: "Dashboard", href: "/koperasi/dashboard", icon: LayoutDashboard, roles: ["ADMIN", "SUPER_ADMIN"] },
         { name: "POS Kasir", href: "/koperasi/pos", icon: CreditCard, roles: ["ADMIN", "SUPER_ADMIN"] },
+        { name: "Riwayat Transaksi", href: "/koperasi/transactions", icon: Receipt, roles: ["ADMIN", "SUPER_ADMIN"] },
         { name: "Inventory", href: "/koperasi/inventory", icon: Package, roles: ["ADMIN", "SUPER_ADMIN"] },
       ]
     },
