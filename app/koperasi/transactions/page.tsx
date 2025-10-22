@@ -8,11 +8,13 @@ import { formatCurrency } from '@/lib/utils';
 import ReceiptModal from '@/components/transactions/ReceiptModal';
 import { useAuth } from '@/lib/use-auth';
 import { useNotification } from '@/lib/notification-context';
+import { useDeveloper } from '@/contexts/DeveloperContext';
 
 export default function TransactionsPage() {
   const { user } = useAuth();
   const { success, error: notifyError } = useNotification();
   const { transactions, summary, pagination, loading, error, fetchTransactions } = useTransactions();
+  const { isDeveloperMode } = useDeveloper();
   
   // Filter state
   const [search, setSearch] = useState('');
@@ -37,8 +39,8 @@ export default function TransactionsPage() {
   const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
 
-  // Check if user is developer
-  const isDeveloper = user?.role === 'DEVELOPER';
+  // Check if user is developer (real developer OR switched to any role in dev mode)
+  const isDeveloper = user?.role === 'DEVELOPER' || isDeveloperMode;
 
   const handleViewReceipt = (transaction: any) => {
     setSelectedTransaction(transaction);
