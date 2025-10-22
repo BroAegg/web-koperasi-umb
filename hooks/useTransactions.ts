@@ -71,7 +71,9 @@ export function useTransactions(): UseTransactionsReturn {
       params.append('page', filters.page.toString());
       params.append('limit', filters.limit.toString());
 
-      const response = await fetch(`/api/transactions?${params.toString()}`);
+      const response = await fetch(`/api/transactions?${params.toString()}`, {
+        credentials: 'include', // Include cookies for authentication
+      });
       const data = await response.json();
 
       if (!response.ok) {

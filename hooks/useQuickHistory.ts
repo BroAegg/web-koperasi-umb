@@ -39,7 +39,9 @@ export function useQuickHistory(cashierId?: string): UseQuickHistoryReturn {
       }
       params.append('limit', '10');
 
-      const response = await fetch(`/api/transactions/quick-history?${params.toString()}`);
+      const response = await fetch(`/api/transactions/quick-history?${params.toString()}`, {
+        credentials: 'include', // Include cookies for authentication
+      });
       const data = await response.json();
 
       if (!response.ok) {
