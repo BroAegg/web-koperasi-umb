@@ -45,6 +45,7 @@ export default function POSPage() {
   const [isProcessingPayment, setIsProcessingPayment] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [lastTransactionId, setLastTransactionId] = useState<string | null>(null);
+  const [refreshTransactions, setRefreshTransactions] = useState(0);
 
   // Fetch products for POS
   useEffect(() => {
@@ -135,6 +136,8 @@ export default function POSPage() {
   const handlePaymentComplete = (transactionId: string) => {
     setLastTransactionId(transactionId);
     clearCart();
+    // Trigger transaction list refresh (real-time update)
+    setRefreshTransactions(prev => prev + 1);
     // Show success notification (non-blocking, auto-dismiss in 2 seconds for busy cashiers)
     success(
       'Transaksi Berhasil!',
@@ -378,7 +381,7 @@ export default function POSPage() {
         </div>
 
         {/* Quick Transaction History */}
-        <QuickTransactionHistory />
+        <QuickTransactionHistory refreshTrigger={refreshTransactions} />
 
         {/* Payment Modal */}
         <PaymentModal

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useQuickHistory } from '@/hooks/useQuickHistory';
 import { formatCurrency } from '@/lib/utils';
 import { ChevronDown, ChevronUp, Printer, ExternalLink } from 'lucide-react';
@@ -9,9 +9,10 @@ import ReceiptModal from '@/components/transactions/ReceiptModal';
 
 interface QuickTransactionHistoryProps {
   onReprint?: (transactionId: string) => void;
+  refreshTrigger?: number; // Real-time refresh trigger
 }
 
-export default function QuickTransactionHistory({ onReprint }: QuickTransactionHistoryProps) {
+export default function QuickTransactionHistory({ onReprint, refreshTrigger }: QuickTransactionHistoryProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const { transactions, loading, error, refetch } = useQuickHistory();
   const router = useRouter();
@@ -19,6 +20,13 @@ export default function QuickTransactionHistory({ onReprint }: QuickTransactionH
   // Receipt modal state
   const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
+
+  // Real-time refresh when new transaction completed
+  useEffect(() => {
+    if (refreshTrigger !== undefined && refreshTrigger > 0) {
+      refetch();
+    }
+  }, [refreshTrigger, refetch]);
 
   const formatTime = (isoString: string) => {
     const date = new Date(isoString);
