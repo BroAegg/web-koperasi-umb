@@ -38,6 +38,18 @@ export function PaymentModal({
   const [isProcessing, setIsProcessing] = useState(false);
   const [customerName, setCustomerName] = useState('');
 
+  // Auto-fill amount when switching to TRANSFER mode
+  const handlePaymentMethodChange = (method: 'CASH' | 'TRANSFER') => {
+    setPaymentMethod(method);
+    if (method === 'TRANSFER') {
+      // Auto-fill with exact total for transfer
+      setAmountPaid(formatNumberWithDots(total.toString()));
+    } else {
+      // Clear amount for cash
+      setAmountPaid('');
+    }
+  };
+
   // Format number with thousand separators (titik)
   const formatNumberWithDots = (value: string): string => {
     // Remove all non-digit characters
@@ -142,6 +154,7 @@ export function PaymentModal({
     setPaymentMethod('CASH');
   };
 
+  // Quick amount buttons - ONLY for CASH mode
   const quickAmountButtons = [
     { label: 'Exact', value: total },
     { label: '2k', value: 2000 },
@@ -211,7 +224,7 @@ export function PaymentModal({
             <div className="grid grid-cols-2 gap-3">
               <Button
                 variant={paymentMethod === 'CASH' ? 'primary' : 'outline'}
-                onClick={() => setPaymentMethod('CASH')}
+                onClick={() => handlePaymentMethodChange('CASH')}
                 className="h-auto py-3"
               >
                 <Banknote className="w-4 h-4 mr-2" />
@@ -219,7 +232,7 @@ export function PaymentModal({
               </Button>
               <Button
                 variant={paymentMethod === 'TRANSFER' ? 'primary' : 'outline'}
-                onClick={() => setPaymentMethod('TRANSFER')}
+                onClick={() => handlePaymentMethodChange('TRANSFER')}
                 className="h-auto py-3"
               >
                 <CreditCard className="w-4 h-4 mr-2" />
@@ -231,7 +244,7 @@ export function PaymentModal({
           {/* Amount Paid */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Amount Paid
+              {paymentMethod === 'TRANSFER' ? 'Transfer Amount' : 'Amount Paid'}
             </label>
             <Input
               type="text"
@@ -241,23 +254,32 @@ export function PaymentModal({
               className="text-lg"
             />
             
-            {/* Quick Amount Buttons */}
-            <div className="grid grid-cols-4 gap-2 mt-2">
-              {quickAmountButtons.map((button) => (
-                <Button
-                  key={button.label}
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setAmountPaid(formatNumberWithDots(button.value.toString()))}
-                  className="text-xs"
-                >
-                  {button.label}
-                </Button>
-              ))}
-            </div>
+            {/* Quick Amount Buttons - ONLY show for CASH */}
+            {paymentMethod === 'CASH' && (
+              <div className="grid grid-cols-4 gap-2 mt-2">
+                {quickAmountButtons.map((button) => (
+                  <Button
+                    key={button.label}
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setAmountPaid(formatNumberWithDots(button.value.toString()))}
+                    className="text-xs"
+                  >
+                    {button.label}
+                  </Button>
+                ))}
+              </div>
+            )}
+
+            {/* Transfer hint */}
+            {paymentMethod === 'TRANSFER' && (
+              <p className="text-xs text-gray-500 mt-1">
+                Amount auto-filled with exact total. Edit if needed.
+              </p>
+            )}
           </div>
 
-          {/* Change Calculation */}
+          {/* Change Calculation - ONLY for CASH */}
           {paymentMethod === 'CASH' && amountPaid && (
             <Card className={`${calculateChange() < 0 ? 'border-red-200 bg-red-50' : 'border-green-200 bg-green-50'}`}>
               <CardContent className="p-3">
@@ -273,15 +295,21 @@ export function PaymentModal({
             </Card>
           )}
 
-          {/* Payment Status for Transfer */}
-          {paymentMethod === 'TRANSFER' && (
+          {/* Payment Confirmation for Transfer */}
+          {paymentMethod === 'TRANSFER' && amountPaid && (
             <Card className="border-blue-200 bg-blue-50">
               <CardContent className="p-3">
-                <div className="flex items-center space-x-2 text-blue-700">
-                  <Calculator className="w-4 h-4" />
-                  <span className="text-sm">
-                    Confirm transfer amount: Rp {total.toLocaleString('id-ID')}
-                  </span>
+                <div className="space-y-2">
+                  <div className="flex items-center space-x-2 text-blue-700">
+                    <Calculator className="w-4 h-4" />
+                    <span className="text-sm font-semibold">
+                      Confirm Transfer Payment
+                    </span>
+                  </div>
+                  <div className="text-xs text-blue-600 space-y-1">
+                    <p>✓ Ensure transfer amount matches: <span className="font-bold">Rp {total.toLocaleString('id-ID')}</span></p>
+                    <p>✓ Verify payment received before completing</p>
+                  </div>
                 </div>
               </CardContent>
             </Card>
