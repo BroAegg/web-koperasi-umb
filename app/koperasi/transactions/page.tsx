@@ -17,6 +17,18 @@ export default function TransactionsPage() {
   const [selectedPaymentMethods, setSelectedPaymentMethods] = useState<string[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
 
+  // Debounced search
+  const [debouncedSearch, setDebouncedSearch] = useState(search);
+
+  // Debounce search input
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+    }, 300);
+
+    return () => clearTimeout(timer);
+  }, [search]);
+
   // Receipt modal state
   const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
@@ -35,26 +47,14 @@ export default function TransactionsPage() {
   // Load transactions on mount and when filters change
   useEffect(() => {
     fetchTransactions({
-      search,
+      search: debouncedSearch, // Use debounced search
       dateFrom,
       dateTo,
       paymentMethods: selectedPaymentMethods,
       page: currentPage,
       limit: 50,
     });
-  }, [currentPage]);
-
-  const handleApplyFilters = () => {
-    setCurrentPage(1); // Reset to first page
-    fetchTransactions({
-      search,
-      dateFrom,
-      dateTo,
-      paymentMethods: selectedPaymentMethods,
-      page: 1,
-      limit: 50,
-    });
-  };
+  }, [debouncedSearch, dateFrom, dateTo, selectedPaymentMethods, currentPage, fetchTransactions]);
 
   const handleResetFilters = () => {
     setSearch('');
@@ -62,11 +62,9 @@ export default function TransactionsPage() {
     setDateTo('');
     setSelectedPaymentMethods([]);
     setCurrentPage(1);
-    fetchTransactions({
-      page: 1,
-      limit: 50,
-    });
   };
+
+  const hasActiveFilters = search || dateFrom || dateTo || selectedPaymentMethods.length > 0;
 
   const formatDateTime = (isoString: string) => {
     const date = new Date(isoString);
@@ -104,7 +102,6 @@ export default function TransactionsPage() {
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
                     className="pl-10"
-                    onKeyPress={(e) => e.key === 'Enter' && handleApplyFilters()}
                   />
                 </div>
               </div>
@@ -160,16 +157,24 @@ export default function TransactionsPage() {
               </div>
             </div>
 
-            {/* Action Buttons */}
-            <div className="mt-4 flex gap-2">
-              <Button onClick={handleApplyFilters} className="flex items-center gap-2">
-                <Filter className="w-4 h-4" />
-                Terapkan Filter
-              </Button>
-              <Button variant="outline" onClick={handleResetFilters}>
-                Reset
-              </Button>
-            </div>
+            {/* Action Buttons - Remove Apply Filter button */}
+            {hasActiveFilters && (
+              <div className="mt-4 flex items-center justify-between bg-blue-50 border border-blue-200 rounded-lg p-3">
+                <div className="flex items-center gap-2 text-sm text-blue-700">
+                  <Filter className="w-4 h-4" />
+                  <span className="font-medium">Filter Aktif:</span>
+                  {search && <span className="px-2 py-1 bg-blue-100 rounded">Search: "{search}"</span>}
+                  {dateFrom && <span className="px-2 py-1 bg-blue-100 rounded">Dari: {dateFrom}</span>}
+                  {dateTo && <span className="px-2 py-1 bg-blue-100 rounded">Sampai: {dateTo}</span>}
+                  {selectedPaymentMethods.map((method) => (
+                    <span key={method} className="px-2 py-1 bg-blue-100 rounded">{method}</span>
+                  ))}
+                </div>
+                <Button variant="outline" size="sm" onClick={handleResetFilters}>
+                  Hapus Semua Filter
+                </Button>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -228,7 +233,14 @@ export default function TransactionsPage() {
             ) : error ? (
               <div className="p-12 text-center">
                 <p className="text-red-600 mb-4">{error}</p>
-                <Button onClick={handleApplyFilters}>Coba Lagi</Button>
+                <Button onClick={() => fetchTransactions({
+                  search,
+                  dateFrom,
+                  dateTo,
+                  paymentMethods: selectedPaymentMethods,
+                  page: currentPage,
+                  limit: 50,
+                })}>Coba Lagi</Button>
               </div>
             ) : transactions.length === 0 ? (
               <div className="p-12 text-center">
