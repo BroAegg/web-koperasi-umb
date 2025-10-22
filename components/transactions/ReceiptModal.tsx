@@ -58,17 +58,17 @@ export default function ReceiptModal({ isOpen, onClose, transaction }: ReceiptMo
 
   return (
     <>
-      {/* Overlay */}
+      {/* Overlay with Backdrop Blur */}
       <div
-        className="fixed inset-0 bg-black/50 z-40 print:hidden"
+        className="fixed inset-0 bg-black/60 backdrop-blur-sm z-40 print:hidden transition-opacity"
         onClick={onClose}
       />
 
       {/* Modal */}
-      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 print:p-0">
-        <div className="bg-white rounded-lg shadow-xl max-w-md w-full max-h-[90vh] overflow-y-auto print:max-w-none print:w-auto print:shadow-none print:rounded-none">
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 print:p-0 pointer-events-none">
+        <div className="bg-white rounded-lg shadow-2xl max-w-md w-full max-h-[90vh] overflow-y-auto print:max-w-none print:w-auto print:shadow-none print:rounded-none pointer-events-auto">
           {/* Header - Hide on Print */}
-          <div className="flex items-center justify-between p-4 border-b print:hidden">
+          <div className="flex items-center justify-between p-4 border-b print:hidden sticky top-0 bg-white z-10">
             <h2 className="text-lg font-semibold text-gray-900">Receipt Detail</h2>
             <div className="flex items-center gap-2">
               <button
