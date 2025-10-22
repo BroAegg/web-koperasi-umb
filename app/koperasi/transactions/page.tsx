@@ -3,11 +3,15 @@
 import { useState, useEffect } from 'react';
 import { useTransactions } from '@/hooks/useTransactions';
 import { Card, CardHeader, CardContent, Button, Input } from '@/components/ui';
-import { Search, Filter, Download, Printer, Eye } from 'lucide-react';
+import { Search, Filter, Download, Printer, Eye, Trash2 } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import ReceiptModal from '@/components/transactions/ReceiptModal';
+import { useAuth } from '@/lib/use-auth';
+import { useNotification } from '@/lib/notification-context';
 
 export default function TransactionsPage() {
+  const { user } = useAuth();
+  const { success, error: notifyError } = useNotification();
   const { transactions, summary, pagination, loading, error, fetchTransactions } = useTransactions();
   
   // Filter state
@@ -33,6 +37,9 @@ export default function TransactionsPage() {
   const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
 
+  // Check if user is developer
+  const isDeveloper = user?.role === 'DEVELOPER';
+
   const handleViewReceipt = (transaction: any) => {
     setSelectedTransaction(transaction);
     setShowReceiptModal(true);
@@ -42,6 +49,50 @@ export default function TransactionsPage() {
     setSelectedTransaction(transaction);
     setShowReceiptModal(true);
     // Print will be triggered by user clicking print button in modal
+  };
+
+  const handleDeleteTransaction = async (transactionId: string, receiptId: string) => {
+    // Confirmation dialog
+    const confirmed = window.confirm(
+      `Hapus transaksi #${receiptId}?\n\nPeringatan: Aksi ini akan menghapus transaksi secara permanen dan tidak dapat dibatalkan.\n\n⚠️ Fitur ini hanya untuk developer testing/cleanup.`
+    );
+    
+    if (!confirmed) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      if (!token) {
+        notifyError('Error', 'Authentication required. Please login again.');
+        return;
+      }
+
+      const response = await fetch(`/api/transactions/${transactionId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        success('Transaksi Dihapus', `Receipt #${receiptId} berhasil dihapus`);
+        // Refresh transaction list
+        fetchTransactions({
+          search: debouncedSearch,
+          dateFrom,
+          dateTo,
+          paymentMethods: selectedPaymentMethods,
+          page: currentPage,
+          limit: 50,
+        });
+      } else {
+        notifyError('Error', result.error || 'Gagal menghapus transaksi');
+      }
+    } catch (err) {
+      console.error('Delete transaction error:', err);
+      notifyError('Error', 'Terjadi kesalahan saat menghapus transaksi');
+    }
   };
 
   // Load transactions on mount and when filters change
@@ -258,7 +309,9 @@ export default function TransactionsPage() {
                         <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Total</th>
                         <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Payment</th>
                         <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Waktu</th>
-                        <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700">Aksi</th>
+                        <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700">
+                          Aksi{isDeveloper && ' (Dev)'}
+                        </th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-200">
@@ -298,6 +351,22 @@ export default function TransactionsPage() {
                                 onClick={() => handleViewReceipt(transaction)}
                                 className="p-2 text-gray-600 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
                                 title="Lihat Detail"
+                              >
+                                <Eye className="w-4 h-4" />
+                              </button>
+                              
+                              {/* Delete button - ONLY for DEVELOPER role */}
+                              {isDeveloper && (
+                                <button
+                                  onClick={() => handleDeleteTransaction(transaction.id, transaction.receiptId)}
+                                  className="p-2 text-gray-600 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                                  title="Hapus Transaksi (Developer Only)"
+                                >
+                                  <Trash2 className="w-4 h-4" />
+                                </button>
+                              )}
+                            </div>
+                          </td>
                               >
                                 <Eye className="w-4 h-4" />
                               </button>
