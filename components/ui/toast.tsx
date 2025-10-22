@@ -12,13 +12,17 @@ export interface NotificationProps {
   onClose: (id: string) => void;
 }
 
-export const Notification = ({ id, type, title, message, duration = 3000, onClose }: NotificationProps) => {
+export const Notification = ({ id, type, title, message, duration = 2000, onClose }: NotificationProps) => {
+  const [isExiting, setIsExiting] = useState(false);
+
   useEffect(() => {
-    const timer = setTimeout(() => {
-      onClose(id);
+    const exitTimer = setTimeout(() => {
+      setIsExiting(true);
+      // Wait for animation to complete before calling onClose
+      setTimeout(() => onClose(id), 300);
     }, duration);
 
-    return () => clearTimeout(timer);
+    return () => clearTimeout(exitTimer);
   }, [id, duration, onClose]);
 
   const getIcon = () => {
@@ -44,9 +48,9 @@ export const Notification = ({ id, type, title, message, duration = 3000, onClos
   };
 
   return (
-    <div className="fixed inset-0 bg-black/20 flex items-center justify-center z-50 animate-in fade-in duration-200">
-      <div className={`${getBgColor()} border rounded-xl shadow-2xl p-6 max-w-sm w-full mx-4 animate-in zoom-in-95 duration-200`}>
-        <div className="flex items-start space-x-4">
+    <div className={`fixed top-4 right-4 z-50 ${isExiting ? 'animate-slide-out-right' : 'animate-slide-in-right'}`}>
+      <div className={`${getBgColor()} border rounded-lg shadow-lg p-4 max-w-sm w-full min-w-[320px]`}>
+        <div className="flex items-start space-x-3">
           <div className="flex-shrink-0">
             {getIcon()}
           </div>

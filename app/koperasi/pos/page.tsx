@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/lib/use-auth';
+import { useNotification } from '@/lib/notification-context';
 import { Card, CardHeader, CardContent, Button, Input, Badge } from '@/components/ui';
 import { PaymentModal } from '@/components/pos/PaymentModal';
 import { 
@@ -34,6 +35,7 @@ interface CartItem extends Product {
 
 export default function POSPage() {
   const { user, loading } = useAuth(['ADMIN', 'SUPER_ADMIN']);
+  const { success, error } = useNotification();
   const [products, setProducts] = useState<Product[]>([]);
   const [filteredProducts, setFilteredProducts] = useState<Product[]>([]);
   const [cart, setCart] = useState<CartItem[]>([]);
@@ -132,8 +134,11 @@ export default function POSPage() {
   const handlePaymentComplete = (transactionId: string) => {
     setLastTransactionId(transactionId);
     clearCart();
-    // Show success message or redirect to receipt
-    alert(`Transaction completed successfully! Receipt: ${transactionId.slice(-8).toUpperCase()}`);
+    // Show success notification (non-blocking, auto-dismiss in 2 seconds for busy cashiers)
+    success(
+      'Transaksi Berhasil!',
+      `Receipt: ${transactionId.slice(-8).toUpperCase()}`
+    );
   };
 
   const categories = ['ALL', 'Sembako', 'Minuman', 'Makanan Ringan', 'Gorengan'];
