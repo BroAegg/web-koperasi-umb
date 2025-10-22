@@ -33,6 +33,9 @@ export async function DELETE(
       );
     }
 
+    // Extract isProduction from developer session in token
+    const isProduction = decoded.developerSession?.isProduction ?? true;
+
     // Get user role
     const user = await prisma.users.findUnique({
       where: { id: decoded.userId },
@@ -56,9 +59,11 @@ export async function DELETE(
 
     const transactionId = params.id;
 
-    // Check if transaction exists
+    // Check if transaction exists AND matches current environment
     const existingTransaction = await prisma.transactions.findUnique({
-      where: { id: transactionId },
+      where: { 
+        id: transactionId,
+      },
       include: {
         transaction_items: true,
       },
@@ -68,6 +73,17 @@ export async function DELETE(
       return NextResponse.json(
         { success: false, error: 'Transaction not found' },
         { status: 404 }
+      );
+    }
+
+    // CRITICAL: Prevent cross-environment deletion
+    if (existingTransaction.isProduction !== isProduction) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: `Cannot delete ${existingTransaction.isProduction ? 'PRODUCTION' : 'DEVELOPMENT'} transaction while in ${isProduction ? 'PRODUCTION' : 'DEVELOPMENT'} mode` 
+        },
+        { status: 403 }
       );
     }
 
@@ -87,6 +103,7 @@ export async function DELETE(
       data: {
         deletedTransactionId: transactionId,
         receiptId: existingTransaction.id.slice(0, 6).toUpperCase(),
+        environment: isProduction ? 'PRODUCTION' : 'DEVELOPMENT',
       },
     });
 
