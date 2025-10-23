@@ -1772,7 +1772,12 @@ export default function InventoryPage() {
                                 'Content-Type': 'application/json',
                                 'Authorization': `Bearer ${token}`,
                               },
-                              body: JSON.stringify({ supplierIds: [supplier.supplierName], amounts: { [supplier.supplierName]: supplier.cogs } }),
+                              body: JSON.stringify({ 
+                                supplierIds: [supplier.supplierName], 
+                                amounts: { [supplier.supplierName]: supplier.cogs },
+                                period: selectedPeriod,
+                                paymentMethod: 'CASH'
+                              }),
                             });
                             const data = await response.json();
                             if (!response.ok || !data.success) throw new Error(data.error || 'Failed');
@@ -1836,7 +1841,12 @@ export default function InventoryPage() {
                             'Content-Type': 'application/json',
                             'Authorization': `Bearer ${token}`,
                           },
-                          body: JSON.stringify({ supplierIds, amounts }),
+                          body: JSON.stringify({ 
+                            supplierIds, 
+                            amounts,
+                            period: selectedPeriod,
+                            paymentMethod: 'CASH'
+                          }),
                         });
                         const data = await response.json();
                         if (!response.ok || !data.success) throw new Error(data.error || 'Failed');
