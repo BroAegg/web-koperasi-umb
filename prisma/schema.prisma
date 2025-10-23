@@ -123,6 +123,32 @@ model consignment_sales {
   @@index([isProduction])
 }
 
+model consignment_payments {
+  id            String        @id @default(cuid())
+  supplierId    String?
+  supplierName  String
+  amount        Float
+  period        String
+  periodStart   DateTime
+  periodEnd     DateTime
+  status        String        @default("PAID")
+  paymentMethod PaymentMethod @default(CASH)
+  transactionId String?       @unique
+  paidBy        String
+  note          String?
+  metadata      Json?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  suppliers     suppliers?    @relation(fields: [supplierId], references: [id])
+  transactions  transactions? @relation(fields: [transactionId], references: [id])
+  users         users         @relation(fields: [paidBy], references: [id])
+
+  @@index([supplierId])
+  @@index([createdAt])
+  @@index([periodStart, periodEnd])
+  @@map("consignment_payments")
+}
+
 model consignors {
   id                  String                @id
   code                String                @unique
@@ -400,6 +426,7 @@ model suppliers {
   products          products[]
   purchases         purchases[]
   supplier_payments supplier_payments[]
+  consignment_payments consignment_payments[]
 }
 
 model transaction_items {
@@ -436,6 +463,7 @@ model transactions {
   updatedAt         DateTime
   isProduction      Boolean             @default(true)
   transaction_items transaction_items[]
+  consignment_payments consignment_payments[]
   members           members?            @relation(fields: [memberId], references: [id])
 
   @@index([isProduction])
@@ -452,6 +480,7 @@ model users {
   updatedAt         DateTime
   activity_logs     activity_logs[]
   broadcasts        broadcasts[]
+  consignment_payments consignment_payments[]
   members           members?
   // supplier_profiles supplier_profiles? // DEPRECATED: merged to suppliers
 }

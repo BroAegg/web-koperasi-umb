@@ -77,6 +77,7 @@ export default function InventoryPage() {
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [showAllMovementsModal, setShowAllMovementsModal] = useState(false);
   const [showConsignmentPaymentModal, setShowConsignmentPaymentModal] = useState(false);
+  const [paidSupplierIds, setPaidSupplierIds] = useState<string[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   
@@ -1726,15 +1727,21 @@ export default function InventoryPage() {
                             </div>
                             <div>
                               <h4 className="text-lg font-bold text-gray-900">{supplier.supplierName}</h4>
-                              <p className="text-sm text-gray-500">ID: {supplier.supplierId}</p>
+                    <p className="text-sm text-gray-500">ID: {supplier.supplierName}</p>
                             </div>
                           </div>
                         </div>
                         <div className="text-right">
                           <p className="text-sm text-gray-500 mb-1">Status</p>
-                          <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700">
-                            Belum Dibayar
-                          </span>
+                          {paidSupplierIds.includes(supplier.supplierName) ? (
+                            <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">
+                              Lunas
+                            </span>
+                          ) : (
+                            <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700">
+                              Belum Dibayar
+                            </span>
+                          )}
                         </div>
                       </div>
 
@@ -1756,13 +1763,33 @@ export default function InventoryPage() {
 
                       {/* Action Button */}
                       <button
-                        onClick={() => {
-                          success('Pembayaran Berhasil', `Pembayaran ke ${supplier.supplierName} sebesar ${formatCurrency(supplier.cogs)} berhasil dicatat`);
+                        onClick={async () => {
+                          try {
+                            const token = localStorage.getItem('token');
+                            const response = await fetch('/api/consignment/payments', {
+                              method: 'POST',
+                              headers: {
+                                'Content-Type': 'application/json',
+                                'Authorization': `Bearer ${token}`,
+                              },
+                              body: JSON.stringify({ supplierIds: [supplier.supplierName], amounts: { [supplier.supplierName]: supplier.cogs } }),
+                            });
+                            const data = await response.json();
+                            if (!response.ok || !data.success) throw new Error(data.error || 'Failed');
+
+                            // Optimistic update
+                            setPaidSupplierIds(prev => [...prev, supplier.supplierName]);
+                            success('Pembayaran Berhasil', `Pembayaran ke ${supplier.supplierName} sebesar ${formatCurrency(supplier.cogs)} berhasil dicatat`);
+                          } catch (err) {
+                            console.error('Pay supplier error', err);
+                            error('Gagal', 'Pembayaran gagal dicatat, silakan coba lagi');
+                          }
                         }}
-                        className="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2"
+                        disabled={paidSupplierIds.includes(supplier.supplierName)}
+                        className={`w-full ${paidSupplierIds.includes(supplier.supplierName) ? 'bg-gray-300 cursor-not-allowed' : 'bg-purple-600 hover:bg-purple-700'} text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2`}
                       >
                         <DollarSign className="w-5 h-5" />
-                        Bayar {formatCurrency(supplier.cogs)}
+                        {paidSupplierIds.includes(supplier.supplierName) ? 'Sudah Dibayar' : `Bayar ${formatCurrency(supplier.cogs)}`}
                       </button>
                     </div>
                   ))
@@ -1789,10 +1816,38 @@ export default function InventoryPage() {
                 >
                   Tutup
                 </Button>
-                {periodFinancialData.consignmentBreakdown && periodFinancialData.consignmentBreakdown.length > 0 && (
+                        {periodFinancialData.consignmentBreakdown && periodFinancialData.consignmentBreakdown.length > 0 && (
                   <Button
-                    onClick={() => {
-                      success('Pembayaran Semua Berhasil', `Total ${formatCurrency(consignmentPayments)} untuk ${periodFinancialData.consignmentBreakdown?.length} supplier berhasil dicatat`);
+                    onClick={async () => {
+                      try {
+                        const token = localStorage.getItem('token');
+                        if (!periodFinancialData.consignmentBreakdown || periodFinancialData.consignmentBreakdown.length === 0) {
+                          error('Tidak ada tagihan', 'Tidak ada supplier yang menunggu pembayaran');
+                          return;
+                        }
+
+                        const supplierIds = periodFinancialData.consignmentBreakdown.map(s => s.supplierName);
+                        const amounts: Record<string, number> = {};
+                        periodFinancialData.consignmentBreakdown.forEach(s => { amounts[s.supplierName] = s.cogs; });
+
+                        const response = await fetch('/api/consignment/payments', {
+                          method: 'POST',
+                          headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': `Bearer ${token}`,
+                          },
+                          body: JSON.stringify({ supplierIds, amounts }),
+                        });
+                        const data = await response.json();
+                        if (!response.ok || !data.success) throw new Error(data.error || 'Failed');
+
+                        // Mark all as paid (use supplierName)
+                        setPaidSupplierIds(periodFinancialData.consignmentBreakdown.map(s => s.supplierName));
+                        success('Pembayaran Semua Berhasil', `Total ${formatCurrency(consignmentPayments)} untuk ${periodFinancialData.consignmentBreakdown?.length} supplier berhasil dicatat`);
+                      } catch (err) {
+                        console.error('Pay all error', err);
+                        error('Gagal', 'Pembayaran semua gagal dicatat, silakan coba lagi');
+                      }
                     }}
                     className="bg-purple-600 hover:bg-purple-700 text-white px-6"
                   >
