@@ -1775,7 +1775,7 @@ export default function InventoryPage() {
                               body: JSON.stringify({ 
                                 supplierIds: [supplier.supplierName], 
                                 amounts: { [supplier.supplierName]: supplier.cogs },
-                                period: selectedPeriod,
+                                period: financialPeriod,
                                 paymentMethod: 'CASH'
                               }),
                             });
@@ -1844,7 +1844,7 @@ export default function InventoryPage() {
                           body: JSON.stringify({ 
                             supplierIds, 
                             amounts,
-                            period: selectedPeriod,
+                            period: financialPeriod,
                             paymentMethod: 'CASH'
                           }),
                         });
