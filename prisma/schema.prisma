@@ -26,7 +26,7 @@ model activity_logs {
   userRole     Role
   action       String
   module       String
-  description  String   @db.Text
+  description  String
   metadata     Json?
   ipAddress    String?
   userAgent    String?
@@ -124,26 +124,35 @@ model consignment_sales {
 }
 
 model consignment_payments {
-  id            String        @id @default(cuid())
-  supplierId    String?
-  supplierName  String
-  amount        Float
-  period        String
-  periodStart   DateTime
-  periodEnd     DateTime
-  status        String        @default("PAID")
-  paymentMethod PaymentMethod @default(CASH)
-  transactionId String?       @unique
-  paidBy        String
-  note          String?
-  metadata      Json?
-  createdAt     DateTime      @default(now())
-  updatedAt     DateTime      @updatedAt
-  suppliers     suppliers?    @relation(fields: [supplierId], references: [id])
-  transactions  transactions? @relation(fields: [transactionId], references: [id])
-  users         users         @relation(fields: [paidBy], references: [id])
+  id             String                   @id @default(cuid())
+  supplierId     String?
+  supplierName   String
+  amount         Float
+  period         String
+  periodStart    DateTime
+  periodEnd      DateTime
+  paymentMethod  PaymentMethod            @default(CASH)
+  transactionId  String?                  @unique
+  paidBy         String
+  note           String?
+  metadata       Json?
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+  accountNumber  String?
+  bankName       String?
+  proofImageUrl  String?
+  rejectedReason String?
+  requestedAt    DateTime?
+  requestedBy    String?
+  reviewedAt     DateTime?
+  reviewedBy     String?
+  status         ConsignmentPaymentStatus @default(PENDING)
+  users          users                    @relation(fields: [paidBy], references: [id])
+  suppliers      suppliers?               @relation(fields: [supplierId], references: [id])
+  transactions   transactions?            @relation(fields: [transactionId], references: [id])
 
   @@index([supplierId])
+  @@index([status])
   @@index([createdAt])
   @@index([periodStart, periodEnd])
   @@map("consignment_payments")
@@ -339,94 +348,55 @@ model stock_movements {
 }
 
 model supplier_payments {
-  id              String                    @id
-  supplierId      String                    // Changed from supplierProfileId
-  amount          Decimal
-  paymentMethod   PaymentMethod             @default(TRANSFER)
-  paymentDate     DateTime                  @default(now())
-  periodStart     DateTime
-  periodEnd       DateTime
-  referenceNo     String?
-  paymentProof    String?
-  verifiedBy      String?
-  verifiedAt      DateTime?
-  status          PaymentVerificationStatus @default(PENDING)
-  note            String?
-  createdAt       DateTime                  @default(now())
-  updatedAt       DateTime
-  suppliers       suppliers                 @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  id            String                    @id
+  amount        Decimal
+  paymentMethod PaymentMethod             @default(TRANSFER)
+  paymentDate   DateTime                  @default(now())
+  periodStart   DateTime
+  periodEnd     DateTime
+  referenceNo   String?
+  verifiedBy    String?
+  verifiedAt    DateTime?
+  status        PaymentVerificationStatus @default(PENDING)
+  note          String?
+  createdAt     DateTime                  @default(now())
+  updatedAt     DateTime
+  paymentProof  String?
+  supplierId    String
+  suppliers     suppliers                 @relation(fields: [supplierId], references: [id], onDelete: Cascade)
 
   @@index([supplierId, paymentDate])
 }
 
-// 🔥 DEPRECATED: Merged into suppliers table
-// model supplier_profiles {
-//   id                String              @id
-//   userId            String?             @unique
-//   businessName      String
-//   ownerName         String
-//   email             String?             @unique
-//   phone             String
-//   address           String
-//   productCategory   String
-//   description       String?
-//   password          String?
-//   status            SupplierStatus      @default(PENDING)
-//   paymentStatus     PaymentStatus       @default(UNPAID)
-//   approvedById      String?
-//   approvedAt        DateTime?
-//   rejectedReason    String?
-//   monthlyFee        Decimal             @default(25000)
-//   lastPaymentDate   DateTime?
-//   nextPaymentDue    DateTime?
-//   isPaymentActive   Boolean             @default(false)
-//   createdAt         DateTime            @default(now())
-//   updatedAt         DateTime
-//   supplier_payments supplier_payments[]
-//   users             users?              @relation(fields: [userId], references: [id], onDelete: Cascade)
-// }
-
 model suppliers {
-  id                String              @id
-  code              String              @unique
-  
-  // Business Info (merged from supplier_profiles)
-  businessName      String              // was: name
-  ownerName         String              // was: contact
-  email             String              @unique
-  phone             String
-  address           String
-  productCategory   String?
-  description       String?
-  
-  // Auth (from supplier_profiles)
-  password          String
-  
-  // Status & Payment (from supplier_profiles)
-  status            SupplierStatus      @default(PENDING)
-  paymentStatus     PaymentStatus       @default(UNPAID)
-  approvedById      String?
-  approvedAt        DateTime?
-  rejectedReason    String?
-  monthlyFee        Decimal             @default(25000)
-  lastPaymentDate   DateTime?
-  nextPaymentDue    DateTime?
-  isPaymentActive   Boolean             @default(false)
-  
-  // Legacy fields (optional)
-  paymentTerms      String?
-  isActive          Boolean             @default(true)
-  note              String?
-  
-  // System
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime
-  
-  // Relations
-  products          products[]
-  purchases         purchases[]
-  supplier_payments supplier_payments[]
+  id                   String                 @id
+  code                 String                 @unique
+  phone                String
+  email                String                 @unique
+  address              String
+  paymentTerms         String?
+  isActive             Boolean                @default(true)
+  note                 String?
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime
+  approvedAt           DateTime?
+  approvedById         String?
+  businessName         String
+  description          String?
+  isPaymentActive      Boolean                @default(false)
+  lastPaymentDate      DateTime?
+  monthlyFee           Decimal                @default(25000)
+  nextPaymentDue       DateTime?
+  ownerName            String
+  password             String
+  paymentStatus        PaymentStatus          @default(UNPAID)
+  productCategory      String?
+  rejectedReason       String?
+  status               SupplierStatus         @default(PENDING)
   consignment_payments consignment_payments[]
+  products             products[]
+  purchases            purchases[]
+  supplier_payments    supplier_payments[]
 }
 
 model transaction_items {
@@ -451,38 +421,37 @@ model transaction_items {
 }
 
 model transactions {
-  id                String              @id
-  memberId          String?
-  type              TransactionType
-  totalAmount       Decimal
-  paymentMethod     PaymentMethod       @default(CASH)
-  status            TransactionStatus   @default(COMPLETED)
-  note              String?
-  date              DateTime            @default(now())
-  createdAt         DateTime            @default(now())
-  updatedAt         DateTime
-  isProduction      Boolean             @default(true)
-  transaction_items transaction_items[]
-  consignment_payments consignment_payments[]
-  members           members?            @relation(fields: [memberId], references: [id])
+  id                   String                @id
+  memberId             String?
+  type                 TransactionType
+  totalAmount          Decimal
+  paymentMethod        PaymentMethod         @default(CASH)
+  status               TransactionStatus     @default(COMPLETED)
+  note                 String?
+  date                 DateTime              @default(now())
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime
+  isProduction         Boolean               @default(true)
+  consignment_payments consignment_payments?
+  transaction_items    transaction_items[]
+  members              members?              @relation(fields: [memberId], references: [id])
 
   @@index([isProduction])
 }
 
 model users {
-  id                String             @id
-  email             String             @unique
-  password          String
-  name              String
-  role              Role               @default(USER)
-  isActive          Boolean            @default(true)
-  createdAt         DateTime           @default(now())
-  updatedAt         DateTime
-  activity_logs     activity_logs[]
-  broadcasts        broadcasts[]
+  id                   String                 @id
+  email                String                 @unique
+  password             String
+  name                 String
+  role                 Role                   @default(USER)
+  isActive             Boolean                @default(true)
+  createdAt            DateTime               @default(now())
+  updatedAt            DateTime
+  activity_logs        activity_logs[]
+  broadcasts           broadcasts[]
   consignment_payments consignment_payments[]
-  members           members?
-  // supplier_profiles supplier_profiles? // DEPRECATED: merged to suppliers
+  members              members?
 }
 
 enum BatchStatus {
@@ -550,6 +519,13 @@ enum PaymentMethod {
   CASH
   TRANSFER
   CREDIT
+}
+
+enum ConsignmentPaymentStatus {
+  PENDING
+  APPROVED
+  PAID
+  REJECTED
 }
 
 enum PaymentStatus {
