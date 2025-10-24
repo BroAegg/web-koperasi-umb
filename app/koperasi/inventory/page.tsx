@@ -1792,8 +1792,8 @@ export default function InventoryPage() {
                                 'Authorization': `Bearer ${token}`,
                               },
                               body: JSON.stringify({ 
-                                supplierIds: [supplier.supplierName], 
-                                amounts: { [supplier.supplierName]: supplier.cogs },
+                                supplierIds: [supplier.supplierId], 
+                                amounts: { [supplier.supplierId]: supplier.cogs },
                                 period: financialPeriod,
                                 paymentMethod: 'CASH'
                               }),
@@ -1802,7 +1802,7 @@ export default function InventoryPage() {
                             if (!response.ok || !data.success) throw new Error(data.error || 'Failed');
 
                             // Optimistic update
-                            setPaidSupplierIds(prev => [...prev, supplier.supplierName]);
+                            setPaidSupplierIds(prev => [...prev, supplier.supplierId]);
                             success('Pembayaran Berhasil', `Pembayaran ke ${supplier.supplierName} sebesar ${formatCurrency(supplier.cogs)} berhasil dicatat`);
                             
                             // Refresh financial data to update consignment breakdown
@@ -1812,11 +1812,11 @@ export default function InventoryPage() {
                             error('Gagal', 'Pembayaran gagal dicatat, silakan coba lagi');
                           }
                         }}
-                        disabled={paidSupplierIds.includes(supplier.supplierName)}
-                        className={`w-full ${paidSupplierIds.includes(supplier.supplierName) ? 'bg-gray-300 cursor-not-allowed' : 'bg-purple-600 hover:bg-purple-700'} text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2`}
+                        disabled={paidSupplierIds.includes(supplier.supplierId)}
+                        className={`w-full ${paidSupplierIds.includes(supplier.supplierId) ? 'bg-gray-300 cursor-not-allowed' : 'bg-purple-600 hover:bg-purple-700'} text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2`}
                       >
                         <DollarSign className="w-5 h-5" />
-                        {paidSupplierIds.includes(supplier.supplierName) ? 'Sudah Dibayar' : `Bayar ${formatCurrency(supplier.cogs)}`}
+                        {paidSupplierIds.includes(supplier.supplierId) ? 'Sudah Dibayar' : `Bayar ${formatCurrency(supplier.cogs)}`}
                       </button>
                     </div>
                   ))
@@ -1853,9 +1853,9 @@ export default function InventoryPage() {
                           return;
                         }
 
-                        const supplierIds = periodFinancialData.consignmentBreakdown.map(s => s.supplierName);
+                        const supplierIds = periodFinancialData.consignmentBreakdown.map(s => s.supplierId);
                         const amounts: Record<string, number> = {};
-                        periodFinancialData.consignmentBreakdown.forEach(s => { amounts[s.supplierName] = s.cogs; });
+                        periodFinancialData.consignmentBreakdown.forEach(s => { amounts[s.supplierId] = s.cogs; });
 
                         const response = await fetch('/api/consignment/payments', {
                           method: 'POST',
@@ -1873,8 +1873,8 @@ export default function InventoryPage() {
                         const data = await response.json();
                         if (!response.ok || !data.success) throw new Error(data.error || 'Failed');
 
-                        // Mark all as paid (use supplierName)
-                        setPaidSupplierIds(periodFinancialData.consignmentBreakdown.map(s => s.supplierName));
+                        // Mark all as paid (use supplierId)
+                        setPaidSupplierIds(periodFinancialData.consignmentBreakdown.map(s => s.supplierId));
                         success('Pembayaran Semua Berhasil', `Total ${formatCurrency(consignmentPayments)} untuk ${periodFinancialData.consignmentBreakdown?.length} supplier berhasil dicatat`);
                         
                         // Refresh financial data to update consignment breakdown

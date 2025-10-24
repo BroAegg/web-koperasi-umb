@@ -103,15 +103,18 @@ export async function GET(request: NextRequest) {
     });
 
     // Get paid consignment suppliers for this period to exclude them
+    // We need to find payments that overlap with the current period
     const paidSuppliers = await prisma.consignment_payments.findMany({
       where: {
+        status: 'PAID',
+        // Payment overlaps with current period if:
+        // payment.periodStart <= current.endDate AND payment.periodEnd >= current.startDate
         periodStart: {
-          gte: startDate,
-        },
-        periodEnd: {
           lte: endDate,
         },
-        status: 'PAID',
+        periodEnd: {
+          gte: startDate,
+        },
       },
       select: {
         supplierName: true, // This is actually supplierId in our implementation
