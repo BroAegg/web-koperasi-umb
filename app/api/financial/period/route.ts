@@ -90,6 +90,9 @@ export async function GET(request: NextRequest) {
                   select: {
                     id: true,
                     businessName: true,
+                    ownerName: true,
+                    phone: true,
+                    address: true,
                   },
                 },
               },
@@ -98,6 +101,24 @@ export async function GET(request: NextRequest) {
         },
       },
     });
+
+    // Get paid consignment suppliers for this period to exclude them
+    const paidSuppliers = await prisma.consignment_payments.findMany({
+      where: {
+        periodStart: {
+          gte: startDate,
+        },
+        periodEnd: {
+          lte: endDate,
+        },
+        status: 'PAID',
+      },
+      select: {
+        supplierName: true, // This is actually supplierId in our implementation
+      },
+    });
+
+    const paidSupplierIds = new Set(paidSuppliers.map(p => p.supplierName));
 
     // Calculate totals with consignment-aware breakdown
     let totalRevenue = 0;
@@ -223,7 +244,9 @@ export async function GET(request: NextRequest) {
       .sort((a, b) => b.quantity - a.quantity);
     
     // Convert consignmentSupplierMap to array for JSON response, sorted by profit (descending)
+    // EXCLUDE suppliers that have already been paid for this period
     const consignmentBreakdown = Array.from(consignmentSupplierMap.values())
+      .filter(supplier => !paidSupplierIds.has(supplier.supplierId)) // Remove paid suppliers
       .sort((a, b) => b.profit - a.profit);
 
     return NextResponse.json({

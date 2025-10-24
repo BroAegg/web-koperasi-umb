@@ -32,15 +32,27 @@ export async function GET(req: NextRequest) {
     const dateFrom = searchParams.get('dateFrom');
     const dateTo = searchParams.get('dateTo');
     const paymentMethods = searchParams.get('paymentMethods')?.split(',');
+    const transactionTypes = searchParams.get('types')?.split(',');
     const search = searchParams.get('search');
     const page = parseInt(searchParams.get('page') || '1', 10);
     const limit = parseInt(searchParams.get('limit') || '50', 10);
 
     // Build where clause
     const where: any = {
-      type: 'SALE', // Only POS transactions
       isProduction: true,
     };
+
+    // Transaction type filter - Show SALE and EXPENSE by default
+    if (transactionTypes && transactionTypes.length > 0) {
+      where.type = {
+        in: transactionTypes,
+      };
+    } else {
+      // Default: show both SALE (POS) and EXPENSE (consignment payments)
+      where.type = {
+        in: ['SALE', 'EXPENSE'],
+      };
+    }
 
     // Date range filter
     if (dateFrom && dateTo) {
