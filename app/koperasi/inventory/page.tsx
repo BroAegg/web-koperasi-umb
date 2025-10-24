@@ -30,7 +30,9 @@ import {
   Phone,
   Edit,
   Trash2,
-  Minus
+  Minus,
+  User,
+  MapPin
 } from 'lucide-react';
 
 // Import centralized types
@@ -1727,7 +1729,26 @@ export default function InventoryPage() {
                             </div>
                             <div>
                               <h4 className="text-lg font-bold text-gray-900">{supplier.supplierName}</h4>
-                    <p className="text-sm text-gray-500">ID: {supplier.supplierName}</p>
+                              <p className="text-sm text-gray-500">ID: {supplier.supplierId || supplier.supplierName}</p>
+                            </div>
+                          </div>
+                          
+                          {/* Supplier Contact Details */}
+                          <div className="mt-3 space-y-1 pl-11">
+                            <div className="flex items-center gap-2 text-sm text-gray-600">
+                              <User className="w-4 h-4 text-gray-400" />
+                              <span>{supplier.supplierContact || 'Pemilik: Tidak ada data'}</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-sm text-gray-600">
+                              <Phone className="w-4 h-4 text-gray-400" />
+                              <span>{supplier.supplierPhone || 'Telepon: Tidak ada data'}</span>
+                            </div>
+                            <div className="flex items-center gap-2 text-sm text-gray-600">
+                              <MapPin className="w-4 h-4 text-gray-400" />
+                              <span>{supplier.supplierAddress || 'Alamat: Tidak ada data'}</span>
+                            </div>
+                          </div>
+                        </div>
                             </div>
                           </div>
                         </div>
