@@ -1749,9 +1749,7 @@ export default function InventoryPage() {
                             </div>
                           </div>
                         </div>
-                            </div>
-                          </div>
-                        </div>
+                        
                         <div className="text-right">
                           <p className="text-sm text-gray-500 mb-1">Status</p>
                           {paidSupplierIds.includes(supplier.supplierName) ? (
@@ -1806,6 +1804,9 @@ export default function InventoryPage() {
                             // Optimistic update
                             setPaidSupplierIds(prev => [...prev, supplier.supplierName]);
                             success('Pembayaran Berhasil', `Pembayaran ke ${supplier.supplierName} sebesar ${formatCurrency(supplier.cogs)} berhasil dicatat`);
+                            
+                            // Refresh financial data to update consignment breakdown
+                            await fetchPeriodFinancialData();
                           } catch (err) {
                             console.error('Pay supplier error', err);
                             error('Gagal', 'Pembayaran gagal dicatat, silakan coba lagi');
@@ -1875,6 +1876,9 @@ export default function InventoryPage() {
                         // Mark all as paid (use supplierName)
                         setPaidSupplierIds(periodFinancialData.consignmentBreakdown.map(s => s.supplierName));
                         success('Pembayaran Semua Berhasil', `Total ${formatCurrency(consignmentPayments)} untuk ${periodFinancialData.consignmentBreakdown?.length} supplier berhasil dicatat`);
+                        
+                        // Refresh financial data to update consignment breakdown
+                        await fetchPeriodFinancialData();
                       } catch (err) {
                         console.error('Pay all error', err);
                         error('Gagal', 'Pembayaran semua gagal dicatat, silakan coba lagi');

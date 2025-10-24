@@ -106,7 +106,16 @@ export async function GET(request: NextRequest) {
     let totalExpense = 0; // Actual expenses
     const uniqueProductIds = new Set<string>(); // Track unique products sold
     const productSalesMap = new Map<string, { name: string; quantity: number }>(); // Track product sales details
-    const consignmentSupplierMap = new Map<string, { supplierName: string; revenue: number; cogs: number; profit: number }>(); // Track consignment by supplier
+    const consignmentSupplierMap = new Map<string, { 
+      supplierId: string;
+      supplierName: string; 
+      supplierContact: string | null;
+      supplierPhone: string | null;
+      supplierAddress: string | null;
+      revenue: number; 
+      cogs: number; 
+      profit: number 
+    }>(); // Track consignment by supplier
 
     // Toko (store-owned) breakdown
     let tokoRevenue = 0;
@@ -156,6 +165,9 @@ export async function GET(request: NextRequest) {
             // Track consignment by supplier
             const supplierId = item.products?.supplierId || 'unknown';
             const supplierName = item.products?.suppliers?.businessName || 'Supplier Tidak Diketahui'; // Changed from 'name'
+            const supplierOwner = item.products?.suppliers?.ownerName || null;
+            const supplierPhone = item.products?.suppliers?.phone || null;
+            const supplierAddress = item.products?.suppliers?.address || null;
             const itemProfit = itemRevenue - itemCOGS;
             
             const existingSupplier = consignmentSupplierMap.get(supplierId);
@@ -165,7 +177,11 @@ export async function GET(request: NextRequest) {
               existingSupplier.profit += itemProfit;
             } else {
               consignmentSupplierMap.set(supplierId, {
+                supplierId,
                 supplierName,
+                supplierContact: supplierOwner,
+                supplierPhone,
+                supplierAddress,
                 revenue: itemRevenue,
                 cogs: itemCOGS,
                 profit: itemProfit
