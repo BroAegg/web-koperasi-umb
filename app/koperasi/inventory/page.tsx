@@ -79,9 +79,12 @@ export default function InventoryPage() {
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [showAllMovementsModal, setShowAllMovementsModal] = useState(false);
   const [showConsignmentPaymentModal, setShowConsignmentPaymentModal] = useState(false);
+  const [showPaymentReviewModal, setShowPaymentReviewModal] = useState(false);
   const [paidSupplierIds, setPaidSupplierIds] = useState<string[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [pendingPaymentRequests, setPendingPaymentRequests] = useState<any[]>([]);
+  const [selectedPaymentRequest, setSelectedPaymentRequest] = useState<any>(null);
   
   // Refs
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -173,6 +176,7 @@ export default function InventoryPage() {
   // Fetch financial data when period or date changes
   useEffect(() => {
     fetchPeriodFinancialData();
+    fetchPendingPaymentRequests(); // Fetch pending payment requests
   }, [financialPeriod, selectedDate]);
 
   // Price formatting helper
@@ -324,6 +328,25 @@ export default function InventoryPage() {
       }
     } catch (err) {
       error('Kesalahan', 'Terjadi kesalahan saat memuat data keuangan');
+    }
+  };
+
+  const fetchPendingPaymentRequests = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/admin/payment-requests?status=PENDING', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        }
+      });
+      const result = await response.json();
+      
+      if (result.success) {
+        setPendingPaymentRequests(result.data || []);
+      }
+    } catch (err) {
+      console.error('Failed to fetch pending payment requests', err);
     }
   };
 
@@ -1052,8 +1075,13 @@ export default function InventoryPage() {
           <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
             <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between mb-4">
-                <div className="p-3 rounded-lg bg-purple-50">
+                <div className="p-3 rounded-lg bg-purple-50 relative">
                   <Receipt className="w-6 h-6 text-purple-600" />
+                  {pendingPaymentRequests.length > 0 && (
+                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
+                      {pendingPaymentRequests.length}
+                    </span>
+                  )}
                 </div>
                 <div className="text-sm font-medium px-2 py-1 rounded-full text-purple-700 bg-purple-100">
                   Titipan
@@ -1065,12 +1093,27 @@ export default function InventoryPage() {
                 <p className="text-xs text-gray-500 mb-3">
                   {unpaidConsignmentSuppliersCount || 0} Supplier menunggu pembayaran
                 </p>
-                <Button
-                  onClick={() => setShowConsignmentPaymentModal(true)}
-                  className="w-full bg-purple-600 hover:bg-purple-700 text-white text-sm py-2 rounded-lg transition-colors"
-                >
-                  Kelola Pembayaran
-                </Button>
+                {pendingPaymentRequests.length > 0 && (
+                  <p className="text-xs text-orange-600 font-semibold mb-2">
+                    🔔 {pendingPaymentRequests.length} permintaan pembayaran menunggu review
+                  </p>
+                )}
+                <div className="flex gap-2">
+                  <Button
+                    onClick={() => setShowConsignmentPaymentModal(true)}
+                    className="flex-1 bg-purple-600 hover:bg-purple-700 text-white text-sm py-2 rounded-lg transition-colors"
+                  >
+                    Kelola Pembayaran
+                  </Button>
+                  {pendingPaymentRequests.length > 0 && (
+                    <Button
+                      onClick={() => setShowPaymentReviewModal(true)}
+                      className="flex-1 bg-orange-600 hover:bg-orange-700 text-white text-sm py-2 rounded-lg transition-colors"
+                    >
+                      Review ({pendingPaymentRequests.length})
+                    </Button>
+                  )}
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -1910,6 +1953,292 @@ export default function InventoryPage() {
                 )}
               </div>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Payment Review Modal (Admin) */}
+      {showPaymentReviewModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-orange-500 to-orange-600 text-white px-6 py-5 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-white bg-opacity-20 rounded-lg">
+                  <Receipt className="w-6 h-6" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold mb-1">Review Permintaan Pembayaran</h2>
+                  <p className="text-sm text-orange-100">Supplier mengajukan pembayaran dengan bukti transfer</p>
+                </div>
+              </div>
+              <button 
+                onClick={() => {
+                  setShowPaymentReviewModal(false);
+                  setSelectedPaymentRequest(null);
+                }}
+                className="p-2 hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors"
+              >
+                <X className="w-6 h-6" />
+              </button>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 overflow-y-auto p-6">
+              {selectedPaymentRequest ? (
+                /* Detail View */
+                <div className="space-y-6">
+                  <Button
+                    onClick={() => setSelectedPaymentRequest(null)}
+                    variant="outline"
+                    className="mb-4"
+                  >
+                    <ChevronLeft className="w-4 h-4 mr-2" />
+                    Kembali ke Daftar
+                  </Button>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Left: Payment Proof Image */}
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                        <Receipt className="w-5 h-5 text-orange-600" />
+                        Bukti Pembayaran
+                      </h3>
+                      <div className="border-2 border-gray-200 rounded-xl overflow-hidden bg-gray-50">
+                        {selectedPaymentRequest.proofImageUrl ? (
+                          <img 
+                            src={selectedPaymentRequest.proofImageUrl} 
+                            alt="Payment Proof"
+                            className="w-full h-auto"
+                          />
+                        ) : (
+                          <div className="flex items-center justify-center h-64 text-gray-400">
+                            No image uploaded
+                          </div>
+                        )}
+                      </div>
+                      <a
+                        href={selectedPaymentRequest.proofImageUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="block text-center text-sm text-orange-600 hover:text-orange-700 font-medium"
+                      >
+                        Buka gambar di tab baru →
+                      </a>
+                    </div>
+
+                    {/* Right: Payment Details */}
+                    <div className="space-y-4">
+                      <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
+                        <Info className="w-5 h-5 text-orange-600" />
+                        Detail Permintaan
+                      </h3>
+
+                      {/* Supplier Info */}
+                      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
+                        <p className="text-xs text-blue-600 font-semibold mb-2">SUPPLIER</p>
+                        <p className="text-lg font-bold text-gray-900">{selectedPaymentRequest.supplier?.businessName || 'N/A'}</p>
+                        <div className="mt-2 space-y-1 text-sm text-gray-600">
+                          <p>👤 {selectedPaymentRequest.supplier?.ownerName || 'N/A'}</p>
+                          <p>📞 {selectedPaymentRequest.supplier?.phone || 'N/A'}</p>
+                          <p>📧 {selectedPaymentRequest.supplier?.email || 'N/A'}</p>
+                        </div>
+                      </div>
+
+                      {/* Payment Amount */}
+                      <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
+                        <p className="text-xs text-emerald-600 font-semibold mb-2">JUMLAH PEMBAYARAN</p>
+                        <p className="text-3xl font-bold text-emerald-700">{formatCurrency(selectedPaymentRequest.amount)}</p>
+                      </div>
+
+                      {/* Period */}
+                      <div className="bg-purple-50 border border-purple-200 rounded-xl p-4">
+                        <p className="text-xs text-purple-600 font-semibold mb-2">PERIODE</p>
+                        <p className="text-sm font-medium text-gray-900">{selectedPaymentRequest.period}</p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          {new Date(selectedPaymentRequest.periodStart).toLocaleDateString('id-ID')} - {new Date(selectedPaymentRequest.periodEnd).toLocaleDateString('id-ID')}
+                        </p>
+                      </div>
+
+                      {/* Bank Details */}
+                      {(selectedPaymentRequest.bankName || selectedPaymentRequest.accountNumber) && (
+                        <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
+                          <p className="text-xs text-gray-600 font-semibold mb-2">DETAIL TRANSFER</p>
+                          {selectedPaymentRequest.bankName && (
+                            <p className="text-sm text-gray-900">🏦 {selectedPaymentRequest.bankName}</p>
+                          )}
+                          {selectedPaymentRequest.accountNumber && (
+                            <p className="text-sm text-gray-900 mt-1">💳 Rek: {selectedPaymentRequest.accountNumber}</p>
+                          )}
+                        </div>
+                      )}
+
+                      {/* Note */}
+                      {selectedPaymentRequest.note && (
+                        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
+                          <p className="text-xs text-yellow-700 font-semibold mb-2">CATATAN</p>
+                          <p className="text-sm text-gray-700">{selectedPaymentRequest.note}</p>
+                        </div>
+                      )}
+
+                      {/* Submission Time */}
+                      <div className="text-xs text-gray-500">
+                        Diajukan pada: {new Date(selectedPaymentRequest.requestedAt || selectedPaymentRequest.createdAt).toLocaleString('id-ID')}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-3 pt-4 border-t border-gray-200">
+                    <Button
+                      onClick={async () => {
+                        const reason = prompt('Alasan penolakan:');
+                        if (!reason) return;
+                        
+                        try {
+                          const token = localStorage.getItem('token');
+                          const response = await fetch(`/api/admin/payment-requests/${selectedPaymentRequest.id}`, {
+                            method: 'PATCH',
+                            headers: {
+                              'Content-Type': 'application/json',
+                              'Authorization': `Bearer ${token}`,
+                            },
+                            body: JSON.stringify({ 
+                              action: 'reject',
+                              rejectedReason: reason,
+                            }),
+                          });
+                          const data = await response.json();
+                          
+                          if (data.success) {
+                            success('Ditolak', 'Permintaan pembayaran berhasil ditolak');
+                            setSelectedPaymentRequest(null);
+                            fetchPendingPaymentRequests();
+                          } else {
+                            error('Gagal', data.error || 'Gagal menolak permintaan');
+                          }
+                        } catch (err) {
+                          error('Kesalahan', 'Terjadi kesalahan saat menolak permintaan');
+                        }
+                      }}
+                      variant="outline"
+                      className="flex-1 border-red-300 text-red-600 hover:bg-red-50"
+                    >
+                      <X className="w-4 h-4 mr-2" />
+                      Tolak Pembayaran
+                    </Button>
+                    <Button
+                      onClick={async () => {
+                        if (!confirm('Setujui pembayaran ini? Transaksi akan dibuat otomatis.')) return;
+                        
+                        try {
+                          const token = localStorage.getItem('token');
+                          const response = await fetch(`/api/admin/payment-requests/${selectedPaymentRequest.id}`, {
+                            method: 'PATCH',
+                            headers: {
+                              'Content-Type': 'application/json',
+                              'Authorization': `Bearer ${token}`,
+                            },
+                            body: JSON.stringify({ action: 'approve' }),
+                          });
+                          const data = await response.json();
+                          
+                          if (data.success) {
+                            success('Disetujui', 'Pembayaran disetujui dan transaksi telah dibuat');
+                            setSelectedPaymentRequest(null);
+                            fetchPendingPaymentRequests();
+                            fetchPeriodFinancialData();
+                          } else {
+                            error('Gagal', data.error || 'Gagal menyetujui permintaan');
+                          }
+                        } catch (err) {
+                          error('Kesalahan', 'Terjadi kesalahan saat menyetujui permintaan');
+                        }
+                      }}
+                      className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+                    >
+                      <DollarSign className="w-4 h-4 mr-2" />
+                      Setujui Pembayaran
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                /* List View */
+                <div className="space-y-3">
+                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                    Daftar Permintaan Pembayaran ({pendingPaymentRequests.length})
+                  </h3>
+                  
+                  {pendingPaymentRequests.length > 0 ? (
+                    pendingPaymentRequests.map((request) => (
+                      <div
+                        key={request.id}
+                        className="bg-white border-2 border-orange-200 rounded-xl p-5 hover:border-orange-400 hover:shadow-md transition-all cursor-pointer"
+                        onClick={() => setSelectedPaymentRequest(request)}
+                      >
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-3 mb-2">
+                              <div className="p-2 bg-orange-100 rounded-lg">
+                                <Package className="w-5 h-5 text-orange-600" />
+                              </div>
+                              <div>
+                                <h4 className="text-lg font-bold text-gray-900">{request.supplier?.businessName || 'Unknown Supplier'}</h4>
+                                <p className="text-sm text-gray-500">{request.supplier?.ownerName || 'N/A'}</p>
+                              </div>
+                            </div>
+                            
+                            <div className="flex flex-wrap gap-4 mt-3 text-sm">
+                              <div>
+                                <span className="text-gray-500">Jumlah:</span>
+                                <span className="ml-1 font-bold text-emerald-600">{formatCurrency(request.amount)}</span>
+                              </div>
+                              <div>
+                                <span className="text-gray-500">Periode:</span>
+                                <span className="ml-1 font-semibold text-gray-900">{request.period}</span>
+                              </div>
+                              <div>
+                                <span className="text-gray-500">Diajukan:</span>
+                                <span className="ml-1 text-gray-700">{new Date(request.requestedAt || request.createdAt).toLocaleDateString('id-ID')}</span>
+                              </div>
+                            </div>
+                          </div>
+                          
+                          <div className="text-right">
+                            <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-700">
+                              Menunggu Review
+                            </span>
+                            <ChevronRight className="w-5 h-5 text-gray-400 mt-2 ml-auto" />
+                          </div>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-12 bg-gray-50 rounded-xl">
+                      <Receipt className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                      <p className="text-gray-500 font-medium mb-1">Tidak Ada Permintaan</p>
+                      <p className="text-sm text-gray-400">Semua permintaan pembayaran telah diproses</p>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            {!selectedPaymentRequest && (
+              <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex items-center justify-between">
+                <p className="text-sm text-gray-600">
+                  <span className="font-semibold">{pendingPaymentRequests.length}</span> permintaan menunggu review
+                </p>
+                <Button
+                  onClick={() => setShowPaymentReviewModal(false)}
+                  variant="outline"
+                  className="px-6"
+                >
+                  Tutup
+                </Button>
+              </div>
+            )}
           </div>
         </div>
       )}
