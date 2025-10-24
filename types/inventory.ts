@@ -82,6 +82,10 @@ export interface FinancialData {
     revenue: number; 
     cogs: number; 
     profit: number 
+    isPaid?: boolean;
+    paidAt?: string | null;
+    paidAmount?: number;
+    paymentTransactionId?: string | null;
   }>; // NEW: Breakdown of consignment by supplier with full details
   toko: {
     revenue: number;

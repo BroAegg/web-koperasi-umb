@@ -102,26 +102,37 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // Get paid consignment suppliers for this period to exclude them
-    // We need to find payments that overlap with the current period
-    const paidSuppliers = await prisma.consignment_payments.findMany({
+    // Get paid consignment payments that overlap with this period
+    // We will keep suppliers in the consignment breakdown but mark them as paid
+    const paidPayments = await prisma.consignment_payments.findMany({
       where: {
         status: 'PAID',
-        // Payment overlaps with current period if:
-        // payment.periodStart <= current.endDate AND payment.periodEnd >= current.startDate
-        periodStart: {
-          lte: endDate,
-        },
-        periodEnd: {
-          gte: startDate,
-        },
+        periodStart: { lte: endDate },
+        periodEnd: { gte: startDate },
       },
       select: {
-        supplierName: true, // This is actually supplierId in our implementation
+        id: true,
+        supplierName: true, // stored as supplierId in our implementation
+        amount: true,
+        paymentMethod: true,
+        transactionId: true,
+        createdAt: true,
+        metadata: true,
       },
     });
 
-    const paidSupplierIds = new Set(paidSuppliers.map(p => p.supplierName));
+    // Map supplierId -> payment info (take the latest payment if multiple)
+  const paidInfoMap = new Map<string, { paymentId: string; amount: number; paidAt?: string; transactionId?: string }>();
+    for (const p of paidPayments) {
+      const supplierId = p.supplierName as string;
+      const existing = paidInfoMap.get(supplierId);
+  const metaPaidAt = p.metadata && (p.metadata as any).paidAt;
+  const paidAt = metaPaidAt ? String(metaPaidAt) : (p.createdAt ? p.createdAt.toISOString() : undefined);
+      // keep latest payment (by createdAt)
+      if (!existing || (p.createdAt && new Date(p.createdAt) > new Date(existing.paidAt || 0))) {
+  paidInfoMap.set(supplierId, { paymentId: String(p.id), amount: Number(p.amount || 0), paidAt: paidAt ?? undefined, transactionId: p.transactionId ?? undefined });
+      }
+    }
 
     // Calculate totals with consignment-aware breakdown
     let totalRevenue = 0;
@@ -247,9 +258,18 @@ export async function GET(request: NextRequest) {
       .sort((a, b) => b.quantity - a.quantity);
     
     // Convert consignmentSupplierMap to array for JSON response, sorted by profit (descending)
-    // EXCLUDE suppliers that have already been paid for this period
+    // Keep all suppliers but mark which ones are already paid in this period
     const consignmentBreakdown = Array.from(consignmentSupplierMap.values())
-      .filter(supplier => !paidSupplierIds.has(supplier.supplierId)) // Remove paid suppliers
+      .map(supplier => {
+        const paid = paidInfoMap.get(supplier.supplierId);
+        return {
+          ...supplier,
+          isPaid: !!paid,
+          paidAt: paid?.paidAt || null,
+          paidAmount: paid?.amount || 0,
+          paymentTransactionId: paid?.transactionId || null,
+        };
+      })
       .sort((a, b) => b.profit - a.profit);
 
     return NextResponse.json({

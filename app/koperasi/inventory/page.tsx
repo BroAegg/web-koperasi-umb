@@ -312,6 +312,13 @@ export default function InventoryPage() {
           toko: result.data.toko || { revenue: 0, cogs: 0, profit: 0 },
           consignment: result.data.consignment || { grossRevenue: 0, cogs: 0, profit: 0, feeTotal: 0 },
         });
+        // Initialize paid supplier ids from API so already-paid suppliers show as paid
+        try {
+          const paidIds = (result.data.consignmentBreakdown || []).filter((s: any) => s.isPaid).map((s: any) => s.supplierId);
+          setPaidSupplierIds(paidIds);
+        } catch (e) {
+          // ignore
+        }
       } else {
         error('Gagal Memuat Data', 'Tidak dapat memuat data keuangan periode');
       }
@@ -668,6 +675,15 @@ export default function InventoryPage() {
     const unitCost = m.unitCost || m.product?.avgCost || m.product?.buyPrice || 0;
     return sum + (unitCost * Math.abs(m.quantity));
   }, 0);
+
+  // Pending consignment payments (exclude suppliers already paid in the current period)
+  const pendingConsignmentPayments = periodFinancialData.consignmentBreakdown
+    ? periodFinancialData.consignmentBreakdown.filter(s => !s.isPaid).reduce((sum, s) => sum + (s.cogs || 0), 0)
+    : 0;
+
+  const unpaidConsignmentSuppliersCount = periodFinancialData.consignmentBreakdown
+    ? periodFinancialData.consignmentBreakdown.filter(s => !s.isPaid).length
+    : 0;
   
   const totalRevenue = products.reduce((sum, p) => sum + (p.sellPrice * p.soldToday), 0);
   const totalProfit = products.reduce((sum, p) => {
@@ -1045,9 +1061,9 @@ export default function InventoryPage() {
               </div>
               <div>
                 <h3 className="text-sm font-medium text-gray-600 mb-1">Pembayaran Titipan</h3>
-                <p className="text-2xl font-bold text-gray-900 mb-2">{formatCurrency(consignmentPayments)}</p>
+                <p className="text-2xl font-bold text-gray-900 mb-2">{formatCurrency(pendingConsignmentPayments)}</p>
                 <p className="text-xs text-gray-500 mb-3">
-                  {periodFinancialData.consignmentBreakdown?.length || 0} Supplier menunggu pembayaran
+                  {unpaidConsignmentSuppliersCount || 0} Supplier menunggu pembayaran
                 </p>
                 <Button
                   onClick={() => setShowConsignmentPaymentModal(true)}
@@ -1752,7 +1768,7 @@ export default function InventoryPage() {
                         
                         <div className="text-right">
                           <p className="text-sm text-gray-500 mb-1">Status</p>
-                          {paidSupplierIds.includes(supplier.supplierName) ? (
+                          {supplier.isPaid || paidSupplierIds.includes(supplier.supplierId) ? (
                             <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">
                               Lunas
                             </span>
@@ -1812,11 +1828,11 @@ export default function InventoryPage() {
                             error('Gagal', 'Pembayaran gagal dicatat, silakan coba lagi');
                           }
                         }}
-                        disabled={paidSupplierIds.includes(supplier.supplierId)}
-                        className={`w-full ${paidSupplierIds.includes(supplier.supplierId) ? 'bg-gray-300 cursor-not-allowed' : 'bg-purple-600 hover:bg-purple-700'} text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2`}
+                        disabled={supplier.isPaid || paidSupplierIds.includes(supplier.supplierId)}
+                        className={`w-full ${supplier.isPaid || paidSupplierIds.includes(supplier.supplierId) ? 'bg-gray-300 cursor-not-allowed' : 'bg-purple-600 hover:bg-purple-700'} text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2`}
                       >
                         <DollarSign className="w-5 h-5" />
-                        {paidSupplierIds.includes(supplier.supplierId) ? 'Sudah Dibayar' : `Bayar ${formatCurrency(supplier.cogs)}`}
+                        {supplier.isPaid || paidSupplierIds.includes(supplier.supplierId) ? 'Sudah Dibayar' : `Bayar ${formatCurrency(supplier.cogs)}`}
                       </button>
                     </div>
                   ))
@@ -1833,7 +1849,7 @@ export default function InventoryPage() {
             {/* Footer */}
             <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex items-center justify-between">
               <p className="text-sm text-gray-600">
-                <span className="font-semibold">{periodFinancialData.consignmentBreakdown?.length || 0}</span> supplier menunggu pembayaran
+                <span className="font-semibold">{unpaidConsignmentSuppliersCount}</span> supplier menunggu pembayaran
               </p>
               <div className="flex gap-3">
                 <Button
@@ -1843,19 +1859,20 @@ export default function InventoryPage() {
                 >
                   Tutup
                 </Button>
-                        {periodFinancialData.consignmentBreakdown && periodFinancialData.consignmentBreakdown.length > 0 && (
+                        {unpaidConsignmentSuppliersCount > 0 && (
                   <Button
                     onClick={async () => {
                       try {
                         const token = localStorage.getItem('token');
-                        if (!periodFinancialData.consignmentBreakdown || periodFinancialData.consignmentBreakdown.length === 0) {
-                          error('Tidak ada tagihan', 'Tidak ada supplier yang menunggu pembayaran');
+                        const unpaidSuppliers = (periodFinancialData.consignmentBreakdown || []).filter(s => !s.isPaid);
+                        if (unpaidSuppliers.length === 0) {
+                          error('Tidak ada tagihan', 'Semua supplier sudah dibayar');
                           return;
                         }
 
-                        const supplierIds = periodFinancialData.consignmentBreakdown.map(s => s.supplierId);
+                        const supplierIds = unpaidSuppliers.map(s => s.supplierId);
                         const amounts: Record<string, number> = {};
-                        periodFinancialData.consignmentBreakdown.forEach(s => { amounts[s.supplierId] = s.cogs; });
+                        unpaidSuppliers.forEach(s => { amounts[s.supplierId] = s.cogs; });
 
                         const response = await fetch('/api/consignment/payments', {
                           method: 'POST',
@@ -1874,8 +1891,9 @@ export default function InventoryPage() {
                         if (!response.ok || !data.success) throw new Error(data.error || 'Failed');
 
                         // Mark all as paid (use supplierId)
-                        setPaidSupplierIds(periodFinancialData.consignmentBreakdown.map(s => s.supplierId));
-                        success('Pembayaran Semua Berhasil', `Total ${formatCurrency(consignmentPayments)} untuk ${periodFinancialData.consignmentBreakdown?.length} supplier berhasil dicatat`);
+                        setPaidSupplierIds(prev => [...prev, ...unpaidSuppliers.map(s => s.supplierId)]);
+                        const unpaidTotal = unpaidSuppliers.reduce((sum, s) => sum + s.cogs, 0);
+                        success('Pembayaran Semua Berhasil', `Total ${formatCurrency(unpaidTotal)} untuk ${unpaidSuppliers.length} supplier berhasil dicatat`);
                         
                         // Refresh financial data to update consignment breakdown
                         await fetchPeriodFinancialData();
