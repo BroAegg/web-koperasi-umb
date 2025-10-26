@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -79,12 +79,32 @@ export default function InventoryPage() {
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [showAllMovementsModal, setShowAllMovementsModal] = useState(false);
   const [showConsignmentPaymentModal, setShowConsignmentPaymentModal] = useState(false);
-  const [showPaymentReviewModal, setShowPaymentReviewModal] = useState(false);
   const [paidSupplierIds, setPaidSupplierIds] = useState<string[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
-  const [pendingPaymentRequests, setPendingPaymentRequests] = useState<any[]>([]);
-  const [selectedPaymentRequest, setSelectedPaymentRequest] = useState<any>(null);
+  
+  // 💼 Business Logic State
+  const [showPaymentConfirmModal, setShowPaymentConfirmModal] = useState(false);
+  const [pendingPayment, setPendingPayment] = useState<{supplier: any; amount: number} | null>(null);
+  const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<'CASH' | 'TRANSFER' | 'CREDIT'>('CASH');
+  const [paymentNote, setPaymentNote] = useState('');
+  const [showBulkPaymentModal, setShowBulkPaymentModal] = useState(false);
+  const [selectedSuppliers, setSelectedSuppliers] = useState<string[]>([]);
+  
+  // 🔄 Payment State Management
+  const [paymentLoading, setPaymentLoading] = useState<Record<string, boolean>>({});
+  const [optimisticPayments, setOptimisticPayments] = useState<string[]>([]);
+  const [paymentErrors, setPaymentErrors] = useState<Record<string, string>>({});
+  
+  // 🔒 Security & Tracking State
+  const [paymentHistory, setPaymentHistory] = useState<Array<{
+    id: string;
+    supplierId: string;
+    amount: number;
+    timestamp: number;
+    method: string;
+  }>>([]);
+  const [recentPaymentAttempts, setRecentPaymentAttempts] = useState<Record<string, number>>({});
   
   // Refs
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -148,6 +168,262 @@ export default function InventoryPage() {
   // Global notifications
   const { success, error, warning } = useNotification();
 
+  // 🔧 Helper functions for safe supplier data access
+  const getSupplierName = useMemo(() => (supplier: any) => {
+    return supplier?.supplierName || supplier?.name || 'Supplier Tidak Dikenal';
+  }, []);
+
+  const getSupplierContact = useMemo(() => (supplier: any) => {
+    const contact = supplier?.supplierContact || supplier?.contact || supplier?.contactPerson;
+    return contact || 'Pemilik: Tidak ada data';
+  }, []);
+
+  const getSupplierPhone = useMemo(() => (supplier: any) => {
+    const phone = supplier?.supplierPhone || supplier?.phone || supplier?.phoneNumber;
+    return phone || 'Telepon: Tidak ada data';
+  }, []);
+
+  const getSupplierAddress = useMemo(() => (supplier: any) => {
+    const address = supplier?.supplierAddress || supplier?.address;
+    return address || 'Alamat: Tidak ada data';
+  }, []);
+
+  const getSupplierFinancials = useMemo(() => (supplier: any) => {
+    const revenue = typeof supplier?.revenue === 'number' ? supplier.revenue : 0;
+    const cogs = typeof supplier?.cogs === 'number' ? supplier.cogs : 0;
+    const profit = typeof supplier?.profit === 'number' ? supplier.profit : (revenue - cogs);
+    
+    return { revenue, cogs, profit };
+  }, []);
+
+  const getSupplierId = useMemo(() => (supplier: any) => {
+    return supplier?.supplierId || supplier?.id || supplier?.supplierName || 'unknown';
+  }, []);
+
+  const isSupplierPaid = useMemo(() => (supplier: any, paidIds: string[]) => {
+    const supplierId = supplier?.supplierId || supplier?.id;
+    return supplier?.isPaid === true || paidIds.includes(supplierId);
+  }, []);
+
+  // ⚡ Memoized formatters for performance
+  const safeFormatCurrency = useMemo(() => (amount: any) => {
+    const numAmount = typeof amount === 'number' ? amount : Number(amount) || 0;
+    return formatCurrency(numAmount);
+  }, []);
+
+  // 🔄 Payment State Management Functions (defined early for memoized calculations)
+  const isPaymentLoading = (supplierId: string) => {
+    return paymentLoading[supplierId] || false;
+  };
+
+  const isSupplierPaidWithOptimistic = (supplier: any, paidIds: string[]) => {
+    const supplierId = getSupplierId(supplier);
+    return (
+      isSupplierPaid(supplier, paidIds) || 
+      optimisticPayments.includes(supplierId)
+    );
+  };
+
+  // Memoized calculations
+  const totalConsignmentPayments = useMemo(() => {
+    return periodFinancialData.consignmentBreakdown?.reduce((sum, supplier) => {
+      const { cogs } = getSupplierFinancials(supplier);
+      return sum + cogs;
+    }, 0) || 0;
+  }, [periodFinancialData.consignmentBreakdown]);
+
+  const totalConsignmentProfit = useMemo(() => {
+    return periodFinancialData.consignmentBreakdown?.reduce((sum, supplier) => {
+      const { profit } = getSupplierFinancials(supplier);
+      return sum + profit;
+    }, 0) || 0;
+  }, [periodFinancialData.consignmentBreakdown]);
+
+  const unpaidSuppliersCount = useMemo(() => {
+    return periodFinancialData.consignmentBreakdown?.filter(supplier => 
+      !isSupplierPaidWithOptimistic(supplier, paidSupplierIds)
+    ).length || 0;
+  }, [periodFinancialData.consignmentBreakdown, paidSupplierIds, optimisticPayments]);
+
+  // 🔄 More Payment State Management Functions
+  const startPaymentLoading = (supplierId: string) => {
+    setPaymentLoading(prev => ({ ...prev, [supplierId]: true }));
+    setPaymentErrors(prev => {
+      const { [supplierId]: removed, ...rest } = prev;
+      return rest;
+    });
+  };
+
+  const stopPaymentLoading = (supplierId: string) => {
+    setPaymentLoading(prev => {
+      const { [supplierId]: removed, ...rest } = prev;
+      return rest;
+    });
+  };
+
+  const addOptimisticPayment = (supplierId: string) => {
+    setOptimisticPayments(prev => [...prev, supplierId]);
+  };
+
+  const confirmPayment = (supplierId: string) => {
+    setOptimisticPayments(prev => prev.filter(id => id !== supplierId));
+    setPaidSupplierIds(prev => [...prev, supplierId]);
+  };
+
+  const rollbackPayment = (supplierId: string, errorMessage: string) => {
+    setOptimisticPayments(prev => prev.filter(id => id !== supplierId));
+    setPaymentErrors(prev => ({ ...prev, [supplierId]: errorMessage }));
+  };
+
+  // � Security Functions
+  const isDuplicatePaymentAttempt = (supplierId: string): boolean => {
+    const lastAttempt = recentPaymentAttempts[supplierId];
+    if (!lastAttempt) return false;
+    
+    const now = Date.now();
+    const cooldownPeriod = 5000; // 5 seconds cooldown
+    
+    return (now - lastAttempt) < cooldownPeriod;
+  };
+
+  const recordPaymentAttempt = (supplierId: string) => {
+    setRecentPaymentAttempts(prev => ({ 
+      ...prev, 
+      [supplierId]: Date.now() 
+    }));
+  };
+
+  const addToPaymentHistory = (supplierId: string, amount: number, method: string) => {
+    const historyEntry = {
+      id: `pay-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+      supplierId,
+      amount,
+      timestamp: Date.now(),
+      method
+    };
+    
+    setPaymentHistory(prev => [historyEntry, ...prev.slice(0, 49)]); // Keep last 50 entries
+  };
+
+  const hasRecentPayment = (supplierId: string): boolean => {
+    const recentPayment = paymentHistory.find(p => 
+      p.supplierId === supplierId && 
+      (Date.now() - p.timestamp) < 300000 // 5 minutes
+    );
+    return !!recentPayment;
+  };
+
+  // �💼 Business Logic Functions
+  const validatePaymentAmount = (amount: number): string | null => {
+    if (amount <= 0) return 'Jumlah pembayaran harus lebih dari 0';
+    if (amount > 100000000) return 'Jumlah pembayaran terlalu besar (maksimal Rp 100 juta)';
+    if (!Number.isInteger(amount)) return 'Jumlah pembayaran harus berupa angka bulat';
+    return null;
+  };
+
+  const validatePaymentMethod = (method: string): boolean => {
+    return ['CASH', 'TRANSFER', 'CREDIT'].includes(method);
+  };
+
+  const validateSupplierForPayment = (supplier: any): string | null => {
+    const supplierId = getSupplierId(supplier);
+    const { cogs } = getSupplierFinancials(supplier);
+    
+    // Security checks
+    if (isDuplicatePaymentAttempt(supplierId)) {
+      return 'Terlalu banyak percobaan pembayaran. Tunggu 5 detik dan coba lagi.';
+    }
+    
+    if (hasRecentPayment(supplierId)) {
+      return 'Pembayaran untuk supplier ini baru saja dilakukan. Periksa riwayat pembayaran.';
+    }
+    
+    // Business logic checks
+    if (isSupplierPaidWithOptimistic(supplier, paidSupplierIds)) {
+      return 'Supplier sudah dibayar atau sedang dalam proses pembayaran';
+    }
+    
+    if (cogs <= 0) {
+      return 'Tidak ada tagihan untuk supplier ini';
+    }
+    
+    const amountError = validatePaymentAmount(cogs);
+    if (amountError) return amountError;
+    
+    return null;
+  };
+
+  const openPaymentConfirmation = (supplier: any) => {
+    const validationError = validateSupplierForPayment(supplier);
+    if (validationError) {
+      error('Tidak Dapat Memproses', validationError);
+      return;
+    }
+    
+    const { cogs } = getSupplierFinancials(supplier);
+    setPendingPayment({ supplier, amount: cogs });
+    setPaymentNote('');
+    setShowPaymentConfirmModal(true);
+  };
+
+  const executePayment = async () => {
+    if (!pendingPayment) return;
+    
+    const { supplier, amount } = pendingPayment;
+    const supplierId = getSupplierId(supplier);
+    
+    try {
+      // Record payment attempt for security tracking
+      recordPaymentAttempt(supplierId);
+      
+      startPaymentLoading(supplierId);
+      addOptimisticPayment(supplierId);
+      setShowPaymentConfirmModal(false);
+      
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/consignment/payments', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ 
+          supplierIds: [supplierId], 
+          amounts: { [supplierId]: amount },
+          period: financialPeriod,
+          paymentMethod: selectedPaymentMethod,
+          note: paymentNote.trim() || undefined
+        }),
+      });
+      
+      const data = await response.json();
+      if (!response.ok || !data.success) throw new Error(data.error || 'Gagal memproses pembayaran');
+
+      // Record successful payment in history
+      addToPaymentHistory(supplierId, amount, selectedPaymentMethod);
+      
+      confirmPayment(supplierId);
+      stopPaymentLoading(supplierId);
+      
+      success('Pembayaran Berhasil', `Pembayaran ke ${getSupplierName(supplier)} sebesar ${safeFormatCurrency(amount)} berhasil dicatat`);
+      
+      // Refresh all financial data to update both modal and main inventory page
+      await fetchPeriodFinancialData();
+      
+      // Add payment record to history for tracking
+      addToPaymentHistory(supplierId, amount, selectedPaymentMethod);
+      
+      setPendingPayment(null);
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Pembayaran gagal dicatat, silakan coba lagi';
+      rollbackPayment(supplierId, errorMessage);
+      stopPaymentLoading(supplierId);
+      
+      console.error('Pay supplier error', err);
+      error('Gagal', errorMessage);
+    }
+  };
+
   // Close dropdown when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -176,7 +452,6 @@ export default function InventoryPage() {
   // Fetch financial data when period or date changes
   useEffect(() => {
     fetchPeriodFinancialData();
-    fetchPendingPaymentRequests(); // Fetch pending payment requests
   }, [financialPeriod, selectedDate]);
 
   // Price formatting helper
@@ -328,25 +603,6 @@ export default function InventoryPage() {
       }
     } catch (err) {
       error('Kesalahan', 'Terjadi kesalahan saat memuat data keuangan');
-    }
-  };
-
-  const fetchPendingPaymentRequests = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('/api/admin/payment-requests?status=PENDING', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        }
-      });
-      const result = await response.json();
-      
-      if (result.success) {
-        setPendingPaymentRequests(result.data || []);
-      }
-    } catch (err) {
-      console.error('Failed to fetch pending payment requests', err);
     }
   };
 
@@ -699,13 +955,15 @@ export default function InventoryPage() {
     return sum + (unitCost * Math.abs(m.quantity));
   }, 0);
 
-  // Pending consignment payments (exclude suppliers already paid in the current period)
+  // Pending consignment payments (exclude suppliers already paid in the current period + paid suppliers from state)
   const pendingConsignmentPayments = periodFinancialData.consignmentBreakdown
-    ? periodFinancialData.consignmentBreakdown.filter(s => !s.isPaid).reduce((sum, s) => sum + (s.cogs || 0), 0)
+    ? periodFinancialData.consignmentBreakdown
+        .filter(s => !isSupplierPaidWithOptimistic(s, paidSupplierIds))
+        .reduce((sum, s) => sum + (s.cogs || 0), 0)
     : 0;
 
   const unpaidConsignmentSuppliersCount = periodFinancialData.consignmentBreakdown
-    ? periodFinancialData.consignmentBreakdown.filter(s => !s.isPaid).length
+    ? periodFinancialData.consignmentBreakdown.filter(s => !isSupplierPaidWithOptimistic(s, paidSupplierIds)).length
     : 0;
   
   const totalRevenue = products.reduce((sum, p) => sum + (p.sellPrice * p.soldToday), 0);
@@ -1075,13 +1333,8 @@ export default function InventoryPage() {
           <Card className="border-0 shadow-sm hover:shadow-md transition-shadow">
             <CardContent className="p-4 sm:p-6">
               <div className="flex items-center justify-between mb-4">
-                <div className="p-3 rounded-lg bg-purple-50 relative">
+                <div className="p-3 rounded-lg bg-purple-50">
                   <Receipt className="w-6 h-6 text-purple-600" />
-                  {pendingPaymentRequests.length > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center font-bold">
-                      {pendingPaymentRequests.length}
-                    </span>
-                  )}
                 </div>
                 <div className="text-sm font-medium px-2 py-1 rounded-full text-purple-700 bg-purple-100">
                   Titipan
@@ -1093,11 +1346,6 @@ export default function InventoryPage() {
                 <p className="text-xs text-gray-500 mb-3">
                   {unpaidConsignmentSuppliersCount || 0} Supplier menunggu pembayaran
                 </p>
-                {pendingPaymentRequests.length > 0 && (
-                  <p className="text-xs text-orange-600 font-semibold mb-2">
-                    🔔 {pendingPaymentRequests.length} permintaan pembayaran menunggu review
-                  </p>
-                )}
                 <div className="flex gap-2">
                   <Button
                     onClick={() => setShowConsignmentPaymentModal(true)}
@@ -1105,14 +1353,6 @@ export default function InventoryPage() {
                   >
                     Kelola Pembayaran
                   </Button>
-                  {pendingPaymentRequests.length > 0 && (
-                    <Button
-                      onClick={() => setShowPaymentReviewModal(true)}
-                      className="flex-1 bg-orange-600 hover:bg-orange-700 text-white text-sm py-2 rounded-lg transition-colors"
-                    >
-                      Review ({pendingPaymentRequests.length})
-                    </Button>
-                  )}
                 </div>
               </div>
             </CardContent>
@@ -1705,65 +1945,63 @@ export default function InventoryPage() {
         </div>
       )}
 
-      {/* Consignment Payment Modal */}
+      {/* Consignment Payment Modal - Responsive */}
       {showConsignmentPaymentModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden animate-in fade-in zoom-in duration-200">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-purple-600 to-purple-700 p-6 text-white relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32"></div>
-              <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/10 rounded-full -ml-24 -mb-24"></div>
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-2 sm:p-4">
+          <div className="bg-white rounded-xl sm:rounded-2xl shadow-2xl w-full max-w-4xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden animate-in fade-in zoom-in duration-200">
+            {/* Header - Responsive */}
+            <div className="bg-gradient-to-r from-purple-600 to-purple-700 p-4 sm:p-6 text-white relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-32 h-32 sm:w-64 sm:h-64 bg-white/10 rounded-full -mr-16 sm:-mr-32 -mt-16 sm:-mt-32"></div>
+              <div className="absolute bottom-0 left-0 w-24 h-24 sm:w-48 sm:h-48 bg-white/10 rounded-full -ml-12 sm:-ml-24 -mb-12 sm:-mb-24"></div>
               <div className="relative flex items-center justify-between">
-                <div>
-                  <h2 className="text-2xl font-bold mb-1">Pembayaran Titipan</h2>
-                  <p className="text-purple-100 text-sm">Kelola pembayaran ke supplier titipan</p>
+                <div className="min-w-0 flex-1 pr-4">
+                  <h2 className="text-xl sm:text-2xl font-bold mb-1 truncate">Pembayaran Titipan</h2>
+                  <p className="text-purple-100 text-xs sm:text-sm truncate">Kelola pembayaran ke supplier titipan</p>
                 </div>
                 <button
                   onClick={() => setShowConsignmentPaymentModal(false)}
-                  className="p-2 hover:bg-white/20 rounded-full transition-colors"
+                  className="p-2 hover:bg-white/20 rounded-full transition-colors shrink-0"
                 >
-                  <X className="w-6 h-6" />
+                  <X className="w-5 h-5 sm:w-6 sm:h-6" />
                 </button>
               </div>
             </div>
 
             {/* Content */}
-            <div className="p-6 overflow-y-auto max-h-[calc(90vh-180px)]">
-              {/* Summary Cards */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-                <div className="bg-purple-50 rounded-xl p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-3 bg-purple-100 rounded-lg">
-                      <Receipt className="w-6 h-6 text-purple-600" />
+            <div className="p-4 sm:p-6 overflow-y-auto max-h-[calc(95vh-140px)] sm:max-h-[calc(90vh-180px)]">
+              {/* Summary Cards - Responsive Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-6">
+                <div className="bg-purple-50 rounded-xl p-3 sm:p-4">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="p-2 sm:p-3 bg-purple-100 rounded-lg">
+                      <Receipt className="w-5 h-5 sm:w-6 sm:h-6 text-purple-600" />
                     </div>
-                    <div>
-                      <p className="text-sm text-gray-600 mb-1">Total Tagihan</p>
-                      <p className="text-xl font-bold text-gray-900">{formatCurrency(consignmentPayments)}</p>
-                    </div>
-                  </div>
-                </div>
-                <div className="bg-blue-50 rounded-xl p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-3 bg-blue-100 rounded-lg">
-                      <Package className="w-6 h-6 text-blue-600" />
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600 mb-1">Total Supplier</p>
-                      <p className="text-xl font-bold text-gray-900">{periodFinancialData.consignmentBreakdown?.length || 0}</p>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs sm:text-sm text-gray-600 mb-1 truncate">Total Tagihan</p>
+                      <p className="text-lg sm:text-xl font-bold text-gray-900 truncate">{safeFormatCurrency(pendingConsignmentPayments)}</p>
                     </div>
                   </div>
                 </div>
-                <div className="bg-emerald-50 rounded-xl p-4">
-                  <div className="flex items-center gap-3">
-                    <div className="p-3 bg-emerald-100 rounded-lg">
-                      <TrendingUp className="w-6 h-6 text-emerald-600" />
+                <div className="bg-blue-50 rounded-xl p-3 sm:p-4">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="p-2 sm:p-3 bg-blue-100 rounded-lg">
+                      <Package className="w-5 h-5 sm:w-6 sm:h-6 text-blue-600" />
                     </div>
-                    <div>
-                      <p className="text-sm text-gray-600 mb-1">Profit Koperasi</p>
-                      <p className="text-xl font-bold text-gray-900">
-                        {formatCurrency(
-                          periodFinancialData.consignmentBreakdown?.reduce((sum, item) => sum + item.profit, 0) || 0
-                        )}
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs sm:text-sm text-gray-600 mb-1 truncate">Supplier Belum Dibayar</p>
+                      <p className="text-lg sm:text-xl font-bold text-gray-900">{unpaidConsignmentSuppliersCount}</p>
+                    </div>
+                  </div>
+                </div>
+                <div className="bg-emerald-50 rounded-xl p-3 sm:p-4 sm:col-span-2 lg:col-span-1">
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <div className="p-2 sm:p-3 bg-emerald-100 rounded-lg">
+                      <TrendingUp className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600" />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="text-xs sm:text-sm text-gray-600 mb-1 truncate">Profit Koperasi</p>
+                      <p className="text-lg sm:text-xl font-bold text-gray-900 truncate">
+                        {safeFormatCurrency(totalConsignmentProfit)}
                       </p>
                     </div>
                   </div>
@@ -1771,138 +2009,191 @@ export default function InventoryPage() {
               </div>
 
               {/* Supplier List */}
-              <div className="space-y-3">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">Detail Tagihan per Supplier</h3>
+              <div className="space-y-3 sm:space-y-4">
+                <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4">Detail Tagihan per Supplier</h3>
                 
-                {periodFinancialData.consignmentBreakdown && periodFinancialData.consignmentBreakdown.length > 0 ? (
-                  periodFinancialData.consignmentBreakdown.map((supplier, index) => (
+                {periodFinancialData.consignmentBreakdown && 
+                 periodFinancialData.consignmentBreakdown.filter(supplier => !isSupplierPaidWithOptimistic(supplier, paidSupplierIds)).length > 0 ? (
+                  periodFinancialData.consignmentBreakdown
+                    .filter(supplier => !isSupplierPaidWithOptimistic(supplier, paidSupplierIds)) // Only show unpaid suppliers
+                    .map((supplier, index) => (
                     <div
                       key={index}
-                      className="bg-white border-2 border-gray-200 rounded-xl p-5 hover:border-purple-300 hover:shadow-md transition-all"
+                      className="bg-white border-2 border-gray-200 rounded-xl p-4 sm:p-5 hover:border-purple-300 hover:shadow-md transition-all"
                     >
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex-1">
+                      <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between mb-4 gap-3 sm:gap-4">
+                        <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-3 mb-2">
-                            <div className="p-2 bg-purple-100 rounded-lg">
+                            <div className="p-2 bg-purple-100 rounded-lg shrink-0">
                               <Package className="w-5 h-5 text-purple-600" />
                             </div>
-                            <div>
-                              <h4 className="text-lg font-bold text-gray-900">{supplier.supplierName}</h4>
-                              <p className="text-sm text-gray-500">ID: {supplier.supplierId || supplier.supplierName}</p>
+                            <div className="min-w-0 flex-1">
+                              <h4 className="text-lg font-bold text-gray-900 truncate">{getSupplierName(supplier)}</h4>
+                              <p className="text-sm text-gray-500 truncate">ID: {getSupplierId(supplier)}</p>
                             </div>
                           </div>
                           
-                          {/* Supplier Contact Details */}
-                          <div className="mt-3 space-y-1 pl-11">
+                          {/* Supplier Contact Details - Mobile Responsive */}
+                          <div className="mt-3 space-y-1 sm:pl-11">
                             <div className="flex items-center gap-2 text-sm text-gray-600">
-                              <User className="w-4 h-4 text-gray-400" />
-                              <span>{supplier.supplierContact || 'Pemilik: Tidak ada data'}</span>
+                              <User className="w-4 h-4 text-gray-400 shrink-0" />
+                              <span className="truncate">{getSupplierContact(supplier)}</span>
                             </div>
                             <div className="flex items-center gap-2 text-sm text-gray-600">
-                              <Phone className="w-4 h-4 text-gray-400" />
-                              <span>{supplier.supplierPhone || 'Telepon: Tidak ada data'}</span>
+                              <Phone className="w-4 h-4 text-gray-400 shrink-0" />
+                              <span className="truncate">{getSupplierPhone(supplier)}</span>
                             </div>
                             <div className="flex items-center gap-2 text-sm text-gray-600">
-                              <MapPin className="w-4 h-4 text-gray-400" />
-                              <span>{supplier.supplierAddress || 'Alamat: Tidak ada data'}</span>
+                              <MapPin className="w-4 h-4 text-gray-400 shrink-0" />
+                              <span className="truncate">{getSupplierAddress(supplier)}</span>
                             </div>
                           </div>
                         </div>
                         
-                        <div className="text-right">
+                        <div className="text-right shrink-0">
                           <p className="text-sm text-gray-500 mb-1">Status</p>
-                          {supplier.isPaid || paidSupplierIds.includes(supplier.supplierId) ? (
-                            <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">
-                              Lunas
-                            </span>
+                          {isSupplierPaidWithOptimistic(supplier, paidSupplierIds) ? (
+                            optimisticPayments.includes(getSupplierId(supplier)) ? (
+                              <span className="inline-block px-2 sm:px-3 py-1 rounded-full text-xs font-semibold bg-blue-100 text-blue-700 animate-pulse">
+                                Sedang Diproses
+                              </span>
+                            ) : (
+                              <span className="inline-block px-2 sm:px-3 py-1 rounded-full text-xs font-semibold bg-emerald-100 text-emerald-700">
+                                Lunas
+                              </span>
+                            )
                           ) : (
-                            <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700">
+                            <span className="inline-block px-2 sm:px-3 py-1 rounded-full text-xs font-semibold bg-yellow-100 text-yellow-700">
                               Belum Dibayar
                             </span>
                           )}
                         </div>
                       </div>
 
-                      {/* Financial Details */}
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-gray-50 rounded-lg p-4 mb-4">
-                        <div>
+                      {/* Financial Details - Responsive Grid */}
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 bg-gray-50 rounded-lg p-3 sm:p-4 mb-4">
+                        <div className="text-center sm:text-left">
                           <p className="text-xs text-gray-500 mb-1">Revenue Penjualan</p>
-                          <p className="text-lg font-bold text-emerald-600">{formatCurrency(supplier.revenue)}</p>
+                          <p className="text-lg font-bold text-emerald-600 truncate">{safeFormatCurrency(getSupplierFinancials(supplier).revenue)}</p>
                         </div>
-                        <div>
+                        <div className="text-center sm:text-left">
                           <p className="text-xs text-gray-500 mb-1">Harus Dibayar ke Supplier</p>
-                          <p className="text-lg font-bold text-red-600">{formatCurrency(supplier.cogs)}</p>
+                          <p className="text-lg font-bold text-red-600 truncate">{safeFormatCurrency(getSupplierFinancials(supplier).cogs)}</p>
                         </div>
-                        <div>
+                        <div className="text-center sm:text-left">
                           <p className="text-xs text-gray-500 mb-1">Profit Koperasi</p>
-                          <p className="text-lg font-bold text-blue-600">{formatCurrency(supplier.profit)}</p>
+                          <p className="text-lg font-bold text-blue-600 truncate">{safeFormatCurrency(getSupplierFinancials(supplier).profit)}</p>
                         </div>
                       </div>
 
-                      {/* Action Button */}
-                      <button
-                        onClick={async () => {
-                          try {
-                            const token = localStorage.getItem('token');
-                            const response = await fetch('/api/consignment/payments', {
-                              method: 'POST',
-                              headers: {
-                                'Content-Type': 'application/json',
-                                'Authorization': `Bearer ${token}`,
-                              },
-                              body: JSON.stringify({ 
-                                supplierIds: [supplier.supplierId], 
-                                amounts: { [supplier.supplierId]: supplier.cogs },
-                                period: financialPeriod,
-                                paymentMethod: 'CASH'
-                              }),
-                            });
-                            const data = await response.json();
-                            if (!response.ok || !data.success) throw new Error(data.error || 'Failed');
+                      {/* Error Message Display */}
+                      {paymentErrors[getSupplierId(supplier)] && (
+                        <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg">
+                          <div className="flex items-center gap-2">
+                            <div className="w-4 h-4 rounded-full bg-red-500 flex items-center justify-center">
+                              <span className="text-white text-xs">!</span>
+                            </div>
+                            <p className="text-sm text-red-700">{paymentErrors[getSupplierId(supplier)]}</p>
+                          </div>
+                        </div>
+                      )}
 
-                            // Optimistic update
-                            setPaidSupplierIds(prev => [...prev, supplier.supplierId]);
-                            success('Pembayaran Berhasil', `Pembayaran ke ${supplier.supplierName} sebesar ${formatCurrency(supplier.cogs)} berhasil dicatat`);
-                            
-                            // Refresh financial data to update consignment breakdown
-                            await fetchPeriodFinancialData();
-                          } catch (err) {
-                            console.error('Pay supplier error', err);
-                            error('Gagal', 'Pembayaran gagal dicatat, silakan coba lagi');
-                          }
-                        }}
-                        disabled={supplier.isPaid || paidSupplierIds.includes(supplier.supplierId)}
-                        className={`w-full ${supplier.isPaid || paidSupplierIds.includes(supplier.supplierId) ? 'bg-gray-300 cursor-not-allowed' : 'bg-purple-600 hover:bg-purple-700'} text-white font-semibold py-3 rounded-lg transition-colors flex items-center justify-center gap-2`}
+                      {/* Action Button with Confirmation */}
+                      <button
+                        onClick={() => openPaymentConfirmation(supplier)}
+                        disabled={isSupplierPaidWithOptimistic(supplier, paidSupplierIds) || isPaymentLoading(getSupplierId(supplier))}
+                        className={`w-full ${
+                          isSupplierPaidWithOptimistic(supplier, paidSupplierIds) 
+                            ? 'bg-emerald-300 cursor-not-allowed' 
+                            : isPaymentLoading(getSupplierId(supplier))
+                            ? 'bg-purple-400 cursor-not-allowed'
+                            : 'bg-purple-600 hover:bg-purple-700'
+                        } text-white font-semibold py-3 px-4 rounded-lg transition-colors flex items-center justify-center gap-2 text-sm sm:text-base`}
                       >
-                        <DollarSign className="w-5 h-5" />
-                        {supplier.isPaid || paidSupplierIds.includes(supplier.supplierId) ? 'Sudah Dibayar' : `Bayar ${formatCurrency(supplier.cogs)}`}
+                        {isPaymentLoading(getSupplierId(supplier)) ? (
+                          <>
+                            <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-white border-t-transparent rounded-full animate-spin shrink-0" />
+                            <span className="truncate">Memproses...</span>
+                          </>
+                        ) : (
+                          <>
+                            <DollarSign className="w-4 h-4 sm:w-5 sm:h-5 shrink-0" />
+                            <span className="truncate">
+                              {isSupplierPaidWithOptimistic(supplier, paidSupplierIds) 
+                                ? (optimisticPayments.includes(getSupplierId(supplier)) ? 'Sedang Diproses...' : 'Sudah Dibayar')
+                                : `Bayar ${safeFormatCurrency(getSupplierFinancials(supplier).cogs)}`
+                              }
+                            </span>
+                          </>
+                        )}
                       </button>
                     </div>
                   ))
                 ) : (
-                  <div className="text-center py-12 bg-gray-50 rounded-xl">
-                    <Receipt className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                    <p className="text-gray-500 font-medium mb-1">Belum Ada Tagihan</p>
-                    <p className="text-sm text-gray-400">Tagihan akan muncul setelah ada penjualan produk titipan</p>
+                  <div className="text-center py-8 sm:py-12 bg-gradient-to-br from-gray-50 to-gray-100 rounded-xl px-4 border-2 border-dashed border-gray-200">
+                    <div className="flex flex-col items-center">
+                      <div className="p-4 bg-white rounded-full shadow-sm mb-4">
+                        <Receipt className="w-12 h-12 sm:w-16 sm:h-16 text-gray-300" />
+                      </div>
+                      <div className="max-w-sm mx-auto">
+                        <p className="text-gray-700 font-semibold mb-2 text-sm sm:text-base">
+                          {periodFinancialData.consignmentBreakdown && periodFinancialData.consignmentBreakdown.length > 0 
+                            ? 'Semua Supplier Sudah Dibayar' 
+                            : 'Belum Ada Tagihan'
+                          }
+                        </p>
+                        <p className="text-xs sm:text-sm text-gray-500 leading-relaxed">
+                          {periodFinancialData.consignmentBreakdown && periodFinancialData.consignmentBreakdown.length > 0 
+                            ? `Semua ${periodFinancialData.consignmentBreakdown.length} supplier untuk periode ini sudah dibayar lunas.`
+                            : `Tagihan akan muncul setelah ada penjualan produk titipan dalam periode `
+                          }
+                          {periodFinancialData.consignmentBreakdown && periodFinancialData.consignmentBreakdown.length === 0 && (
+                            <span className="font-medium text-purple-600">
+                              {financialPeriod === 'today' ? 'hari ini' : 
+                               financialPeriod === '7days' ? '7 hari terakhir' :
+                               financialPeriod === '1month' ? '1 bulan terakhir' : 
+                               'periode yang dipilih'}
+                            </span>
+                          )}
+                        </p>
+                        <div className="mt-4 flex flex-col sm:flex-row gap-2 justify-center">
+                          <button
+                            onClick={() => setShowConsignmentPaymentModal(false)}
+                            className="px-4 py-2 text-sm bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                          >
+                            Tutup
+                          </button>
+                          <button
+                            onClick={() => {
+                              setShowConsignmentPaymentModal(false);
+                              // Navigate to POS or add consignment products
+                            }}
+                            className="px-4 py-2 text-sm bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors"
+                          >
+                            Buka Kasir
+                          </button>
+                        </div>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
             </div>
 
-            {/* Footer */}
-            <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex items-center justify-between">
-              <p className="text-sm text-gray-600">
+            {/* Footer - Responsive */}
+            <div className="bg-gray-50 px-4 sm:px-6 py-4 border-t border-gray-200 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <p className="text-sm text-gray-600 text-center sm:text-left">
                 <span className="font-semibold">{unpaidConsignmentSuppliersCount}</span> supplier menunggu pembayaran
               </p>
-              <div className="flex gap-3">
+              <div className="flex flex-col sm:flex-row gap-3">
                 <Button
                   onClick={() => setShowConsignmentPaymentModal(false)}
                   variant="outline"
-                  className="px-6"
+                  className="px-4 sm:px-6 w-full sm:w-auto"
                 >
                   Tutup
                 </Button>
-                        {unpaidConsignmentSuppliersCount > 0 && (
+                {unpaidConsignmentSuppliersCount > 0 && (
                   <Button
                     onClick={async () => {
                       try {
@@ -1945,10 +2236,10 @@ export default function InventoryPage() {
                         error('Gagal', 'Pembayaran semua gagal dicatat, silakan coba lagi');
                       }
                     }}
-                    className="bg-purple-600 hover:bg-purple-700 text-white px-6"
+                    className="bg-purple-600 hover:bg-purple-700 text-white px-4 sm:px-6 w-full sm:w-auto"
                   >
-                    <DollarSign className="w-4 h-4 mr-2" />
-                    Bayar Semua
+                    <DollarSign className="w-4 h-4 mr-2 shrink-0" />
+                    <span className="truncate">Bayar Semua</span>
                   </Button>
                 )}
               </div>
@@ -1957,288 +2248,87 @@ export default function InventoryPage() {
         </div>
       )}
 
-      {/* Payment Review Modal (Admin) */}
-      {showPaymentReviewModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
+      {/* Payment Confirmation Modal */}
+      {showPaymentConfirmModal && pendingPayment && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md animate-in fade-in zoom-in duration-200">
             {/* Header */}
-            <div className="bg-gradient-to-r from-orange-500 to-orange-600 text-white px-6 py-5 flex items-center justify-between">
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-white bg-opacity-20 rounded-lg">
-                  <Receipt className="w-6 h-6" />
-                </div>
-                <div>
-                  <h2 className="text-2xl font-bold mb-1">Review Permintaan Pembayaran</h2>
-                  <p className="text-sm text-orange-100">Supplier mengajukan pembayaran dengan bukti transfer</p>
+            <div className="bg-gradient-to-r from-purple-600 to-purple-700 p-6 text-white rounded-t-2xl">
+              <h3 className="text-xl font-bold">Konfirmasi Pembayaran</h3>
+              <p className="text-purple-100 text-sm mt-1">Pastikan detail pembayaran sudah benar</p>
+            </div>
+            
+            {/* Content */}
+            <div className="p-6">
+              {/* Supplier Info */}
+              <div className="mb-6 p-4 bg-gray-50 rounded-lg">
+                <h4 className="font-semibold text-gray-900 mb-2">{getSupplierName(pendingPayment.supplier)}</h4>
+                <div className="space-y-1 text-sm text-gray-600">
+                  <p>ID: {getSupplierId(pendingPayment.supplier)}</p>
+                  <p className="text-lg font-bold text-red-600">
+                    Jumlah: {safeFormatCurrency(pendingPayment.amount)}
+                  </p>
                 </div>
               </div>
-              <button 
+              
+              {/* Payment Method */}
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Metode Pembayaran
+                </label>
+                <select
+                  value={selectedPaymentMethod}
+                  onChange={(e) => setSelectedPaymentMethod(e.target.value as any)}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                >
+                  <option value="CASH">Tunai</option>
+                  <option value="TRANSFER">Transfer Bank</option>
+                  <option value="CREDIT">Kredit</option>
+                </select>
+              </div>
+              
+              {/* Payment Note */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Catatan (Opsional)
+                </label>
+                <textarea
+                  value={paymentNote}
+                  onChange={(e) => setPaymentNote(e.target.value)}
+                  placeholder="Tambahkan catatan pembayaran..."
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none"
+                  rows={3}
+                  maxLength={500}
+                />
+                <p className="text-xs text-gray-500 mt-1">{paymentNote.length}/500 karakter</p>
+              </div>
+            </div>
+            
+            {/* Footer */}
+            <div className="bg-gray-50 px-6 py-4 rounded-b-2xl flex gap-3">
+              <button
                 onClick={() => {
-                  setShowPaymentReviewModal(false);
-                  setSelectedPaymentRequest(null);
+                  setShowPaymentConfirmModal(false);
+                  setPendingPayment(null);
+                  setPaymentNote('');
                 }}
-                className="p-2 hover:bg-white hover:bg-opacity-20 rounded-lg transition-colors"
+                className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 font-semibold py-3 px-4 rounded-lg transition-all hover:scale-105"
               >
-                <X className="w-6 h-6" />
+                Batal
+              </button>
+              <button
+                onClick={executePayment}
+                disabled={!pendingPayment || paymentNote.length > 500}
+                className="flex-1 bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 disabled:from-gray-400 disabled:to-gray-500 text-white font-semibold py-3 px-4 rounded-lg transition-all hover:scale-105 disabled:cursor-not-allowed disabled:hover:scale-100 shadow-lg hover:shadow-xl"
+              >
+                <span className="flex items-center justify-center gap-2">
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                  </svg>
+                  Konfirmasi Bayar
+                </span>
               </button>
             </div>
-
-            {/* Content */}
-            <div className="flex-1 overflow-y-auto p-6">
-              {selectedPaymentRequest ? (
-                /* Detail View */
-                <div className="space-y-6">
-                  <Button
-                    onClick={() => setSelectedPaymentRequest(null)}
-                    variant="outline"
-                    className="mb-4"
-                  >
-                    <ChevronLeft className="w-4 h-4 mr-2" />
-                    Kembali ke Daftar
-                  </Button>
-
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* Left: Payment Proof Image */}
-                    <div className="space-y-4">
-                      <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                        <Receipt className="w-5 h-5 text-orange-600" />
-                        Bukti Pembayaran
-                      </h3>
-                      <div className="border-2 border-gray-200 rounded-xl overflow-hidden bg-gray-50">
-                        {selectedPaymentRequest.proofImageUrl ? (
-                          <img 
-                            src={selectedPaymentRequest.proofImageUrl} 
-                            alt="Payment Proof"
-                            className="w-full h-auto"
-                          />
-                        ) : (
-                          <div className="flex items-center justify-center h-64 text-gray-400">
-                            No image uploaded
-                          </div>
-                        )}
-                      </div>
-                      <a
-                        href={selectedPaymentRequest.proofImageUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="block text-center text-sm text-orange-600 hover:text-orange-700 font-medium"
-                      >
-                        Buka gambar di tab baru →
-                      </a>
-                    </div>
-
-                    {/* Right: Payment Details */}
-                    <div className="space-y-4">
-                      <h3 className="text-lg font-bold text-gray-900 flex items-center gap-2">
-                        <Info className="w-5 h-5 text-orange-600" />
-                        Detail Permintaan
-                      </h3>
-
-                      {/* Supplier Info */}
-                      <div className="bg-blue-50 border border-blue-200 rounded-xl p-4">
-                        <p className="text-xs text-blue-600 font-semibold mb-2">SUPPLIER</p>
-                        <p className="text-lg font-bold text-gray-900">{selectedPaymentRequest.supplier?.businessName || 'N/A'}</p>
-                        <div className="mt-2 space-y-1 text-sm text-gray-600">
-                          <p>👤 {selectedPaymentRequest.supplier?.ownerName || 'N/A'}</p>
-                          <p>📞 {selectedPaymentRequest.supplier?.phone || 'N/A'}</p>
-                          <p>📧 {selectedPaymentRequest.supplier?.email || 'N/A'}</p>
-                        </div>
-                      </div>
-
-                      {/* Payment Amount */}
-                      <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-4">
-                        <p className="text-xs text-emerald-600 font-semibold mb-2">JUMLAH PEMBAYARAN</p>
-                        <p className="text-3xl font-bold text-emerald-700">{formatCurrency(selectedPaymentRequest.amount)}</p>
-                      </div>
-
-                      {/* Period */}
-                      <div className="bg-purple-50 border border-purple-200 rounded-xl p-4">
-                        <p className="text-xs text-purple-600 font-semibold mb-2">PERIODE</p>
-                        <p className="text-sm font-medium text-gray-900">{selectedPaymentRequest.period}</p>
-                        <p className="text-xs text-gray-500 mt-1">
-                          {new Date(selectedPaymentRequest.periodStart).toLocaleDateString('id-ID')} - {new Date(selectedPaymentRequest.periodEnd).toLocaleDateString('id-ID')}
-                        </p>
-                      </div>
-
-                      {/* Bank Details */}
-                      {(selectedPaymentRequest.bankName || selectedPaymentRequest.accountNumber) && (
-                        <div className="bg-gray-50 border border-gray-200 rounded-xl p-4">
-                          <p className="text-xs text-gray-600 font-semibold mb-2">DETAIL TRANSFER</p>
-                          {selectedPaymentRequest.bankName && (
-                            <p className="text-sm text-gray-900">🏦 {selectedPaymentRequest.bankName}</p>
-                          )}
-                          {selectedPaymentRequest.accountNumber && (
-                            <p className="text-sm text-gray-900 mt-1">💳 Rek: {selectedPaymentRequest.accountNumber}</p>
-                          )}
-                        </div>
-                      )}
-
-                      {/* Note */}
-                      {selectedPaymentRequest.note && (
-                        <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-4">
-                          <p className="text-xs text-yellow-700 font-semibold mb-2">CATATAN</p>
-                          <p className="text-sm text-gray-700">{selectedPaymentRequest.note}</p>
-                        </div>
-                      )}
-
-                      {/* Submission Time */}
-                      <div className="text-xs text-gray-500">
-                        Diajukan pada: {new Date(selectedPaymentRequest.requestedAt || selectedPaymentRequest.createdAt).toLocaleString('id-ID')}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Action Buttons */}
-                  <div className="flex gap-3 pt-4 border-t border-gray-200">
-                    <Button
-                      onClick={async () => {
-                        const reason = prompt('Alasan penolakan:');
-                        if (!reason) return;
-                        
-                        try {
-                          const token = localStorage.getItem('token');
-                          const response = await fetch(`/api/admin/payment-requests/${selectedPaymentRequest.id}`, {
-                            method: 'PATCH',
-                            headers: {
-                              'Content-Type': 'application/json',
-                              'Authorization': `Bearer ${token}`,
-                            },
-                            body: JSON.stringify({ 
-                              action: 'reject',
-                              rejectedReason: reason,
-                            }),
-                          });
-                          const data = await response.json();
-                          
-                          if (data.success) {
-                            success('Ditolak', 'Permintaan pembayaran berhasil ditolak');
-                            setSelectedPaymentRequest(null);
-                            fetchPendingPaymentRequests();
-                          } else {
-                            error('Gagal', data.error || 'Gagal menolak permintaan');
-                          }
-                        } catch (err) {
-                          error('Kesalahan', 'Terjadi kesalahan saat menolak permintaan');
-                        }
-                      }}
-                      variant="outline"
-                      className="flex-1 border-red-300 text-red-600 hover:bg-red-50"
-                    >
-                      <X className="w-4 h-4 mr-2" />
-                      Tolak Pembayaran
-                    </Button>
-                    <Button
-                      onClick={async () => {
-                        if (!confirm('Setujui pembayaran ini? Transaksi akan dibuat otomatis.')) return;
-                        
-                        try {
-                          const token = localStorage.getItem('token');
-                          const response = await fetch(`/api/admin/payment-requests/${selectedPaymentRequest.id}`, {
-                            method: 'PATCH',
-                            headers: {
-                              'Content-Type': 'application/json',
-                              'Authorization': `Bearer ${token}`,
-                            },
-                            body: JSON.stringify({ action: 'approve' }),
-                          });
-                          const data = await response.json();
-                          
-                          if (data.success) {
-                            success('Disetujui', 'Pembayaran disetujui dan transaksi telah dibuat');
-                            setSelectedPaymentRequest(null);
-                            fetchPendingPaymentRequests();
-                            fetchPeriodFinancialData();
-                          } else {
-                            error('Gagal', data.error || 'Gagal menyetujui permintaan');
-                          }
-                        } catch (err) {
-                          error('Kesalahan', 'Terjadi kesalahan saat menyetujui permintaan');
-                        }
-                      }}
-                      className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white"
-                    >
-                      <DollarSign className="w-4 h-4 mr-2" />
-                      Setujui Pembayaran
-                    </Button>
-                  </div>
-                </div>
-              ) : (
-                /* List View */
-                <div className="space-y-3">
-                  <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                    Daftar Permintaan Pembayaran ({pendingPaymentRequests.length})
-                  </h3>
-                  
-                  {pendingPaymentRequests.length > 0 ? (
-                    pendingPaymentRequests.map((request) => (
-                      <div
-                        key={request.id}
-                        className="bg-white border-2 border-orange-200 rounded-xl p-5 hover:border-orange-400 hover:shadow-md transition-all cursor-pointer"
-                        onClick={() => setSelectedPaymentRequest(request)}
-                      >
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1">
-                            <div className="flex items-center gap-3 mb-2">
-                              <div className="p-2 bg-orange-100 rounded-lg">
-                                <Package className="w-5 h-5 text-orange-600" />
-                              </div>
-                              <div>
-                                <h4 className="text-lg font-bold text-gray-900">{request.supplier?.businessName || 'Unknown Supplier'}</h4>
-                                <p className="text-sm text-gray-500">{request.supplier?.ownerName || 'N/A'}</p>
-                              </div>
-                            </div>
-                            
-                            <div className="flex flex-wrap gap-4 mt-3 text-sm">
-                              <div>
-                                <span className="text-gray-500">Jumlah:</span>
-                                <span className="ml-1 font-bold text-emerald-600">{formatCurrency(request.amount)}</span>
-                              </div>
-                              <div>
-                                <span className="text-gray-500">Periode:</span>
-                                <span className="ml-1 font-semibold text-gray-900">{request.period}</span>
-                              </div>
-                              <div>
-                                <span className="text-gray-500">Diajukan:</span>
-                                <span className="ml-1 text-gray-700">{new Date(request.requestedAt || request.createdAt).toLocaleDateString('id-ID')}</span>
-                              </div>
-                            </div>
-                          </div>
-                          
-                          <div className="text-right">
-                            <span className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-orange-100 text-orange-700">
-                              Menunggu Review
-                            </span>
-                            <ChevronRight className="w-5 h-5 text-gray-400 mt-2 ml-auto" />
-                          </div>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-center py-12 bg-gray-50 rounded-xl">
-                      <Receipt className="w-16 h-16 mx-auto mb-4 text-gray-300" />
-                      <p className="text-gray-500 font-medium mb-1">Tidak Ada Permintaan</p>
-                      <p className="text-sm text-gray-400">Semua permintaan pembayaran telah diproses</p>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-
-            {/* Footer */}
-            {!selectedPaymentRequest && (
-              <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex items-center justify-between">
-                <p className="text-sm text-gray-600">
-                  <span className="font-semibold">{pendingPaymentRequests.length}</span> permintaan menunggu review
-                </p>
-                <Button
-                  onClick={() => setShowPaymentReviewModal(false)}
-                  variant="outline"
-                  className="px-6"
-                >
-                  Tutup
-                </Button>
-              </div>
-            )}
           </div>
         </div>
       )}

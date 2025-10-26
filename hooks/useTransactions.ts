@@ -12,6 +12,7 @@ interface TransactionFilters {
 interface Transaction {
   id: string;
   receiptId: string;
+  type: string; // Add transaction type
   totalAmount: number;
   paymentMethod: string;
   customerName: string;

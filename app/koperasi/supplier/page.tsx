@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Package, CreditCard, CheckCircle, Clock, AlertCircle, Upload, Receipt, X, Eye, XCircle } from "lucide-react";
+import { Package, CreditCard, CheckCircle, Clock, AlertCircle, Upload, Receipt, X, Eye, XCircle, Building } from "lucide-react";
 
 export default function SupplierDashboard() {
   const router = useRouter();
@@ -150,6 +150,73 @@ export default function SupplierDashboard() {
 
   // Submit payment request
   const handleSubmitPaymentRequest = async () => {
+    // This is for monthly payment submission (for ACTIVE but UNPAID status)
+    if (!proofImage) {
+      alert('Upload bukti pembayaran terlebih dahulu');
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      const token = localStorage.getItem('token');
+
+      // Step 1: Upload image
+      const formData = new FormData();
+      formData.append('file', proofImage);
+
+      const uploadRes = await fetch('/api/upload/payment-proof', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+      const uploadData = await uploadRes.json();
+
+      if (!uploadRes.ok || !uploadData.success) {
+        throw new Error(uploadData.error || 'Upload gagal');
+      }
+
+      // Step 2: Submit monthly payment confirmation
+      const paymentRes = await fetch('/api/supplier/monthly-payment', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          proofImageUrl: uploadData.url,
+        }),
+      });
+
+      const paymentData = await paymentRes.json();
+
+      if (!paymentRes.ok || !paymentData.success) {
+        throw new Error(paymentData.error || 'Konfirmasi pembayaran gagal');
+      }
+
+      alert('✅ Bukti pembayaran berhasil dikirim! Admin akan memverifikasi dalam 1x24 jam.');
+      
+      // Reset form
+      setProofImage(null);
+      setProofImagePreview(null);
+
+      // Refresh supplier profile
+      const refreshRes = await fetch('/api/supplier/profile', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const refreshData = await refreshRes.json();
+      if (refreshData.success) {
+        setSupplierProfile(refreshData.data);
+      }
+    } catch (err: any) {
+      console.error('Submit monthly payment error:', err);
+      alert('❌ ' + err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  // Legacy function for consignment payment requests (kept for compatibility)
+  const handleSubmitConsignmentPaymentRequest = async () => {
     // Validation
     if (!amount || parseFloat(amount) <= 0) {
       alert('Masukkan jumlah pembayaran yang valid');
@@ -318,21 +385,168 @@ export default function SupplierDashboard() {
 
         <Card>
           <CardContent className="p-8 text-center">
-            <Clock className="h-16 w-16 text-yellow-600 mx-auto mb-4" />
+            <Clock className="h-16 w-16 text-yellow-600 mx-auto mb-4 animate-pulse" />
             <h3 className="text-xl font-semibold text-gray-900 mb-2">
-              Menunggu Persetujuan
+              ⏳ Menunggu Persetujuan Admin
             </h3>
             <p className="text-gray-600 mb-6">
-              Pendaftaran Anda sedang ditinjau oleh admin. Kami akan menghubungi Anda segera setelah disetujui.
+              Pendaftaran Anda sedang ditinjau oleh admin koperasi. Kami akan menghubungi Anda segera setelah disetujui.
             </p>
-            <div className="bg-gray-50 rounded-lg p-4 mt-4 text-left">
-              <p className="text-sm text-gray-600 mb-2">Informasi Pendaftaran:</p>
-              <div className="space-y-1 text-sm">
-                <p><span className="font-medium">Nama Bisnis:</span> {supplierProfile.businessName}</p>
-                <p><span className="font-medium">Kategori:</span> {supplierProfile.productCategory}</p>
-                <p><span className="font-medium">Status:</span> <span className="text-yellow-600">Menunggu Persetujuan</span></p>
+            <div className="bg-yellow-50 border-2 border-yellow-200 rounded-lg p-4 mt-4 text-left">
+              <p className="text-sm font-semibold text-gray-900 mb-3">Informasi Pendaftaran:</p>
+              <div className="space-y-2 text-sm">
+                <div className="flex items-center gap-2">
+                  <Building className="w-4 h-4 text-gray-500" />
+                  <span><span className="font-medium">Nama Bisnis:</span> {supplierProfile.businessName}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Package className="w-4 h-4 text-gray-500" />
+                  <span><span className="font-medium">Kategori:</span> {supplierProfile.productCategory || 'Tidak disebutkan'}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Clock className="w-4 h-4 text-yellow-600" />
+                  <span><span className="font-medium">Status:</span> <span className="text-yellow-600 font-semibold">Menunggu Persetujuan</span></span>
+                </div>
               </div>
             </div>
+            <p className="text-xs text-gray-500 mt-4">
+              Butuh bantuan? Hubungi admin@koperasi-umb.com
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Show payment required status (ACTIVE but UNPAID)
+  if (supplierProfile.status === "ACTIVE" && supplierProfile.paymentStatus !== "PAID") {
+    const monthlyFee = supplierProfile.monthlyFee ? parseFloat(supplierProfile.monthlyFee.toString()) : 50000;
+    
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Supplier Dashboard</h1>
+            <p className="text-gray-600 mt-1">Selamat datang, {user.name}</p>
+          </div>
+        </div>
+
+        <Card className="border-2 border-blue-200">
+          <CardContent className="p-8">
+            {/* Header */}
+            <div className="text-center mb-8">
+              <div className="w-20 h-20 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CreditCard className="w-10 h-10 text-blue-600" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                🎉 Selamat! Akun Disetujui
+              </h3>
+              <p className="text-gray-600">
+                Silakan lakukan pembayaran untuk mengaktifkan layanan
+              </p>
+            </div>
+
+            {/* Monthly Fee Display */}
+            <div className="bg-gradient-to-br from-blue-600 to-indigo-600 text-white rounded-2xl p-8 mb-8 text-center">
+              <p className="text-blue-100 text-sm mb-2">Biaya Bulanan</p>
+              <p className="text-5xl font-bold mb-2">
+                {new Intl.NumberFormat('id-ID', {
+                  style: 'currency',
+                  currency: 'IDR',
+                  minimumFractionDigits: 0,
+                }).format(monthlyFee)}
+              </p>
+              <p className="text-blue-100 text-sm">
+                Pembayaran bulanan untuk layanan koperasi
+              </p>
+            </div>
+
+            {/* Bank Info */}
+            <div className="bg-gray-50 rounded-xl p-6 mb-8">
+              <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                <Building className="w-5 h-5 text-blue-600" />
+                Informasi Rekening Koperasi
+              </h4>
+              <div className="space-y-3">
+                <div className="flex justify-between items-center p-3 bg-white rounded-lg">
+                  <span className="text-gray-600">Bank</span>
+                  <span className="font-semibold">BCA</span>
+                </div>
+                <div className="flex justify-between items-center p-3 bg-white rounded-lg">
+                  <span className="text-gray-600">No. Rekening</span>
+                  <span className="font-semibold font-mono">1234567890</span>
+                </div>
+                <div className="flex justify-between items-center p-3 bg-white rounded-lg">
+                  <span className="text-gray-600">Atas Nama</span>
+                  <span className="font-semibold">Koperasi UM Bandung</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Upload Payment Proof */}
+            <div className="border-2 border-dashed border-blue-300 rounded-xl p-8 mb-6">
+              <h4 className="font-semibold text-gray-900 mb-4 text-center">
+                Upload Bukti Transfer
+              </h4>
+              
+              {proofImagePreview ? (
+                <div className="relative">
+                  <img 
+                    src={proofImagePreview} 
+                    alt="Preview" 
+                    className="max-w-full max-h-64 mx-auto rounded-lg border-2 border-blue-200"
+                  />
+                  <button
+                    onClick={() => {
+                      setProofImage(null);
+                      setProofImagePreview(null);
+                    }}
+                    className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              ) : (
+                <label className="flex flex-col items-center justify-center cursor-pointer py-8">
+                  <Upload className="w-12 h-12 text-blue-400 mb-3" />
+                  <span className="text-sm text-gray-600 mb-2">
+                    Klik untuk upload bukti transfer
+                  </span>
+                  <span className="text-xs text-gray-400">
+                    Format: JPG, PNG, WEBP (Max 5MB)
+                  </span>
+                  <input
+                    type="file"
+                    accept="image/jpeg,image/jpg,image/png,image/webp"
+                    onChange={handleImageChange}
+                    className="hidden"
+                  />
+                </label>
+              )}
+            </div>
+
+            {/* Submit Button */}
+            <Button
+              onClick={handleSubmitPaymentRequest}
+              disabled={!proofImage || submitting}
+              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white py-6 text-lg font-semibold"
+            >
+              {submitting ? (
+                <>
+                  <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-white mr-2"></div>
+                  Mengirim...
+                </>
+              ) : (
+                <>
+                  <CheckCircle className="w-5 h-5 mr-2" />
+                  Kirim Bukti Pembayaran
+                </>
+              )}
+            </Button>
+
+            <p className="text-center text-sm text-gray-500 mt-4">
+              Admin akan memverifikasi pembayaran Anda dalam 1x24 jam
+            </p>
           </CardContent>
         </Card>
       </div>

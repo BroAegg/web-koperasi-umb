@@ -37,46 +37,190 @@ function getPeriodDates(period: string): { periodStart: Date; periodEnd: Date } 
 
 export async function POST(req: NextRequest) {
   try {
+    // 1. Authentication validation
     const auth = req.headers.get('authorization') || '';
     const token = auth.replace(/^Bearer\s+/i, '');
-    const user = await getUserFromToken(token);
-    if (!user) return NextResponse.json({ success: false, error: 'Unauthorized' }, { status: 401 });
-
-    // Only allow admin / super_admin to record payments
-    if (!['ADMIN', 'SUPER_ADMIN'].includes(user.role as string) && !(user.developerSession && user.developerSession.actualRole === 'DEVELOPER')) {
-      return NextResponse.json({ success: false, error: 'Forbidden' }, { status: 403 });
+    
+    if (!token) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Authentication token is required' 
+      }, { status: 401 });
     }
 
-    const body = await req.json();
-    const supplierIds: string[] = Array.isArray(body.supplierIds) ? body.supplierIds : [];
-    const amountMap: Record<string, number> = body.amounts || {};
-    const period: string = body.period || '7days'; // default period
-    const paymentMethod: string = body.paymentMethod || 'CASH'; // default payment method
-    const note: string | undefined = body.note;
+    const user = await getUserFromToken(token);
+    if (!user) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Invalid or expired token' 
+      }, { status: 401 });
+    }
 
-    if (!supplierIds.length) return NextResponse.json({ success: false, error: 'No supplierIds provided' }, { status: 400 });
+    // 2. Authorization validation
+    const allowedRoles = ['ADMIN', 'SUPER_ADMIN'];
+    const isDeveloper = user.developerSession && user.developerSession.actualRole === 'DEVELOPER';
+    
+    if (!allowedRoles.includes(user.role as string) && !isDeveloper) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Insufficient permissions. Admin access required.' 
+      }, { status: 403 });
+    }
 
-    const { periodStart, periodEnd } = getPeriodDates(period);
+    // 3. Request body validation
+    let body;
+    try {
+      body = await req.json();
+    } catch (parseError) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Invalid JSON in request body' 
+      }, { status: 400 });
+    }
 
-    // Create transactions and payment records for each supplier
+    // 4. Required fields validation
+    const { supplierIds, amounts, period, paymentMethod, note } = body;
+    
+    // Validate supplierIds
+    if (!supplierIds) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'supplierIds field is required' 
+      }, { status: 400 });
+    }
+    
+    if (!Array.isArray(supplierIds)) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'supplierIds must be an array' 
+      }, { status: 400 });
+    }
+    
+    if (supplierIds.length === 0) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'supplierIds array cannot be empty' 
+      }, { status: 400 });
+    }
+
+    // Validate supplierIds are strings
+    const invalidSupplierIds = supplierIds.filter(id => typeof id !== 'string' || id.trim() === '');
+    if (invalidSupplierIds.length > 0) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'All supplierIds must be non-empty strings' 
+      }, { status: 400 });
+    }
+
+    // 5. Validate amounts
+    if (!amounts || typeof amounts !== 'object') {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'amounts field is required and must be an object' 
+      }, { status: 400 });
+    }
+
+    // Check each supplier has valid amount
+    for (const supplierId of supplierIds) {
+      const amount = amounts[supplierId];
+      
+      if (amount === undefined || amount === null) {
+        return NextResponse.json({ 
+          success: false, 
+          error: `Amount is missing for supplier: ${supplierId}` 
+        }, { status: 400 });
+      }
+      
+      if (typeof amount !== 'number' || isNaN(amount)) {
+        return NextResponse.json({ 
+          success: false, 
+          error: `Amount for supplier ${supplierId} must be a valid number` 
+        }, { status: 400 });
+      }
+      
+      if (amount <= 0) {
+        return NextResponse.json({ 
+          success: false, 
+          error: `Amount for supplier ${supplierId} must be greater than 0` 
+        }, { status: 400 });
+      }
+      
+      if (amount > 100000000) { // 100 million limit
+        return NextResponse.json({ 
+          success: false, 
+          error: `Amount for supplier ${supplierId} exceeds maximum limit (100,000,000)` 
+        }, { status: 400 });
+      }
+    }
+
+    // 6. Validate period
+    const validPeriods = ['today', '7days', '1month', '3months', '6months', '1year'];
+    const periodValue = period || '7days';
+    
+    if (!validPeriods.includes(periodValue)) {
+      return NextResponse.json({ 
+        success: false, 
+        error: `Invalid period. Must be one of: ${validPeriods.join(', ')}` 
+      }, { status: 400 });
+    }
+
+    // 7. Validate paymentMethod
+    const validPaymentMethods = ['CASH', 'TRANSFER', 'CREDIT'];
+    const paymentMethodValue = paymentMethod || 'CASH';
+    
+    if (!validPaymentMethods.includes(paymentMethodValue)) {
+      return NextResponse.json({ 
+        success: false, 
+        error: `Invalid payment method. Must be one of: ${validPaymentMethods.join(', ')}` 
+      }, { status: 400 });
+    }
+
+    // 8. Validate note length (optional)
+    if (note && typeof note === 'string' && note.length > 500) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Note cannot exceed 500 characters' 
+      }, { status: 400 });
+    }
+
+    const { periodStart, periodEnd } = getPeriodDates(periodValue);
+
+    // 9. Create transactions and payment records for each supplier
     const created: Array<{ supplierId: string; amount: number; transactionId: string; paymentId: string }> = [];
+    const errors: Array<{ supplierId: string; error: string }> = [];
 
     for (const supplierId of supplierIds) {
-      const amount = typeof amountMap[supplierId] === 'number' ? amountMap[supplierId] : 0;
-      if (amount <= 0) continue; // skip if no amount
+      try {
+        const amount = amounts[supplierId]; // Already validated above
+        
+        // Get supplier information for better note
+        const supplier = await prisma.suppliers.findUnique({
+          where: { id: supplierId },
+          select: { businessName: true, ownerName: true }
+        });
+        
+        if (!supplier) {
+          errors.push({ supplierId, error: 'Supplier not found' });
+          continue;
+        }
+        
+        // Generate unique IDs with timestamp to avoid collisions
+        const timestamp = Date.now();
+        const randomSuffix = Math.random().toString(36).substring(2, 9);
+        const transactionId = `txn-${timestamp}-${randomSuffix}`;
+        const paymentId = `cpay-${timestamp}-${randomSuffix}`;
 
-      // Generate unique IDs
-      const transactionId = `txn-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-      const paymentId = `cpay-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+        // Create enhanced note for transaction history
+        const transactionNote = `Pembayaran Titipan ke ${supplier.businessName || supplier.ownerName} | Period: ${periodValue} | ${note || 'No additional note'}`;
 
-      // Create EXPENSE transaction
-      await prisma.transactions.create({
+        // Create EXPENSE transaction
+        await prisma.transactions.create({
         data: {
           id: transactionId,
           type: 'EXPENSE',
           totalAmount: amount,
           paymentMethod: paymentMethod as any,
-          note: note,
+          note: transactionNote,
           createdAt: new Date(),
           updatedAt: new Date(),
           isProduction: user.developerSession?.isProduction ?? true,
@@ -107,29 +251,72 @@ export async function POST(req: NextRequest) {
       });
 
       // Create activity log
-      await prisma.activity_logs.create({
-        data: {
-          id: `alog-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
-          userId: (user as any).id,
-          userRole: (user as any).role as any,
-          action: 'CONSIGNMENT_PAYMENT',
-          module: 'INVENTORY',
-          description: `Pembayaran titipan ke supplier ${supplierId} | amount: Rp ${amount.toLocaleString('id-ID')} | method: ${paymentMethod}`,
-          metadata: { supplierId, amount, transactionId, paymentId, paymentMethod, period },
-          isProduction: user.developerSession?.isProduction ?? true,
-        },
-      });
+        // Create activity log
+        await prisma.activity_logs.create({
+          data: {
+            id: `alog-${timestamp}-${randomSuffix}`,
+            userId: (user as any).id,
+            userRole: (user as any).role as any,
+            action: 'CONSIGNMENT_PAYMENT',
+            module: 'INVENTORY',
+            description: `Pembayaran titipan ke supplier ${supplierId} | amount: Rp ${amount.toLocaleString('id-ID')} | method: ${paymentMethodValue}`,
+            metadata: { supplierId, amount, transactionId, paymentId, paymentMethod: paymentMethodValue, period: periodValue },
+            isProduction: user.developerSession?.isProduction ?? true,
+          },
+        });
 
-      created.push({ supplierId, amount, transactionId, paymentId });
+        created.push({ supplierId, amount, transactionId, paymentId });
+        
+      } catch (supplierError) {
+        console.error(`Error processing payment for supplier ${supplierId}:`, supplierError);
+        errors.push({ 
+          supplierId, 
+          error: supplierError instanceof Error ? supplierError.message : 'Unknown error' 
+        });
+      }
+    }
+
+    // 10. Return response with detailed results
+    if (created.length === 0 && errors.length > 0) {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'All payments failed to process',
+        details: errors
+      }, { status: 400 });
+    }
+
+    if (errors.length > 0) {
+      return NextResponse.json({ 
+        success: true, 
+        created, 
+        errors,
+        message: `${created.length} pembayaran berhasil dicatat, ${errors.length} gagal`,
+        warning: 'Some payments failed to process'
+      });
     }
 
     return NextResponse.json({ 
       success: true, 
-      created, 
-      message: `${created.length} pembayaran berhasil dicatat` 
+      data: created,
+      message: `${created.length} pembayaran berhasil dicatat`,
+      totalAmount: created.reduce((sum, item) => sum + item.amount, 0)
     });
+    
   } catch (err) {
-    console.error('consignment payment error', err);
-    return NextResponse.json({ success: false, error: 'Internal server error' }, { status: 500 });
+    console.error('Consignment payment API error:', err);
+    
+    // Return more specific error in development
+    if (process.env.NODE_ENV === 'development') {
+      return NextResponse.json({ 
+        success: false, 
+        error: 'Internal server error',
+        details: err instanceof Error ? err.message : String(err)
+      }, { status: 500 });
+    }
+    
+    return NextResponse.json({ 
+      success: false, 
+      error: 'Internal server error. Please try again later.' 
+    }, { status: 500 });
   }
 }

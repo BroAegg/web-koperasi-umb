@@ -77,10 +77,14 @@ export function useSupplierData() {
   const verifyPayment = useCallback(async (supplierId: string, approve: boolean) => {
     const action = approve ? 'approve' : 'reject';
     try {
-      const res = await fetch(`/api/suppliers/${supplierId}/verify-payment`, {
+      const token = localStorage.getItem('auth_token');
+      const res = await fetch(`/api/admin/verify-payment`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ approve }),
+        headers: { 
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ supplierId, approve }),
       });
       const data = await res.json();
       if (data.success) {

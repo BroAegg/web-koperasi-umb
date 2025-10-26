@@ -26,7 +26,9 @@ import {
   Code,
   ShoppingCart,
   Receipt,
-  User
+  User,
+  Award,
+  BarChart3
 } from "lucide-react";
 
 function KoperasiContent({ children }: { children: React.ReactNode }) {
@@ -95,6 +97,8 @@ function KoperasiContent({ children }: { children: React.ReactNode }) {
       title: "KEUANGAN",
       items: [
         { name: "Keuangan", href: "/koperasi/financial", icon: TrendingUp, roles: ["SUPER_ADMIN"] },
+        { name: "Analytics Dashboard", href: "/koperasi/analytics", icon: BarChart3, roles: ["SUPER_ADMIN", "ADMIN"] },
+        { name: "Produk Terlaris", href: "/koperasi/analytics/best-sellers", icon: Award, roles: ["SUPER_ADMIN", "ADMIN"] },
       ]
     },
     {

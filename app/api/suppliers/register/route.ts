@@ -5,8 +5,6 @@ import { randomUUID } from 'crypto';
 
 // POST - Register new supplier (direct registration with password + payment proof)
 export async function POST(request: NextRequest) {
-  console.log('Supplier registration request received');
-  
   try {
     // Parse FormData (instead of JSON)
     const formData = await request.formData();
@@ -21,11 +19,8 @@ export async function POST(request: NextRequest) {
     const paymentMethod = formData.get('paymentMethod') as string;
     const paymentProofFile = formData.get('paymentProof') as File | null;
 
-    console.log('Registration data:', { name, email, phone, category, paymentMethod, hasFile: !!paymentProofFile });
-
     // Validation
     if (!name || !email || !phone || !category || !address || !password) {
-      console.log('Missing required fields');
       return NextResponse.json(
         { success: false, error: 'Semua field wajib diisi' },
         { status: 400 }
@@ -70,7 +65,6 @@ export async function POST(request: NextRequest) {
     });
 
     if (existingSupplier) {
-      console.log('Email already registered:', email);
       return NextResponse.json(
         { success: false, error: 'Email sudah terdaftar. Gunakan email lain.' },
         { status: 409 }
@@ -106,8 +100,6 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    console.log('Supplier created:', supplier.id, 'code:', supplierCode);
-
     // Save payment proof (in production, upload to cloud storage)
     // For now, we'll store the filename and create a payment record
     const filename = `payment-${supplier.id}-${Date.now()}-${paymentProofFile.name}`;
@@ -130,8 +122,6 @@ export async function POST(request: NextRequest) {
         updatedAt: new Date(),
       },
     });
-
-    console.log('Payment record created:', payment.id);
 
     // Update supplier payment status
     await prisma.suppliers.update({

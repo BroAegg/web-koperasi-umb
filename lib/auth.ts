@@ -20,8 +20,13 @@ export function signToken(payload: object) {
 
 export function verifyToken(token: string) {
   try {
-    return jwt.verify(token, JWT_SECRET) as any;
+    const result = jwt.verify(token, JWT_SECRET) as any;
+    return result;
   } catch (err) {
+    // Only log errors in development
+    if (process.env.NODE_ENV === 'development') {
+      console.error('[verifyToken] Failed:', err instanceof Error ? err.message : 'Unknown error');
+    }
     return null;
   }
 }
@@ -37,7 +42,9 @@ export function signDeveloperToken(userId: string, role: string, developerSessio
 
 export async function getUserFromToken(token?: string) {
   if (!token) return null;
+  
   const data = verifyToken(token);
+  
   if (!data || !data.userId) return null;
 
   // If developerSession present in token and activeRole set, use activeRole when returning user-like object
@@ -78,6 +85,7 @@ export async function getUserFromToken(token?: string) {
   // Default behavior: lookup in users table
   // @ts-ignore - Prisma types at runtime
   const user = await prisma.users.findUnique({ where: { id: data.userId } });
+  
   if (user) return user;
 
   // If role is SUPPLIER, try unified suppliers table

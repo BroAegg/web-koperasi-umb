@@ -7,7 +7,8 @@ import {
   MapPin,
   Package,
   CheckCircle,
-  XCircle
+  XCircle,
+  Eye
 } from 'lucide-react';
 import { Supplier } from '@/types/supplier';
 import { getSupplierStatusBadge, getPaymentStatusBadge, formatCurrency, formatDate } from '@/lib/supplier-helpers';
@@ -103,20 +104,34 @@ export default function SupplierCard({
 
             {/* Payment Proof */}
             {supplier.supplier_payments && supplier.supplier_payments.length > 0 && (
-              <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
-                <p className="text-sm font-medium text-yellow-800 mb-2">📄 Bukti Pembayaran Terakhir:</p>
-                <div className="flex items-center gap-2">
-                  <a 
-                    href={supplier.supplier_payments[0].paymentProof} 
-                    target="_blank" 
-                    rel="noopener noreferrer"
-                    className="text-sm text-blue-600 hover:underline"
-                  >
-                    Lihat Bukti Transfer
-                  </a>
-                  <span className="text-xs text-gray-500">
-                    | {formatDate(supplier.supplier_payments[0].createdAt)}
-                  </span>
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                <p className="text-sm font-semibold text-blue-800 mb-3 flex items-center gap-2">
+                  📄 Bukti Pembayaran Terakhir:
+                  {supplier.paymentStatus === 'PAID_PENDING_APPROVAL' && (
+                    <span className="px-2 py-1 bg-yellow-100 text-yellow-700 text-xs rounded-full">
+                      Menunggu Verifikasi
+                    </span>
+                  )}
+                </p>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <a 
+                      href={supplier.supplier_payments[0].paymentProof || ''} 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-sm text-blue-600 hover:underline font-medium inline-flex items-center gap-1"
+                    >
+                      <Eye className="w-4 h-4" />
+                      Lihat Bukti Transfer
+                    </a>
+                    <span className="text-xs text-gray-500">
+                      {formatDate(supplier.supplier_payments[0].createdAt)}
+                    </span>
+                  </div>
+                  <div className="text-xs text-gray-600 space-y-1">
+                    <p>Jumlah: <strong>{formatCurrency(Number(supplier.supplier_payments[0].amount))}</strong></p>
+                    <p>Status: <strong className="text-yellow-600">{supplier.paymentStatus}</strong></p>
+                  </div>
                 </div>
               </div>
             )}

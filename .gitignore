@@ -9,6 +9,8 @@
 !.yarn/plugins
 !.yarn/releases
 !.yarn/versions
+# Deployment package dependencies  
+/cpanel-deployment-package/node_modules
 
 # testing
 /coverage

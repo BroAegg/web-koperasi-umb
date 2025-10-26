@@ -143,13 +143,22 @@ export async function GET(req: NextRequest) {
 
     // Format response
     const formattedTransactions = transactions.map((transaction: any) => {
-      // Extract customer name from note
-      const noteMatch = transaction.note?.match(/Customer:\s*(.+)$/i);
-      const customerName = noteMatch ? noteMatch[1] : 'Walk-in Customer';
+      let customerName = 'Walk-in Customer';
+      
+      if (transaction.type === 'EXPENSE') {
+        // For EXPENSE transactions (consignment payments), extract supplier name from note
+        const supplierMatch = transaction.note?.match(/Pembayaran Titipan ke (.+?) \|/);
+        customerName = supplierMatch ? supplierMatch[1] : 'Supplier';
+      } else {
+        // For SALE transactions, extract customer name from note
+        const noteMatch = transaction.note?.match(/Customer:\s*(.+)$/i);
+        customerName = noteMatch ? noteMatch[1] : 'Walk-in Customer';
+      }
 
       return {
         id: transaction.id,
         receiptId: transaction.id.slice(0, 6).toUpperCase(),
+        type: transaction.type, // Add transaction type
         totalAmount: Number(transaction.totalAmount),
         paymentMethod: transaction.paymentMethod,
         customerName: customerName,

@@ -10,6 +10,24 @@ import { useAuth } from '@/lib/use-auth';
 import { useNotification } from '@/lib/notification-context';
 import { useDeveloper } from '@/contexts/DeveloperContext';
 
+// Helper function to get transaction type label
+const getTransactionTypeLabel = (type: string) => {
+  switch (type) {
+    case 'SALE':
+      return { label: 'Penjualan POS', color: 'bg-green-100 text-green-700' };
+    case 'EXPENSE':
+      return { label: 'Pembayaran Titipan', color: 'bg-red-100 text-red-700' };
+    case 'PURCHASE':
+      return { label: 'Pembelian', color: 'bg-blue-100 text-blue-700' };
+    case 'RETURN':
+      return { label: 'Retur', color: 'bg-yellow-100 text-yellow-700' };
+    case 'INCOME':
+      return { label: 'Pemasukan', color: 'bg-purple-100 text-purple-700' };
+    default:
+      return { label: type, color: 'bg-gray-100 text-gray-700' };
+  }
+};
+
 export default function TransactionsPage() {
   const { user } = useAuth();
   const { success, error: notifyError } = useNotification();
@@ -307,7 +325,8 @@ export default function TransactionsPage() {
                     <thead className="bg-gray-50 border-b">
                       <tr>
                         <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Receipt</th>
-                        <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Customer</th>
+                        <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Type</th>
+                        <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Customer/Supplier</th>
                         <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Total</th>
                         <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Payment</th>
                         <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">Waktu</th>
@@ -324,6 +343,18 @@ export default function TransactionsPage() {
                               #{transaction.receiptId}
                             </span>
                             <div className="text-xs text-gray-500">{transaction.itemCount} items</div>
+                          </td>
+                          <td className="px-4 py-3">
+                            {(() => {
+                              const typeInfo = getTransactionTypeLabel(transaction.type);
+                              return (
+                                <span
+                                  className={`inline-flex px-2 py-1 text-xs font-medium rounded ${typeInfo.color}`}
+                                >
+                                  {typeInfo.label}
+                                </span>
+                              );
+                            })()}
                           </td>
                           <td className="px-4 py-3 text-sm text-gray-900">
                             {transaction.customerName}

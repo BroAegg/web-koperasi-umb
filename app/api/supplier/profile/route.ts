@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     }
 
     // Get supplier from unified suppliers table
-    const supplier = await prisma.suppliers.findUnique({
+    const supplier = await prisma.suppliers.findFirst({
       where: { email: user.email },
       select: {
         id: true,
