@@ -9,10 +9,10 @@ SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 SET time_zone = "+00:00";
 
 -- Use Database (created via cPanel)
--- Database Name: mekarmuk_koperasi
--- Username: mekarmuk_admin
+-- Database Name: mekh7277_mekarmuk_koperasi
+-- Username: mekh7277_bermadani
 
-USE mekarmuk_koperasi;
+USE mekh7277_mekarmuk_koperasi;
 
 -- ========================================
 -- DROP EXISTING TABLES (if any)

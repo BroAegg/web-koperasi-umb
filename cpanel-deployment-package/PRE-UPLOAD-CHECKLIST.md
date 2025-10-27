@@ -8,8 +8,8 @@
 ## 📋 PACKAGE VERIFICATION
 
 ### **Check Files Exist:**
-- [ ] `server.js` file present
-- [ ] `.next/` folder present (with server/ and static/ subfolders)
+- [✅ ] `server.js` file present
+- [✅] `.next/` folder present (with server/ and static/ subfolders)
 - [ ] `public/` folder present
 - [ ] `prisma/` folder present with `schema.prisma`
 - [ ] `package.json` file present
@@ -39,10 +39,31 @@ cd cpanel-deployment-package
 ## 🔐 SECURITY PREPARATION
 
 ### **Generate Production JWT Secret:**
-- [ ] Run: `openssl rand -base64 64` (or use Node.js command)
-- [ ] Copy generated secret
-- [ ] Save securely (password manager or notepad)
-- [ ] Will update `.env` file on server with this secret
+
+**EASY METHOD (Recommended):**
+- [ ] Run this in project root: `node generate-jwt-secret.js`
+- [ ] Pick one of the generated secrets (3 options shown)
+- [ ] Copy the entire line: `JWT_SECRET="..."`
+- [ ] Save securely in password manager or notepad
+- [ ] Will paste this into `.env` file on server
+
+**Alternative methods if above doesn't work:**
+```powershell
+# PowerShell (Windows)
+$secret = -join ((48..57) + (65..90) + (97..122) | Get-Random -Count 64 | ForEach-Object {[char]$_})
+echo "JWT_SECRET=`"$secret`""
+```
+
+```bash
+# Node.js (any OS)
+node -e "console.log(require('crypto').randomBytes(48).toString('base64'))"
+```
+
+**What you should get:**
+```
+JWT_SECRET="xK9mP2vL8nR4tQ7wE3yU6hB1aS5dF0gH9jC8kL2mN5pO3qR6tU9vW2xZ"
+```
+(64+ characters, looks random)
 
 ### **Plan Database Credentials:**
 - [ ] Database name: `mekarmuk_koperasi` (write this down)
