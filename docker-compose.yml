@@ -1,0 +1,87 @@
+# Docker Compose for Web Koperasi UMB
+version: '3.8'
+
+services:
+  # MySQL Database
+  database:
+    image: mysql:8.0
+    container_name: koperasi-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword123
+      MYSQL_DATABASE: koperasi_umb
+      MYSQL_USER: koperasi_user
+      MYSQL_PASSWORD: KoperasiUMB2025!
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./complete-database-setup.sql:/docker-entrypoint-initdb.d/01-init.sql
+    ports:
+      - "3306:3306"
+    networks:
+      - koperasi-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      timeout: 5s
+      retries: 10
+
+  # Web Application
+  app:
+    build: .
+    container_name: koperasi-app
+    restart: unless-stopped
+    environment:
+      - NODE_ENV=production
+      - DATABASE_URL=mysql://koperasi_user:KoperasiUMB2025!@database:3306/koperasi_umb
+      - NEXTAUTH_URL=https://mekarmukti.id
+      - NEXTAUTH_SECRET=Imr7y2cewLUhdKMTXGvFax6si1YVQZqn
+      - JWT_SECRET=bW7H8LEMdfVuPFoXzrv3a05jiCN9plRkyG1SD4tATQ2hKUngIeJZYBx6qscOmw
+    ports:
+      - "3000:3000"
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - koperasi-network
+    volumes:
+      - ./uploads:/app/uploads
+      - ./public/uploads:/app/public/uploads
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/auth/me"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  # Database Administration (optional)
+  adminer:
+    image: adminer:latest
+    container_name: koperasi-adminer
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    networks:
+      - koperasi-network
+    depends_on:
+      - database
+
+  # Redis for session storage (optional)
+  redis:
+    image: redis:7-alpine
+    container_name: koperasi-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    networks:
+      - koperasi-network
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+
+networks:
+  koperasi-network:
+    driver: bridge
+
+volumes:
+  mysql_data:
+    driver: local
+  redis_data:
+    driver: local

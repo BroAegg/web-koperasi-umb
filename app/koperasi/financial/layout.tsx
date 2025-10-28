@@ -1,25 +1,25 @@
-"use client";
+import { redirect } from 'next/navigation';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth';
 
-import { useAuth } from "@/lib/use-auth";
-
-export default function FinancialLayout({
+export default async function FinancialLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { loading, authorized } = useAuth(["SUPER_ADMIN", "ADMIN"]);
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-50">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
-      </div>
-    );
+  const session = await getServerSession(authOptions);
+  
+  if (!session?.user) {
+    redirect('/login');
+  }
+  
+  if (!['SUPER_ADMIN', 'ADMIN'].includes(session.user.role)) {
+    redirect('/koperasi/dashboard');
   }
 
-  if (!authorized) {
-    return null;
-  }
-
-  return <>{children}</>;
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-slate-50">
+      {children}
+    </div>
+  );
 }

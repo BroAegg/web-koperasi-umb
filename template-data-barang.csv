@@ -1,6 +1,0 @@
-name,sku,categoryId,buyPrice,sellPrice,stock,minStock,unit,description,barcode,isConsignment,ownershipType
-Mie Indomie Goreng,SKU-001,cat-makanan-001,2500,3000,100,20,pcs,Mie instan rasa goreng,8991234567890,false,OWNED
-Air Mineral Aqua 600ml,SKU-002,cat-minuman-001,3000,4000,150,30,botol,Air mineral kemasan,8991234567891,false,OWNED
-Pulpen Standard,SKU-003,cat-alat-tulis-001,1500,2500,50,10,pcs,Pulpen warna biru/hitam,8991234567892,false,OWNED
-Buku Tulis 38 Lembar,SKU-004,cat-alat-tulis-001,3000,4500,80,15,pcs,Buku tulis bergaris,8991234567893,false,OWNED
-Snack Chitato,SKU-005,cat-makanan-001,8000,10000,60,10,pcs,Keripik kentang aneka rasa,8991234567894,false,OWNED
