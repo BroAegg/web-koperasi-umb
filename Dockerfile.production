@@ -1,0 +1,61 @@
+# Production Dockerfile for Web Koperasi UMB
+# Simplified single-stage build (more reliable for network issues)
+
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apk add --no-cache libc6-compat wget curl
+
+# Configure npm for reliability with multiple retry strategies
+ENV NPM_CONFIG_FETCH_RETRY_MINTIMEOUT=20000
+ENV NPM_CONFIG_FETCH_RETRY_MAXTIMEOUT=120000
+ENV NPM_CONFIG_FETCH_TIMEOUT=300000
+
+# Copy package files
+COPY package.json package-lock.json* ./
+COPY prisma ./prisma/
+
+# Install dependencies with multiple fallback strategies
+RUN echo "Installing dependencies..." && \
+    (npm ci --verbose 2>&1 || \
+     (echo "Retry 1..." && sleep 5 && npm ci --verbose 2>&1) || \
+     (echo "Retry 2..." && sleep 10 && npm ci --verbose 2>&1) || \
+     (echo "Trying npm install..." && npm install --verbose 2>&1) || \
+     (echo "Trying with different registry..." && npm config set registry https://registry.npmmirror.com/ && npm ci --verbose 2>&1))
+
+# Copy source code
+COPY . .
+
+# Generate Prisma client
+RUN npx prisma generate
+
+# Build application
+ENV NODE_ENV=production
+RUN npm run build
+
+# Remove dev dependencies to reduce image size
+RUN npm prune --production
+
+# Create non-root user
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nextjs && \
+    chown -R nextjs:nodejs /app
+
+# Switch to non-root user
+USER nextjs
+
+# Expose port
+EXPOSE 3000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
+    CMD wget --quiet --tries=1 --spider http://localhost:3000/api/auth/session || exit 1
+
+# Environment
+ENV PORT=3000
+ENV HOSTNAME="0.0.0.0"
+
+# Start application
+CMD ["npm", "start"]

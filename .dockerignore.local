@@ -1,0 +1,30 @@
+# Docker ignore for local build (includes node_modules)
+# Development artifacts
+.git/
+.next/
+*.log
+*.tmp
+
+# Documentation (not needed in container)
+*.md
+!README.md
+
+# IDE files
+.vscode/
+.idea/
+*.swp
+
+# Test files
+**/*.test.*
+**/*.spec.*
+coverage/
+
+# Environment files (use .env.docker instead)
+.env.local
+.env.development
+.env.test
+.env.production
+
+# OS files
+.DS_Store
+Thumbs.db

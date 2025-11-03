@@ -1,12 +1,42 @@
-# Multi-stage build for Web Koperasi UMB
-# Stage 1: Dependencies and build
-FROM node:18-alpine AS builder
+# Multi-stage build for Web Koperasi UMB with Prisma
+FROM node:18-alpine AS base
 
+# Install dependencies only when needed
+FROM base AS deps
+RUN apk add --no-cache libc6-compat
 WORKDIR /app
 
 # Install dependencies based on preferred package manager
 COPY package.json package-lock.json* ./
-RUN npm ci --only=production && npm cache clean --force
+
+# Set npm configurations for better reliability
+RUN npm config set fetch-retry-mintimeout 20000 && \
+    npm config set fetch-retry-maxtimeout 120000 && \
+    npm config set fetch-timeout 300000 && \
+    npm config set registry https://registry.npmjs.org/
+
+# Install dependencies with retry and better error handling
+RUN npm ci --omit=dev --verbose || \
+    (sleep 10 && npm ci --omit=dev --verbose) || \
+    (sleep 30 && npm ci --omit=dev --verbose)
+
+# Clean cache
+RUN npm cache clean --force
+
+# Rebuild the source code only when needed
+FROM base AS builder
+WORKDIR /app
+
+# Copy package files first for better caching
+COPY package.json package-lock.json* ./
+
+# Install ALL dependencies (including dev) for build stage
+RUN npm config set fetch-retry-mintimeout 20000 && \
+    npm config set fetch-retry-maxtimeout 120000 && \
+    npm config set fetch-timeout 300000 && \
+    npm ci --verbose || \
+    (sleep 10 && npm ci --verbose) || \
+    (sleep 30 && npm ci --verbose)
 
 # Copy source code
 COPY . .
@@ -17,35 +47,34 @@ RUN npx prisma generate
 # Build application
 RUN npm run build
 
-# Stage 2: Production image
-FROM node:18-alpine AS runner
+# Production image, copy all the files and run next
+FROM base AS runner
+WORKDIR /app
 
-# Set environment variables
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
 
-WORKDIR /app
-
-# Create non-root user for security
 RUN addgroup --system --gid 1001 nodejs
 RUN adduser --system --uid 1001 nextjs
 
-# Copy built application and dependencies
+# Copy necessary files
 COPY --from=builder /app/public ./public
 COPY --from=builder /app/.next/standalone ./
 COPY --from=builder /app/.next/static ./.next/static
 COPY --from=builder /app/prisma ./prisma
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 
-# Set proper permissions
+# Set permissions
+RUN chown -R nextjs:nodejs /app
+
 USER nextjs
 
-# Expose port
 EXPOSE 3000
+
+ENV PORT=3000
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=5s --start-period=10s --retries=3 \
-  CMD wget -qO- http://localhost:3000/api/auth/me || exit 1
+  CMD wget -qO- http://localhost:3000/api/auth/session || exit 1
 
-# Start application
 CMD ["node", "server.js"]

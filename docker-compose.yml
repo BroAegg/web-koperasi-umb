@@ -1,11 +1,10 @@
-# Docker Compose for Web Koperasi UMB
-version: '3.8'
+# Docker Compose for Web Koperasi UMB with Prisma MySQL
 
 services:
   # MySQL Database
   database:
     image: mysql:8.0
-    container_name: koperasi-db
+    container_name: koperasi-mysql
     restart: unless-stopped
     environment:
       MYSQL_ROOT_PASSWORD: rootpassword123
@@ -20,19 +19,22 @@ services:
     networks:
       - koperasi-network
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      timeout: 5s
-      retries: 10
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-prootpassword123"]
+      timeout: 10s
+      retries: 5
+      interval: 30s
 
   # Web Application
   app:
-    build: .
+    build: 
+      context: .
+      dockerfile: Dockerfile
     container_name: koperasi-app
     restart: unless-stopped
     environment:
       - NODE_ENV=production
       - DATABASE_URL=mysql://koperasi_user:KoperasiUMB2025!@database:3306/koperasi_umb
-      - NEXTAUTH_URL=https://mekarmukti.id
+      - NEXTAUTH_URL=http://localhost:3000
       - NEXTAUTH_SECRET=Imr7y2cewLUhdKMTXGvFax6si1YVQZqn
       - JWT_SECRET=bW7H8LEMdfVuPFoXzrv3a05jiCN9plRkyG1SD4tATQ2hKUngIeJZYBx6qscOmw
     ports:
@@ -46,12 +48,30 @@ services:
       - ./uploads:/app/uploads
       - ./public/uploads:/app/public/uploads
     healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/auth/me"]
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/auth/session"]
       interval: 30s
-      timeout: 5s
+      timeout: 10s
       retries: 3
 
-  # Database Administration (optional)
+  # Prisma Studio (optional - for database management)
+  prisma-studio:
+    build: 
+      context: .
+      dockerfile: Dockerfile
+    container_name: koperasi-prisma-studio
+    restart: unless-stopped
+    environment:
+      - DATABASE_URL=mysql://koperasi_user:KoperasiUMB2025!@database:3306/koperasi_umb
+    ports:
+      - "5555:5555"
+    depends_on:
+      database:
+        condition: service_healthy
+    networks:
+      - koperasi-network
+    command: ["npx", "prisma", "studio", "--port", "5555", "--hostname", "0.0.0.0"]
+
+  # Database Administration
   adminer:
     image: adminer:latest
     container_name: koperasi-adminer
@@ -63,7 +83,7 @@ services:
     depends_on:
       - database
 
-  # Redis for session storage (optional)
+  # Redis for caching (optional)
   redis:
     image: redis:7-alpine
     container_name: koperasi-redis

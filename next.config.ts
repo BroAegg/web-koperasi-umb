@@ -8,6 +8,19 @@ const nextConfig: NextConfig = {
   /* Production optimizations for cPanel */
   output: 'standalone',
   
+  /* Production compiler optimizations */
+  compiler: {
+    removeConsole: process.env.NODE_ENV === 'production' ? {
+      exclude: ['error', 'warn'], // Keep error and warn logs
+    } : false,
+  },
+  
+  /* Strict mode for better performance */
+  reactStrictMode: true,
+  
+  /* Enable compression */
+  compress: true,
+  
   /* Disable strict ESLint during build */
   eslint: {
     ignoreDuringBuilds: true,
@@ -18,9 +31,13 @@ const nextConfig: NextConfig = {
     ignoreBuildErrors: false,
   },
   
-  /* Image optimization for cPanel */
+  /* Image optimization for tablet and mobile devices */
   images: {
-    unoptimized: true, // Disable built-in image optimization for cPanel compatibility
+    formats: ['image/webp', 'image/avif'],
+    minimumCacheTTL: 60,
+    deviceSizes: [640, 750, 828, 1080, 1200, 1920], // Optimized for phones, tablets, and desktops
+    imageSizes: [16, 32, 48, 64, 96, 128, 256, 384], // For responsive images
+    unoptimized: false, // Enable optimization for better performance
   },
   
   /* Experimental features */

@@ -94,7 +94,9 @@ export default function LoginPage() {
                 src="/logo-umb.png" 
                 alt="Logo UMB" 
                 width={120} 
-                height={120} 
+                height={120}
+                style={{ width: 'auto', height: 'auto' }}
+                priority
                 className="mx-auto rounded-full border-4 border-white/20 shadow-xl"
               />
             </div>
@@ -123,7 +125,9 @@ export default function LoginPage() {
                 src="/logo-umb.png" 
                 alt="Logo UMB" 
                 width={80} 
-                height={80} 
+                height={80}
+                style={{ width: 'auto', height: 'auto' }}
+                priority
                 className="mx-auto rounded-full shadow-lg"
               />
               <h1 className="text-2xl font-bold text-gray-900 mt-4">Sistem Koperasi UM BANDUNG</h1>
@@ -172,6 +176,7 @@ export default function LoginPage() {
                         )}
                       </button>
                     }
+                    autoComplete="current-password"
                     required
                     className="text-base"
                   />

@@ -308,6 +308,7 @@ export default function SupplierRegisterPage() {
                             {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                           </button>
                         }
+                        autoComplete="new-password"
                         required
                         className="text-base"
                       />
@@ -328,6 +329,7 @@ export default function SupplierRegisterPage() {
                             {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                           </button>
                         }
+                        autoComplete="new-password"
                         required
                         className="text-base"
                       />

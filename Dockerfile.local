@@ -1,0 +1,39 @@
+# Ultra-Fast Dockerfile - Copy Pre-installed Dependencies
+FROM node:18-alpine
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apk add --no-cache libc6-compat wget
+
+# Copy package files
+COPY package.json package-lock.json* ./
+
+# Copy pre-installed node_modules
+COPY node_modules ./node_modules
+
+# Copy application source
+COPY . .
+
+# Generate Prisma client (fast since deps already installed)
+RUN npx prisma generate
+
+# Build Next.js application
+ENV NODE_ENV=production
+RUN npm run build
+
+# Create non-root user
+RUN addgroup --system --gid 1001 nodejs && \
+    adduser --system --uid 1001 nextjs && \
+    chown -R nextjs:nodejs /app
+
+USER nextjs
+
+EXPOSE 3000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
+    CMD wget --quiet --tries=1 --spider http://localhost:3000/api/auth/session || exit 1
+
+# Start application  
+CMD ["npm", "start"]
