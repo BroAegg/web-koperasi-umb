@@ -181,24 +181,24 @@ export default function POSPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-3 md:p-4 lg:p-6">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50/30 to-slate-50 p-3 md:p-4 lg:p-6">
       <div className="max-w-7xl mx-auto">
         {/* Header - TABLET OPTIMIZED */}
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-4 md:mb-6 gap-3 md:gap-4">
+        <div className="flex flex-col md:flex-row items-start md:items-center justify-between mb-5 md:mb-7 gap-3 md:gap-4">
           <div className="flex items-center space-x-3">
-            <div className="p-2 bg-blue-600 text-white rounded-lg">
+            <div className="p-3 bg-gradient-to-br from-blue-600 to-blue-700 text-white rounded-xl shadow-lg shadow-blue-200">
               <Receipt className="w-6 h-6" />
             </div>
             <div>
-              <h1 className="text-xl md:text-2xl font-bold text-gray-900">Point of Sale</h1>
-              <p className="text-sm md:text-base text-gray-600">Cashier: {user?.name}</p>
+              <h1 className="text-xl md:text-2xl font-bold text-slate-900">Point of Sale</h1>
+              <p className="text-sm md:text-base text-slate-600">Cashier: {user?.name}</p>
             </div>
           </div>
           <div className="flex items-center space-x-2 flex-wrap gap-2">
-            <Badge variant="outline" className="text-xs md:text-sm">
+            <Badge variant="outline" className="text-xs md:text-sm bg-white shadow-sm border-slate-200">
               {products.length} Products Available
             </Badge>
-            <Badge variant="outline" className="text-xs md:text-sm">
+            <Badge variant="outline" className="text-xs md:text-sm bg-white shadow-sm border-slate-200">
               {cart.length} Items in Cart
             </Badge>
           </div>
@@ -215,22 +215,22 @@ export default function POSPage() {
             orientation === 'landscape' ? 'lg:col-span-2' : ''
           }`}>
             {/* Search Bar - TABLET OPTIMIZED */}
-            <Card>
-              <CardContent className="p-3 md:p-4">
+            <Card className="shadow-md border-slate-200">
+              <CardContent className="p-4 md:p-5">
                 <div className="flex flex-col md:flex-row space-y-3 md:space-y-0 md:space-x-4">
                   <div className="flex-1 relative">
-                    <Search className="absolute left-3 top-3 h-5 w-5 md:h-4 md:w-4 text-gray-400" />
+                    <Search className="absolute left-4 top-4 h-5 w-5 text-slate-400" />
                     <Input
                       placeholder="Search products by name or SKU..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10 md:pl-10 h-12 md:h-10 text-base"
+                      className="pl-11 h-14 text-base border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rounded-xl shadow-sm"
                     />
                   </div>
                   <select
                     value={selectedCategory}
                     onChange={(e) => setSelectedCategory(e.target.value)}
-                    className="px-3 md:px-3 py-3 md:py-2 border border-gray-300 rounded-md h-12 md:h-auto text-base touch-manipulation"
+                    className="px-4 py-4 border border-slate-300 rounded-xl h-14 text-base touch-manipulation bg-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 shadow-sm font-medium text-slate-700"
                   >
                     {categories.map(category => (
                       <option key={category} value={category}>
@@ -243,41 +243,41 @@ export default function POSPage() {
             </Card>
 
             {/* Products Grid - TABLET OPTIMIZED */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 md:gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 md:gap-5">
               {filteredProducts.map((product) => (
-                <Card key={product.id} className="hover:shadow-md transition-shadow cursor-pointer">
-                  <CardContent className="p-3 md:p-4">
-                    <div className="flex justify-between items-start mb-2 md:mb-2">
+                <Card key={product.id} className="hover:shadow-xl hover:scale-[1.02] transition-all duration-200 cursor-pointer border-slate-200 shadow-md bg-white">
+                  <CardContent className="p-4 md:p-5">
+                    <div className="flex justify-between items-start mb-3">
                       <div className="flex-1">
-                        <h3 className="font-semibold text-gray-900 text-sm md:text-sm leading-tight">
+                        <h3 className="font-bold text-slate-900 text-base md:text-base leading-tight mb-1">
                           {product.name}
                         </h3>
                         {product.sku && (
-                          <p className="text-xs text-gray-500 mt-1">SKU: {product.sku}</p>
+                          <p className="text-xs text-slate-500 mt-1 font-medium">SKU: {product.sku}</p>
                         )}
                       </div>
-                      <Badge variant="secondary" className="text-xs">
+                      <Badge variant="secondary" className="text-xs bg-blue-50 text-blue-700 border-blue-200 font-medium">
                         {product.category}
                       </Badge>
                     </div>
                     
-                    <div className="flex justify-between items-center gap-2">
+                    <div className="flex justify-between items-center gap-3 mt-4 pt-3 border-t border-slate-100">
                       <div>
-                        <p className="text-base md:texpt-lg font-bold text-blue-600">
+                        <p className="text-lg md:text-xl font-bold text-blue-600 mb-1">
                           Rp {product.sellPrice.toLocaleString('id-ID')}
                         </p>
-                        <p className="text-xs text-gray-500">
-                          Stock: {product.stock} {product.unit}
+                        <p className="text-xs text-slate-500 font-medium">
+                          Stock: <span className="text-green-600 font-semibold">{product.stock}</span> {product.unit}
                         </p>
                       </div>
                       <Button
                         size="lg"
                         onClick={() => addToCart(product)}
                         disabled={product.stock === 0}
-                        className="flex items-center space-x-2 min-h-12 touch-manipulation shrink-0"
+                        className="flex items-center space-x-2 min-h-12 touch-manipulation shrink-0 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 shadow-md hover:shadow-lg"
                       >
                         <Plus className="w-5 h-5" />
-                        <span className="hidden sm:inline">Add</span>
+                        <span className="hidden sm:inline font-semibold">Add</span>
                       </Button>
                     </div>
                   </CardContent>
@@ -286,13 +286,15 @@ export default function POSPage() {
             </div>
 
             {filteredProducts.length === 0 && (
-              <Card>
-                <CardContent className="p-6 md:p-8 text-center">
-                  <Package className="w-10 h-10 md:w-12 md:h-12 text-gray-400 mx-auto mb-3 md:mb-4" />
-                  <h3 className="text-base md:text-lg font-semibold text-gray-900 mb-2">
+              <Card className="shadow-md border-slate-200">
+                <CardContent className="p-8 md:p-10 text-center">
+                  <div className="bg-slate-100 rounded-full w-20 h-20 md:w-24 md:h-24 flex items-center justify-center mx-auto mb-4 md:mb-5">
+                    <Package className="w-12 h-12 md:w-14 md:h-14 text-slate-400" />
+                  </div>
+                  <h3 className="text-lg md:text-xl font-bold text-slate-900 mb-2">
                     No Products Found
                   </h3>
-                  <p className="text-sm md:text-base text-gray-600">
+                  <p className="text-sm md:text-base text-slate-600">
                     Try adjusting your search or category filter
                   </p>
                 </CardContent>
@@ -301,12 +303,12 @@ export default function POSPage() {
           </div>
 
           {/* Right Side - Shopping Cart - TABLET OPTIMIZED */}
-          <div className="space-y-3 md:space-y-4">
-            <Card>
-              <CardHeader className="p-3 md:p-4">
+          <div className="space-y-4 md:space-y-5">
+            <Card className="shadow-lg border-slate-200 bg-gradient-to-br from-white to-slate-50">
+              <CardHeader className="p-4 md:p-5 bg-gradient-to-r from-blue-50 to-slate-50 border-b border-slate-200">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-base md:text-lg font-semibold flex items-center space-x-2">
-                    <ShoppingCart className="w-5 h-5" />
+                  <h3 className="text-lg md:text-xl font-bold flex items-center space-x-2 text-slate-900">
+                    <ShoppingCart className="w-6 h-6 text-blue-600" />
                     <span>Cart ({cart.length})</span>
                   </h3>
                   {cart.length > 0 && (
@@ -314,7 +316,7 @@ export default function POSPage() {
                       variant="outline" 
                       size="lg"
                       onClick={clearCart}
-                      className="text-red-600 min-h-12 min-w-12 touch-manipulation"
+                      className="text-red-600 min-h-12 min-w-12 touch-manipulation border-red-300 hover:bg-red-50 shadow-sm"
                     >
                       <Trash2 className="w-5 h-5" />
                     </Button>
@@ -323,40 +325,40 @@ export default function POSPage() {
               </CardHeader>
               <CardContent className="p-0">
                 {cart.length === 0 ? (
-                  <div className="p-4 md:p-6 text-center">
-                    <ShoppingCart className="w-10 h-10 md:w-12 md:h-12 text-gray-400 mx-auto mb-3 md:mb-4" />
-                    <p className="text-sm md:text-base text-gray-500">Cart is empty</p>
-                    <p className="text-xs md:text-sm text-gray-400">Add products to get started</p>
+                  <div className="p-6 md:p-8 text-center">
+                    <ShoppingCart className="w-12 h-12 md:w-14 md:h-14 text-slate-300 mx-auto mb-4 md:mb-5" />
+                    <p className="text-base md:text-lg text-slate-600 font-semibold mb-1">Cart is empty</p>
+                    <p className="text-sm md:text-base text-slate-400">Add products to get started</p>
                   </div>
                 ) : (
                   <div className="max-h-80 md:max-h-96 overflow-y-auto">
                     {cart.map((item) => (
-                      <div key={item.id} className="p-3 md:p-4 border-b border-gray-200 last:border-b-0">
+                      <div key={item.id} className="p-4 md:p-5 border-b border-slate-200 last:border-b-0 hover:bg-slate-50 transition-colors">
                         <div className="flex justify-between items-start mb-3">
-                          <h4 className="font-medium text-sm md:text-sm text-gray-900 flex-1 pr-2">
+                          <h4 className="font-bold text-sm md:text-base text-slate-900 flex-1 pr-2 leading-tight">
                             {item.name}
                           </h4>
                           <Button
                             variant="outline"
                             size="sm"
                             onClick={() => removeFromCart(item.id)}
-                            className="text-red-500 min-h-10 min-w-10 p-2 border-red-200 hover:bg-red-50 touch-manipulation shrink-0"
+                            className="text-red-500 min-h-10 min-w-10 p-2 border-red-200 hover:bg-red-50 touch-manipulation shrink-0 shadow-sm"
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
                         </div>
                         
                         <div className="flex items-center justify-between gap-3">
-                          <div className="flex items-center space-x-2 md:space-x-3">
+                          <div className="flex items-center space-x-3 md:space-x-3 bg-slate-100 rounded-lg p-2">
                             <Button
                               variant="outline"
                               size="sm"
                               onClick={() => updateCartQuantity(item.id, item.quantity - 1)}
-                              className="min-h-10 min-w-10 p-0 touch-manipulation"
+                              className="min-h-10 min-w-10 p-0 touch-manipulation bg-white shadow-sm hover:shadow-md"
                             >
                               <Minus className="w-4 h-4" />
                             </Button>
-                            <span className="w-8 md:w-10 text-center text-base font-medium">
+                            <span className="w-10 text-center text-base font-bold text-slate-900">
                               {item.quantity}
                             </span>
                             <Button
@@ -364,16 +366,16 @@ export default function POSPage() {
                               size="sm"
                               onClick={() => updateCartQuantity(item.id, item.quantity + 1)}
                               disabled={item.quantity >= item.stock}
-                              className="min-h-10 min-w-10 p-0 touch-manipulation"
+                              className="min-h-10 min-w-10 p-0 touch-manipulation bg-white shadow-sm hover:shadow-md"
                             >
                               <Plus className="w-4 h-4" />
                             </Button>
                           </div>
                           <div className="text-right shrink-0">
-                            <p className="text-sm md:text-sm font-semibold whitespace-nowrap">
+                            <p className="text-base md:text-lg font-bold whitespace-nowrap text-blue-600">
                               Rp {item.subtotal.toLocaleString('id-ID')}
                             </p>
-                            <p className="text-xs text-gray-500 whitespace-nowrap">
+                            <p className="text-xs text-slate-500 whitespace-nowrap font-medium">
                               @ Rp {item.sellPrice.toLocaleString('id-ID')}
                             </p>
                           </div>
@@ -387,22 +389,22 @@ export default function POSPage() {
 
             {/* Cart Total & Checkout - TABLET OPTIMIZED */}
             {cart.length > 0 && (
-              <Card>
-                <CardContent className="p-3 md:p-4">
-                  <div className="space-y-3 md:space-y-4">
-                    <div className="flex justify-between items-center text-base md:text-lg font-bold">
-                      <span>Total:</span>
-                      <span className="text-blue-600">
+              <Card className="shadow-lg border-slate-200 bg-gradient-to-br from-blue-50 via-white to-blue-50">
+                <CardContent className="p-5 md:p-6">
+                  <div className="space-y-4 md:space-y-5">
+                    <div className="flex justify-between items-center py-3 px-4 bg-white rounded-xl border-2 border-blue-200 shadow-sm">
+                      <span className="text-lg md:text-xl font-bold text-slate-700">Total:</span>
+                      <span className="text-xl md:text-2xl font-black text-blue-600">
                         Rp {getCartTotal.toLocaleString('id-ID')}
                       </span>
                     </div>
                     
                     <Button 
-                      className="w-full min-h-14 text-base md:text-lg font-semibold touch-manipulation"
+                      className="w-full min-h-16 text-lg md:text-xl font-bold touch-manipulation bg-gradient-to-r from-green-600 to-green-700 hover:from-green-700 hover:to-green-800 shadow-lg hover:shadow-xl transition-all duration-200"
                       onClick={() => setShowPaymentModal(true)}
                       disabled={isProcessingPayment}
                     >
-                      <CreditCard className="w-5 h-5 md:w-6 md:h-6 mr-2" />
+                      <CreditCard className="w-6 h-6 md:w-7 md:h-7 mr-3" />
                       Process Payment
                     </Button>
                   </div>

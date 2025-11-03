@@ -28,13 +28,25 @@ import {
   Receipt,
   User,
   Award,
-  BarChart3
+  BarChart3,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 
 function KoperasiContent({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const pathname = usePathname();
   const { user, loading, authorized, logout } = useAuth(["ADMIN", "SUPER_ADMIN", "SUPPLIER", "DEVELOPER"]);
+
+  // Auto-collapse sidebar on POS page for more space
+  useEffect(() => {
+    if (pathname === '/koperasi/pos') {
+      setSidebarCollapsed(true);
+    } else {
+      setSidebarCollapsed(false);
+    }
+  }, [pathname]);
 
   // Check if user is a developer (has developer session in token)
   const [isDeveloper, setIsDeveloper] = useState(false);
@@ -166,27 +178,46 @@ function KoperasiContent({ children }: { children: React.ReactNode }) {
 
       {/* Sidebar */}
       <aside
-        className={`fixed inset-y-0 left-0 z-50 w-64 bg-white shadow-xl transform transition-transform duration-300 ease-in-out lg:translate-x-0 ${
+        className={`fixed inset-y-0 left-0 z-50 bg-white shadow-xl transform transition-all duration-300 ease-in-out lg:translate-x-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
+        } ${sidebarCollapsed ? 'w-16' : 'w-64'}`}
       >
         <div className="flex flex-col h-full">
           {/* Logo Header */}
-          <div className="flex items-center justify-between p-6 border-b border-slate-200">
-            <div className="flex items-center space-x-3">
+          <div className={`flex items-center border-b border-slate-200 ${sidebarCollapsed ? 'justify-center p-4' : 'justify-between p-6'}`}>
+            <div className={`flex items-center ${sidebarCollapsed ? 'justify-center' : 'space-x-3'}`}>
               <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-blue-600 to-blue-700 flex items-center justify-center">
                 <PortalIcon className="w-6 h-6 text-white" />
               </div>
-              <div>
-                <h1 className="text-lg font-bold text-slate-800">Koperasi UMB</h1>
-                <p className="text-xs text-slate-500">{portalConfig.name}</p>
-              </div>
+              {!sidebarCollapsed && (
+                <div>
+                  <h1 className="text-lg font-bold text-slate-800">Koperasi UMB</h1>
+                  <p className="text-xs text-slate-500">{portalConfig.name}</p>
+                </div>
+              )}
             </div>
+            {!sidebarCollapsed && (
+              <button
+                onClick={() => setSidebarOpen(false)}
+                className="lg:hidden p-2 rounded-lg hover:bg-slate-100"
+              >
+                <X className="w-5 h-5 text-slate-600" />
+              </button>
+            )}
+          </div>
+
+          {/* Collapse Toggle Button (Desktop Only) */}
+          <div className="hidden lg:flex justify-center py-2 border-b border-slate-200">
             <button
-              onClick={() => setSidebarOpen(false)}
-              className="lg:hidden p-2 rounded-lg hover:bg-slate-100"
+              onClick={() => setSidebarCollapsed(!sidebarCollapsed)}
+              className="p-2 rounded-lg hover:bg-slate-100 transition-colors"
+              title={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
             >
-              <X className="w-5 h-5 text-slate-600" />
+              {sidebarCollapsed ? (
+                <ChevronRight className="w-5 h-5 text-slate-600" />
+              ) : (
+                <ChevronLeft className="w-5 h-5 text-slate-600" />
+              )}
             </button>
           </div>
 
@@ -195,11 +226,13 @@ function KoperasiContent({ children }: { children: React.ReactNode }) {
             {filteredCategories.map((category, categoryIndex) => (
               <div key={category.title}>
                 {/* Category Header */}
-                <div className="px-3 mb-3">
-                  <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                    {category.title}
-                  </h3>
-                </div>
+                {!sidebarCollapsed && (
+                  <div className="px-3 mb-3">
+                    <h3 className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
+                      {category.title}
+                    </h3>
+                  </div>
+                )}
                 
                 {/* Category Items */}
                 <div className="space-y-1">
@@ -212,21 +245,24 @@ function KoperasiContent({ children }: { children: React.ReactNode }) {
                         key={item.name}
                         href={item.href}
                         onClick={() => setSidebarOpen(false)}
-                        className={`flex items-center space-x-3 px-4 py-3 rounded-xl transition-all duration-200 ${
+                        className={`flex items-center rounded-xl transition-all duration-200 ${
+                          sidebarCollapsed ? 'justify-center p-3' : 'space-x-3 px-4 py-3'
+                        } ${
                           active
                             ? "bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-md shadow-blue-200"
                             : "text-slate-600 hover:bg-slate-100 hover:text-slate-900"
                         }`}
+                        title={sidebarCollapsed ? item.name : undefined}
                       >
                         <Icon className={`w-5 h-5 ${active ? "text-white" : "text-slate-500"}`} />
-                        <span className="font-medium">{item.name}</span>
+                        {!sidebarCollapsed && <span className="font-medium">{item.name}</span>}
                       </Link>
                     );
                   })}
                 </div>
                 
                 {/* Separator between categories (except last) */}
-                {categoryIndex < filteredCategories.length - 1 && (
+                {categoryIndex < filteredCategories.length - 1 && !sidebarCollapsed && (
                   <div className="mt-4 border-t border-slate-200"></div>
                 )}
               </div>
@@ -235,26 +271,31 @@ function KoperasiContent({ children }: { children: React.ReactNode }) {
 
           {/* User Info & Logout */}
           <div className="p-4 border-t border-slate-200 space-y-2">
-            <div className="px-4 py-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl border border-slate-200">
-              <p className="font-semibold text-slate-800 truncate">{user?.name}</p>
-              <p className="text-xs text-blue-600 font-medium">
-                {user?.role === 'SUPER_ADMIN' ? 'Super Admin' : 
-                 user?.role === 'DEVELOPER' ? 'Developer' : 'Admin'}
-              </p>
-            </div>
+            {!sidebarCollapsed && (
+              <div className="px-4 py-3 bg-gradient-to-br from-slate-50 to-slate-100 rounded-xl border border-slate-200">
+                <p className="font-semibold text-slate-800 truncate">{user?.name}</p>
+                <p className="text-xs text-blue-600 font-medium">
+                  {user?.role === 'SUPER_ADMIN' ? 'Super Admin' : 
+                   user?.role === 'DEVELOPER' ? 'Developer' : 'Admin'}
+                </p>
+              </div>
+            )}
             <button
               onClick={logout}
-              className="flex items-center space-x-3 px-4 py-3 rounded-xl w-full text-red-600 hover:bg-red-50 transition-colors"
+              className={`flex items-center rounded-xl w-full text-red-600 hover:bg-red-50 transition-colors ${
+                sidebarCollapsed ? 'justify-center p-3' : 'space-x-3 px-4 py-3'
+              }`}
+              title={sidebarCollapsed ? "Logout" : undefined}
             >
               <LogOut className="w-5 h-5" />
-              <span className="font-medium">Logout</span>
+              {!sidebarCollapsed && <span className="font-medium">Logout</span>}
             </button>
           </div>
         </div>
       </aside>
 
       {/* Main Content */}
-      <div className="lg:pl-64">
+      <div className={`transition-all duration-300 ${sidebarCollapsed ? 'lg:pl-16' : 'lg:pl-64'}`}>
         {/* Mobile Header */}
         <header className="lg:hidden sticky top-0 z-30 bg-white shadow-md">
           <div className="flex items-center justify-between p-4">
