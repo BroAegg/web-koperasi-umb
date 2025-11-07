@@ -369,6 +369,43 @@ export default function MembershipPage() {
     }
   };
 
+  const handleGenerateTest = async () => {
+    const confirmed = await confirm({
+      title: '🧪 Generate Test Members?',
+      message: 'Ini akan membuat 15 anggota dummy dengan data lengkap dan riwayat transaksi simpanan yang realistis untuk testing.',
+      type: 'info',
+      confirmText: 'Ya, Generate',
+      cancelText: 'Batal'
+    });
+
+    if (!confirmed) return;
+
+    try {
+      setIsSubmitting(true);
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/members/generate-test', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        success('Berhasil!', `${data.data.membersCreated} anggota test berhasil dibuat dengan ${data.data.savingsCreated} transaksi simpanan`);
+        fetchMembers(); // Reload members
+      } else {
+        error('Gagal generate', data.error || 'Terjadi kesalahan');
+      }
+    } catch (err: any) {
+      error('Gagal generate', err.message || 'Terjadi kesalahan');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -385,6 +422,17 @@ export default function MembershipPage() {
           <Button variant="outline" size="sm">
             <Download className="w-4 h-4 mr-2" />
             Export Data
+          </Button>
+          {/* Testing only - Generate Test */}
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleGenerateTest}
+            disabled={isSubmitting}
+            className="border-blue-300 text-blue-600 hover:bg-blue-50 hover:border-blue-400"
+          >
+            <Users className="w-4 h-4 mr-2" />
+            {isSubmitting ? 'Generating...' : 'Generate Test (15)'}
           </Button>
           {/* Testing only - Delete All */}
           {members.length > 0 && (
