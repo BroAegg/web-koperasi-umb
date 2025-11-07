@@ -18,6 +18,7 @@ import {
   Edit,
   Trash2,
   Download,
+  Upload,
   Mail,
   Phone,
   MapPin,
@@ -25,7 +26,10 @@ import {
   User,
   Building2,
   CreditCard,
-  Calendar
+  Calendar,
+  FileSpreadsheet,
+  CheckCircle,
+  AlertTriangle
 } from 'lucide-react';
 
 interface Member {
@@ -53,6 +57,13 @@ export default function MembershipPage() {
   const [members, setMembers] = useState<Member[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [editingMember, setEditingMember] = useState<string | null>(null);
+  
+  // Import states
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [importResult, setImportResult] = useState<any>(null);
+  const [importError, setImportError] = useState<string | null>(null);
 
   // Global notifications
   const { success, error, warning, confirm } = useNotification();
@@ -255,6 +266,61 @@ export default function MembershipPage() {
     setEditingMember(null);
   };
 
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (selectedFile) {
+      if (!selectedFile.name.endsWith('.xlsx') && !selectedFile.name.endsWith('.xls')) {
+        setImportError('Please upload an Excel file (.xlsx or .xls)');
+        return;
+      }
+      setImportFile(selectedFile);
+      setImportError(null);
+    }
+  };
+
+  const handleImport = async () => {
+    if (!importFile) {
+      setImportError('Please select a file first');
+      return;
+    }
+
+    setIsUploading(true);
+    setImportError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', importFile);
+
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/members/import', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setImportResult(data);
+        setImportFile(null);
+        setShowImportModal(false);
+        fetchMembers(); // Refresh list
+        success('Import berhasil!', `${data.stats.imported} anggota berhasil diimport`);
+        // Reset file input
+        const fileInput = document.getElementById('file-input-import') as HTMLInputElement;
+        if (fileInput) fileInput.value = '';
+      } else {
+        setImportError(data.error || 'Failed to import members');
+      }
+    } catch (err: any) {
+      setImportError(err.message || 'Failed to upload file');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -264,6 +330,10 @@ export default function MembershipPage() {
           <p className="text-gray-600 mt-1">Kelola data anggota koperasi</p>
         </div>
         <div className="mt-4 md:mt-0 flex gap-3">
+          <Button variant="outline" size="sm" onClick={() => setShowImportModal(true)}>
+            <Upload className="w-4 h-4 mr-2" />
+            Import Data
+          </Button>
           <Button variant="outline" size="sm">
             <Download className="w-4 h-4 mr-2" />
             Export Data
@@ -726,6 +796,106 @@ export default function MembershipPage() {
             </form>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Import Modal */}
+      {showImportModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <FileSpreadsheet className="h-6 w-6 text-blue-600" />
+                  Import Data Anggota
+                </h3>
+                <button
+                  onClick={() => {
+                    setShowImportModal(false);
+                    setImportFile(null);
+                    setImportError(null);
+                  }}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Instructions */}
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="font-medium text-blue-900 mb-2">Format File Excel:</p>
+                <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
+                  <li>Sheet: <strong>ANGGOTA</strong></li>
+                  <li>Kolom: NO, NAMA ANGGOTA, PENDAFTARAN ANGGOTA, SIMPANAN POKOK, TOTAL SIMPANAN WAJIB</li>
+                  <li>Anggota yang sudah ada akan di-skip otomatis</li>
+                </ul>
+              </div>
+
+              {/* File Input */}
+              <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg p-8 hover:border-blue-500 transition-colors">
+                <Upload className="h-12 w-12 text-gray-400 mb-4" />
+                <label htmlFor="file-input-import" className="cursor-pointer">
+                  <span className="text-blue-600 hover:text-blue-700 font-medium">
+                    Click to select file
+                  </span>
+                  <input
+                    id="file-input-import"
+                    type="file"
+                    accept=".xlsx,.xls"
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
+                </label>
+                {importFile && (
+                  <p className="mt-2 text-sm text-gray-600">
+                    Selected: <strong>{importFile.name}</strong>
+                  </p>
+                )}
+              </div>
+
+              {/* Error */}
+              {importError && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5 text-red-600 flex-shrink-0" />
+                  <p className="text-sm text-red-700">{importError}</p>
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex gap-3">
+                <Button
+                  onClick={() => {
+                    setShowImportModal(false);
+                    setImportFile(null);
+                    setImportError(null);
+                  }}
+                  variant="outline"
+                  className="flex-1"
+                  disabled={isUploading}
+                >
+                  Batal
+                </Button>
+                <Button
+                  onClick={handleImport}
+                  disabled={!importFile || isUploading}
+                  className="flex-1"
+                >
+                  {isUploading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                      Importing...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-4 w-4 mr-2" />
+                      Import
+                    </>
+                  )}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
     </div>

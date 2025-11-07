@@ -104,7 +104,7 @@ function KoperasiContent({ children }: { children: React.ReactNode }) {
     {
       title: "KEANGGOTAAN",
       items: [
-        { name: "Import Anggota", href: "/koperasi/membership/import", icon: Users, roles: ["ADMIN", "SUPER_ADMIN"] },
+        { name: "Data Anggota", href: "/koperasi/membership", icon: Users, roles: ["ADMIN", "SUPER_ADMIN"] },
       ]
     },
     {
