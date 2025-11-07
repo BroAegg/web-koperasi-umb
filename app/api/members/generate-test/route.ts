@@ -70,6 +70,7 @@ export async function POST() {
           password: '$2a$10$dummyhashedpassword', // Dummy hash
           role: 'USER',
           isActive: true,
+          updatedAt: new Date(),
         }
       });
 
@@ -90,6 +91,7 @@ export async function POST() {
           simpananSukarela,
           status: 'ACTIVE',
           joinDate: new Date(2024, Math.floor(Math.random() * 3), 1), // Jan-Mar 2024
+          updatedAt: new Date(),
         }
       });
 
@@ -185,7 +187,12 @@ export async function POST() {
 
       // Save all transactions
       for (const saving of savingsHistory) {
-        await prisma.savings.create({ data: saving });
+        await prisma.savings.create({ 
+          data: {
+            ...saving,
+            type: saving.type as any, // Type assertion for enum
+          }
+        });
         totalSavings++;
       }
 
