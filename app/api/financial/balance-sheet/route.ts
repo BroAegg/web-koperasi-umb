@@ -128,10 +128,17 @@ export async function GET(request: NextRequest) {
     const piutang = 0; // TODO: Implement if you track customer credit
 
     // 4. PERSEDIAAN GUDANG (Inventory Stock Value)
-    const products = await prisma.products.findMany({
+    // IMPORTANT: Only count TOKO products (owned by koperasi)
+    // TITIPAN products are consignment goods, NOT owned by koperasi
+    const allProducts = await prisma.products.findMany({
       where: { stock: { gt: 0 } }
     });
-    const persediaan = products.reduce((sum: number, p) => {
+    
+    const persediaan = allProducts.reduce((sum: number, p) => {
+      // Only count TOKO products or products without ownershipType (legacy)
+      const isToko = p.ownershipType === 'TOKO' || !p.ownershipType;
+      if (!isToko) return sum; // Skip TITIPAN products
+      
       return sum + (decimalToNumber(p.buyPrice) * (p.stock || 0));
     }, 0);
 
@@ -170,12 +177,21 @@ export async function GET(request: NextRequest) {
     const totalLiabilitas = hutangKonsinyasi + hutangDagang + hutangGaji + hutangLainnya;
 
     // === EKUITAS (Equity) ===
-    // In a simple balance sheet: Ekuitas = Aktiva - Liabilitas
-    // Or broken down: Modal Awal + Laba Ditahan + SHU Periode Berjalan
+    // Proper accounting equation: AKTIVA = LIABILITAS + EKUITAS
+    // Ekuitas = Modal Disetor + Laba Ditahan + SHU Tahun Berjalan
     
-    // 1. MODAL AWAL (Initial Capital) - Could be from members' contributions
-    // For now, we'll calculate it as the difference to make balance sheet balanced
-    const totalEkuitasRequired = totalAktiva - totalLiabilitas;
+    // 1. MODAL AWAL (Initial Capital) - FIXED VALUE
+    // Get from first transaction marked as "Modal awal koperasi" or similar
+    // This should be a one-time capital injection from members
+    const modalAwalTransaction = await prisma.transactions.findFirst({
+      where: {
+        type: 'SALE',
+        note: { contains: 'Modal awal koperasi' }
+      },
+      orderBy: { date: 'asc' }
+    });
+    
+    const modalAwal = modalAwalTransaction ? decimalToNumber(modalAwalTransaction.totalAmount) : 0;
     
     // 2. SISA HASIL USAHA (Current Period Profit/Loss)
     // Calculate from SALE income minus PURCHASE expenses for current period
@@ -183,7 +199,8 @@ export async function GET(request: NextRequest) {
       where: { 
         type: 'SALE',
         status: 'COMPLETED', 
-        date: { gte: startDate, lte: endDate } 
+        date: { gte: startDate, lte: endDate },
+        NOT: { note: { contains: 'Modal awal koperasi' } } // Exclude modal awal
       },
       _sum: { totalAmount: true }
     });
@@ -207,7 +224,8 @@ export async function GET(request: NextRequest) {
       where: { 
         type: 'SALE',
         status: 'COMPLETED', 
-        date: { lte: previousPeriodEnd } 
+        date: { lte: previousPeriodEnd },
+        NOT: { note: { contains: 'Modal awal koperasi' } } // Exclude modal awal
       },
       _sum: { totalAmount: true }
     });
@@ -223,9 +241,7 @@ export async function GET(request: NextRequest) {
     
     const labaRugiDitahan = decimalToNumber(prevSales._sum.totalAmount) - decimalToNumber(prevPurchases._sum.totalAmount);
 
-    // 4. MODAL AWAL (calculated to balance the equation)
-    // Modal Awal = Total Ekuitas Required - SHU - Laba Ditahan
-    const modalAwal = totalEkuitasRequired - sisaHasilUsaha - labaRugiDitahan;
+    // Calculate total equity and pasiva
     const totalEkuitas = modalAwal + sisaHasilUsaha + labaRugiDitahan;
     const totalPasiva = totalLiabilitas + totalEkuitas;
 

@@ -250,6 +250,23 @@ export async function POST(req: NextRequest) {
         },
       });
 
+      // IMPORTANT: Mark consignment_sales as settled for this period
+      // This ensures:
+      // 1. Hutang Konsinyasi (liability) decreases in balance sheet
+      // 2. Inventory payment card reflects settled payments
+      const settledSales = await prisma.consignment_sales.updateMany({
+        where: {
+          isSettled: false,
+          saleDate: {
+            gte: periodStart,
+            lte: periodEnd
+          }
+        },
+        data: {
+          isSettled: true
+        }
+      });
+
       // Create activity log
         // Create activity log
         await prisma.activity_logs.create({
