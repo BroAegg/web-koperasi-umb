@@ -307,9 +307,9 @@ async function main() {
   // ============================================================
   console.log('💰 Creating realistic transactions and stock movements...');
   
-  // Initial stock-in for all products (Purchase from supplier)
-  const now = new Date();
-  const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+  // Fixed date for consistent testing: November 7, 2025
+  const now = new Date('2025-11-07T12:00:00');
+  const thirtyDaysAgo = new Date('2025-10-08T12:00:00'); // 30 days before Nov 7
   
   for (const product of products) {
     const initialStock = product.stock;

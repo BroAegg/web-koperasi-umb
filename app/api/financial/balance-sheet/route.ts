@@ -74,51 +74,54 @@ export async function GET(request: NextRequest) {
     // === AKTIVA LANCAR ===
     
     // 1. KAS (Cash on Hand) - Accumulated cash up to endDate
-    // Count all CASH income transactions minus CASH expenses
-    const cashIncome = await prisma.transactions.findMany({
+    // SALE transactions with CASH = Income
+    // PURCHASE transactions with CASH = Expense
+    const cashIncome = await prisma.transactions.aggregate({
       where: { 
+        type: 'SALE',
         paymentMethod: 'CASH', 
         status: 'COMPLETED',
-        createdAt: { lte: endDate } 
-      }
+        date: { lte: endDate } 
+      },
+      _sum: { totalAmount: true }
     });
-    const totalCashIncome = cashIncome.reduce((sum: number, t) => sum + decimalToNumber(t.totalAmount), 0);
     
-    // Cash expenses (consignment payments with cash method)
-    const cashExpenses = await prisma.consignment_payments.findMany({
+    const cashExpense = await prisma.transactions.aggregate({
       where: {
+        type: 'PURCHASE',
         paymentMethod: 'CASH',
-        status: 'PAID',
-        createdAt: { lte: endDate }
-      }
+        status: 'COMPLETED',
+        date: { lte: endDate }
+      },
+      _sum: { totalAmount: true }
     });
-    const totalCashExpenses = cashExpenses.reduce((sum: number, c) => sum + c.amount, 0);
     
-    const kas = totalCashIncome - totalCashExpenses;
+    const kas = decimalToNumber(cashIncome._sum.totalAmount) - decimalToNumber(cashExpense._sum.totalAmount);
 
     // 2. BANK (Bank Balance) - Accumulated bank balance up to endDate
-    const bankIncome = await prisma.transactions.findMany({
+    // SALE transactions with TRANSFER = Income
+    // PURCHASE transactions with TRANSFER = Expense
+    const bankIncome = await prisma.transactions.aggregate({
       where: {
-        OR: [{ paymentMethod: 'TRANSFER' }, { paymentMethod: 'CREDIT' }],
+        type: 'SALE',
+        paymentMethod: 'TRANSFER',
         status: 'COMPLETED',
-        createdAt: { lte: endDate }
-      }
+        date: { lte: endDate }
+      },
+      _sum: { totalAmount: true }
     });
-    const totalBankIncome = bankIncome.reduce((sum: number, t) => sum + decimalToNumber(t.totalAmount), 0);
     
-    const bankExpenses = await prisma.consignment_payments.findMany({
+    const bankExpense = await prisma.transactions.aggregate({
       where: {
-        OR: [
-          { paymentMethod: 'TRANSFER' },
-          { paymentMethod: 'CREDIT' }
-        ],
-        status: 'PAID',
-        createdAt: { lte: endDate }
-      }
+        type: 'PURCHASE',
+        paymentMethod: 'TRANSFER',
+        status: 'COMPLETED',
+        date: { lte: endDate }
+      },
+      _sum: { totalAmount: true }
     });
-    const totalBankExpenses = bankExpenses.reduce((sum: number, c) => sum + c.amount, 0);
     
-    const bank = totalBankIncome - totalBankExpenses;
+    const bank = decimalToNumber(bankIncome._sum.totalAmount) - decimalToNumber(bankExpense._sum.totalAmount);
 
     // 3. PIUTANG (Accounts Receivable)
     const piutang = 0; // TODO: Implement if you track customer credit

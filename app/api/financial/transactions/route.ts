@@ -18,12 +18,13 @@ export async function GET(request: NextRequest) {
 
     if (date) {
       const startDate = new Date(date);
+      startDate.setHours(0, 0, 0, 0);
       const endDate = new Date(date);
-      endDate.setDate(endDate.getDate() + 1);
+      endDate.setHours(23, 59, 59, 999);
 
-      where.createdAt = {
+      where.date = {
         gte: startDate,
-        lt: endDate,
+        lte: endDate,
       };
     }
 
@@ -54,7 +55,7 @@ export async function GET(request: NextRequest) {
         },
       },
       orderBy: {
-        createdAt: 'desc',
+        date: 'desc',
       },
       take: limit,
       skip: offset,
@@ -65,9 +66,9 @@ export async function GET(request: NextRequest) {
       ...transaction,
       amount: Number(transaction.totalAmount),
       description: transaction.note || `Transaksi ${transaction.type}`,
-      category: transaction.type === 'SALE' ? 'Penjualan' : 'Lainnya',
+      category: transaction.type === 'SALE' ? 'Penjualan' : transaction.type === 'PURCHASE' ? 'Pembelian' : 'Lainnya',
       reference: transaction.id,
-      date: transaction.createdAt.toISOString().split('T')[0],
+      date: transaction.date ? transaction.date.toISOString().split('T')[0] : transaction.createdAt.toISOString().split('T')[0],
       totalAmount: Number(transaction.totalAmount),
     }));
 
