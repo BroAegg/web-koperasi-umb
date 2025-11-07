@@ -6,19 +6,26 @@ import { randomUUID } from 'crypto';
 const prisma = new PrismaClient();
 
 async function main() {
-  console.log('🌱 Starting database seeding...');
+  console.log('🌱 Starting comprehensive database seeding with realistic data...');
 
-  // Clean up existing test data
-  console.log('🧹 Cleaning up existing test data...');
+  // Clean up ALL existing data for fresh start
+  console.log('🧹 Cleaning up ALL existing data...');
   await prisma.stock_movements.deleteMany({});
+  await prisma.consignment_sales.deleteMany({}); // Delete first (has FK to transaction_items)
   await prisma.transaction_items.deleteMany({});
   await prisma.transactions.deleteMany({});
+  await prisma.consignment_payments.deleteMany({});
+  await prisma.consignment_batches.deleteMany({});
+  await prisma.consignors.deleteMany({});
+  await prisma.loan_payments.deleteMany({});
+  await prisma.loans.deleteMany({});
+  await prisma.savings.deleteMany({});
   await prisma.broadcasts.deleteMany({});
   await prisma.products.deleteMany({});
   await prisma.members.deleteMany({});
   await prisma.categories.deleteMany({});
   await prisma.users.deleteMany({ where: { email: { contains: '@koperasi.com' } } });
-  console.log('✅ Cleanup completed');
+  console.log('✅ Complete cleanup finished');
 
   // Create core users: superadmin, admin, supplier
   const passwordPlain = 'Password123!';
@@ -295,28 +302,94 @@ async function main() {
 
   console.log('✅ Products created');
 
-  // Create stock movements
+  // ============================================================
+  // REALISTIC TRANSACTIONS & STOCK MOVEMENTS
+  // ============================================================
+  console.log('💰 Creating realistic transactions and stock movements...');
+  
+  // Fixed date for consistent testing: November 7, 2025
+  const now = new Date('2025-11-07T12:00:00');
+  const thirtyDaysAgo = new Date('2025-10-08T12:00:00'); // 30 days before Nov 7
+  
   for (const product of products) {
+    const initialStock = product.stock;
+    
+    // Create purchase transaction for initial stock
+    await prisma.transactions.create({
+      data: {
+        id: randomUUID(),
+        type: 'PURCHASE',
+        totalAmount: new Decimal(Number(product.buyPrice) * initialStock),
+        paymentMethod: 'TRANSFER', // Pembelian via transfer bank
+        status: 'COMPLETED',
+        date: thirtyDaysAgo,
+        note: `Pembelian awal ${product.name} - ${initialStock} ${product.unit}`,
+        updatedAt: thirtyDaysAgo,
+      },
+    });
+
+    // Stock movement for initial purchase
     await prisma.stock_movements.create({
       data: {
         id: randomUUID(),
         productId: product.id,
         movementType: 'PURCHASE_IN',
-        quantity: product.stock,
-        note: 'Initial stock',
+        quantity: initialStock,
+        occurredAt: thirtyDaysAgo,
+        note: `Stok awal ${product.name}`,
       },
     });
   }
 
-  console.log('✅ Stock movements created');
+  console.log('✅ Initial stock purchases created');
 
-  // Create sample transactions
-  for (let i = 0; i < 3; i++) {
+  // Create realistic POS sales over the last 30 days
+  const salesData = [
+    // Week 1 (25-28 days ago) - Multiple small sales
+    { daysAgo: 28, productIndex: 0, qty: 2, method: 'CASH' },
+    { daysAgo: 28, productIndex: 3, qty: 3, method: 'CASH' },
+    { daysAgo: 27, productIndex: 1, qty: 1, method: 'CASH' },
+    { daysAgo: 27, productIndex: 4, qty: 2, method: 'TRANSFER' },
+    { daysAgo: 26, productIndex: 2, qty: 2, method: 'CASH' },
+    { daysAgo: 25, productIndex: 0, qty: 1, method: 'CASH' },
+    
+    // Week 2 (18-21 days ago)
+    { daysAgo: 21, productIndex: 3, qty: 5, method: 'CASH' },
+    { daysAgo: 21, productIndex: 1, qty: 2, method: 'TRANSFER' },
+    { daysAgo: 20, productIndex: 4, qty: 3, method: 'CASH' },
+    { daysAgo: 19, productIndex: 0, qty: 3, method: 'CASH' },
+    { daysAgo: 18, productIndex: 2, qty: 1, method: 'TRANSFER' },
+    
+    // Week 3 (11-14 days ago)
+    { daysAgo: 14, productIndex: 1, qty: 3, method: 'CASH' },
+    { daysAgo: 14, productIndex: 3, qty: 4, method: 'CASH' },
+    { daysAgo: 13, productIndex: 4, qty: 5, method: 'TRANSFER' },
+    { daysAgo: 12, productIndex: 0, qty: 2, method: 'CASH' },
+    { daysAgo: 11, productIndex: 2, qty: 3, method: 'CASH' },
+    
+    // Week 4 (4-7 days ago) - Higher volume
+    { daysAgo: 7, productIndex: 0, qty: 4, method: 'CASH' },
+    { daysAgo: 7, productIndex: 1, qty: 2, method: 'CASH' },
+    { daysAgo: 6, productIndex: 3, qty: 6, method: 'TRANSFER' },
+    { daysAgo: 6, productIndex: 4, qty: 4, method: 'CASH' },
+    { daysAgo: 5, productIndex: 2, qty: 2, method: 'CASH' },
+    { daysAgo: 5, productIndex: 0, qty: 3, method: 'TRANSFER' },
+    { daysAgo: 4, productIndex: 1, qty: 1, method: 'CASH' },
+    
+    // Recent (1-3 days ago)
+    { daysAgo: 3, productIndex: 3, qty: 3, method: 'CASH' },
+    { daysAgo: 2, productIndex: 4, qty: 2, method: 'CASH' },
+    { daysAgo: 2, productIndex: 0, qty: 1, method: 'TRANSFER' },
+    { daysAgo: 1, productIndex: 1, qty: 2, method: 'CASH' },
+    { daysAgo: 1, productIndex: 2, qty: 1, method: 'CASH' },
+  ];
+
+  for (const sale of salesData) {
+    const saleDate = new Date(now.getTime() - sale.daysAgo * 24 * 60 * 60 * 1000);
+    const product = products[sale.productIndex];
     const randomMember = members[Math.floor(Math.random() * members.length)];
-    const randomProduct = products[Math.floor(Math.random() * products.length)];
-    const quantity = Math.floor(Math.random() * 3) + 1;
-    const unitPrice = Number(randomProduct.sellPrice);
-    const totalPrice = quantity * unitPrice;
+    const unitPrice = Number(product.sellPrice);
+    const totalPrice = sale.qty * unitPrice;
 
     const transaction = await prisma.transactions.create({
       data: {
@@ -324,10 +397,11 @@ async function main() {
         memberId: randomMember.id,
         type: 'SALE',
         totalAmount: new Decimal(totalPrice),
-        paymentMethod: 'CASH',
+        paymentMethod: sale.method as 'CASH' | 'TRANSFER' | 'CREDIT',
         status: 'COMPLETED',
-        note: `Penjualan ${randomProduct.name}`,
-        updatedAt: new Date(),
+        date: saleDate,
+        note: `Penjualan POS ${product.name}`,
+        updatedAt: saleDate,
       },
     });
 
@@ -335,8 +409,8 @@ async function main() {
       data: {
         id: randomUUID(),
         transactionId: transaction.id,
-        productId: randomProduct.id,
-        quantity,
+        productId: product.id,
+        quantity: sale.qty,
         unitPrice: new Decimal(unitPrice),
         totalPrice: new Decimal(totalPrice),
       },
@@ -344,100 +418,310 @@ async function main() {
 
     // Update product stock
     await prisma.products.update({
-      where: { id: randomProduct.id },
+      where: { id: product.id },
       data: {
         stock: {
-          decrement: quantity,
+          decrement: sale.qty,
         },
       },
     });
 
-    // Create stock movement
+    // Create stock movement for sale
     await prisma.stock_movements.create({
       data: {
         id: randomUUID(),
-        productId: randomProduct.id,
+        productId: product.id,
         movementType: 'SALE_OUT',
-        quantity,
-        note: `Penjualan transaksi ${transaction.id}`,
+        quantity: sale.qty,
+        occurredAt: saleDate,
+        note: `Penjualan POS ke ${randomMember.name}`,
       },
     });
   }
 
-  console.log('✅ Transactions created');
+  console.log('✅ Realistic POS sales transactions created');
 
-  // Create additional stock movements (IN)
-  for (let i = 0; i < 5; i++) {
-    const randomProduct = products[Math.floor(Math.random() * products.length)];
-    const quantity = Math.floor(Math.random() * 20) + 10; // 10-30 quantity
-
-    await prisma.stock_movements.create({
-      data: {
-        id: randomUUID(),
-        productId: randomProduct.id,
-        movementType: 'PURCHASE_IN',
-        quantity,
-        note: `Restock ${randomProduct.name}`,
-      },
-    });
-
-    // Update product stock
-    await prisma.products.update({
-      where: { id: randomProduct.id },
-      data: {
-        stock: {
-          increment: quantity,
-        },
-      },
-    });
-  }
-
-  console.log('✅ Additional stock movements created');
-
-  // Create additional financial transactions
-  const financialTransactions = [
-    {
-      type: 'SALE' as const,
-      totalAmount: 150000,
-      note: 'Pendapatan dari jasa simpan pinjam',
-      paymentMethod: 'CASH' as const,
-    },
-    {
-      type: 'PURCHASE' as const,
-      totalAmount: 75000,
-      note: 'Pembelian alat tulis kantor',
-      paymentMethod: 'CASH' as const,
-    },
-    {
-      type: 'PURCHASE' as const,
-      totalAmount: 200000,
-      note: 'Biaya listrik dan air',
-      paymentMethod: 'TRANSFER' as const,
-    },
-    {
-      type: 'SALE' as const,
-      totalAmount: 300000,
-      note: 'Pendapatan dari iuran anggota',
-      paymentMethod: 'TRANSFER' as const,
-    },
+  // Additional purchases/restocks
+  const restockData = [
+    { daysAgo: 20, productIndex: 1, qty: 15, amount: 375000 }, // Minyak Goreng restock
+    { daysAgo: 15, productIndex: 2, qty: 20, amount: 240000 }, // Gula Pasir restock
+    { daysAgo: 10, productIndex: 4, qty: 25, amount: 200000 }, // Teh Kotak restock
   ];
 
-  for (const txData of financialTransactions) {
+  for (const restock of restockData) {
+    const restockDate = new Date(now.getTime() - restock.daysAgo * 24 * 60 * 60 * 1000);
+    const product = products[restock.productIndex];
+
     await prisma.transactions.create({
       data: {
         id: randomUUID(),
-        ...txData,
+        type: 'PURCHASE',
+        totalAmount: new Decimal(restock.amount),
+        paymentMethod: 'TRANSFER',
         status: 'COMPLETED',
-        date: new Date(),
-        updatedAt: new Date(),
+        date: restockDate,
+        note: `Restock ${product.name} - ${restock.qty} ${product.unit}`,
+        updatedAt: restockDate,
+      },
+    });
+
+    await prisma.stock_movements.create({
+      data: {
+        id: randomUUID(),
+        productId: product.id,
+        movementType: 'PURCHASE_IN',
+        quantity: restock.qty,
+        occurredAt: restockDate,
+        note: `Restock pembelian`,
+      },
+    });
+
+    await prisma.products.update({
+      where: { id: product.id },
+      data: {
+        stock: {
+          increment: restock.qty,
+        },
       },
     });
   }
 
-  console.log('✅ Financial transactions created');
+  console.log('✅ Restock purchases created');
 
-  // Create sample broadcasts
-  const adminUser = users[0]; // Use first user as admin
+  // ============================================================
+  // OPERATIONAL EXPENSES & INCOME (Non-inventory transactions)
+  // ============================================================
+  console.log('💸 Creating operational expenses and income...');
+
+  const operationalTransactions = [
+    // INITIAL CAPITAL INJECTION (Modal Awal Koperasi)
+    { daysAgo: 30, type: 'SALE' as const, amount: 5000000, method: 'TRANSFER' as const, note: 'Modal awal koperasi dari anggota' },
+    
+    // EXPENSES
+    { daysAgo: 25, type: 'PURCHASE' as const, amount: 500000, method: 'TRANSFER' as const, note: 'Biaya listrik bulan lalu' },
+    { daysAgo: 25, type: 'PURCHASE' as const, amount: 200000, method: 'TRANSFER' as const, note: 'Biaya air PDAM' },
+    { daysAgo: 22, type: 'PURCHASE' as const, amount: 150000, method: 'CASH' as const, note: 'Pembelian alat tulis kantor' },
+    { daysAgo: 20, type: 'PURCHASE' as const, amount: 300000, method: 'CASH' as const, note: 'Biaya kebersihan dan pemeliharaan' },
+    { daysAgo: 18, type: 'PURCHASE' as const, amount: 250000, method: 'TRANSFER' as const, note: 'Biaya internet bulan lalu' },
+    { daysAgo: 15, type: 'PURCHASE' as const, amount: 400000, method: 'CASH' as const, note: 'Gaji karyawan harian' },
+    { daysAgo: 10, type: 'PURCHASE' as const, amount: 100000, method: 'CASH' as const, note: 'Biaya transportasi operasional' },
+    { daysAgo: 5, type: 'PURCHASE' as const, amount: 75000, method: 'CASH' as const, note: 'Pembelian peralatan kebersihan' },
+    { daysAgo: 3, type: 'PURCHASE' as const, amount: 200000, method: 'TRANSFER' as const, note: 'Biaya maintenance sistem POS' },
+    
+    // INCOME (Non-sales: membership fees, service fees, etc.)
+    { daysAgo: 27, type: 'SALE' as const, amount: 1000000, method: 'TRANSFER' as const, note: 'Iuran anggota bulan ini (5 anggota @ 200rb)' },
+    { daysAgo: 24, type: 'SALE' as const, amount: 300000, method: 'CASH' as const, note: 'Pendapatan jasa simpan pinjam' },
+    { daysAgo: 20, type: 'SALE' as const, amount: 500000, method: 'TRANSFER' as const, note: 'Fee administrasi dan pendaftaran anggota baru' },
+    { daysAgo: 16, type: 'SALE' as const, amount: 250000, method: 'CASH' as const, note: 'Pendapatan bunga simpanan' },
+    { daysAgo: 12, type: 'SALE' as const, amount: 800000, method: 'TRANSFER' as const, note: 'Iuran sukarela anggota dan simpanan' },
+    { daysAgo: 8, type: 'SALE' as const, amount: 200000, method: 'CASH' as const, note: 'Pendapatan jasa konsultasi koperasi' },
+    { daysAgo: 4, type: 'SALE' as const, amount: 1500000, method: 'TRANSFER' as const, note: 'Dana hibah/subsidi dari pemerintah daerah' },
+  ];
+
+  for (const tx of operationalTransactions) {
+    const txDate = new Date(now.getTime() - tx.daysAgo * 24 * 60 * 60 * 1000);
+    
+    await prisma.transactions.create({
+      data: {
+        id: randomUUID(),
+        type: tx.type,
+        totalAmount: new Decimal(tx.amount),
+        paymentMethod: tx.method,
+        status: 'COMPLETED',
+        date: txDate,
+        note: tx.note,
+        updatedAt: txDate,
+      },
+    });
+  }
+
+  console.log('✅ Operational transactions created');
+
+  // ============================================================
+  // CONSIGNMENT DATA (Barang Titipan)
+  // ============================================================
+  console.log('📦 Creating consignment data...');
+
+  // Create consignor (Penitip barang)
+  const consignor = await prisma.consignors.create({
+    data: {
+      id: randomUUID(),
+      code: 'CONS-001',
+      name: 'Ibu Siti - Titipan Kue',
+      phone: '081234567890',
+      email: 'ibu.siti@example.com',
+      address: 'Jakarta Selatan',
+      feeType: 'PERCENTAGE',
+      defaultFeePercent: new Decimal(20), // Koperasi ambil komisi 20%
+      isActive: true,
+      updatedAt: new Date(),
+    },
+  });
+
+  // Create consignment products (Produk Titipan)
+  const consignmentProduct = await prisma.products.create({
+    data: {
+      id: randomUUID(),
+      name: 'Kue Kering Coklat (Titipan)',
+      description: 'Kue kering coklat chip homemade dari Ibu Siti',
+      categoryId: categories[2].id, // Makanan Ringan
+      sku: 'CONS-KUE-001',
+      buyPrice: new Decimal(0), // Tidak ada buyPrice karena konsinyasi
+      sellPrice: new Decimal(15000),
+      stock: 15, // Sisa 15 unit (dari 50 awal, 35 terjual)
+      threshold: 5,
+      unit: 'pack',
+      isConsignment: true, // PENTING: Tandai sebagai konsinyasi
+      ownershipType: 'TITIPAN',
+      status: 'ACTIVE',
+      supplierContact: consignor.phone,
+      updatedAt: new Date(),
+    },
+  });
+
+  console.log(`✅ Consignment product created: ${consignmentProduct.name}`);
+
+  // Create consignment batch (Penerimaan barang titipan)
+  const batch1 = await prisma.consignment_batches.create({
+    data: {
+      id: randomUUID(),
+      code: 'BATCH-001',
+      consignorId: consignor.id,
+      productId: consignmentProduct.id,
+      qtyIn: 50, // Terima 50 unit
+      qtySold: 35, // Sudah terjual 35 unit
+      qtyReturned: 0,
+      qtyExpired: 0,
+      qtyRemaining: 15, // Sisa 15 unit
+      feeType: 'PERCENTAGE',
+      feePercent: new Decimal(20),
+      receivedAt: new Date('2025-10-18T10:00:00'),
+      status: 'ACTIVE',
+      note: 'Kue kering titipan untuk dijual',
+      updatedAt: new Date(),
+    },
+  });
+
+  // Record stock movement for consignment receipt
+  await prisma.stock_movements.create({
+    data: {
+      id: randomUUID(),
+      productId: consignmentProduct.id,
+      movementType: 'PURCHASE_IN',
+      quantity: 50,
+      occurredAt: new Date('2025-10-18T10:00:00'),
+      note: `Penerimaan barang konsinyasi - Batch ${batch1.code}`,
+      referenceId: batch1.id,
+      referenceType: 'CONSIGNMENT_BATCH',
+    },
+  });
+
+  // Create some consignment sales (Penjualan barang titipan)
+  const consignmentSalesData = [
+    { daysAgo: 18, qty: 10, unitPrice: 15000 }, // Total: 150,000
+    { daysAgo: 15, qty: 12, unitPrice: 15000 }, // Total: 180,000
+    { daysAgo: 10, qty: 8, unitPrice: 15000 },  // Total: 120,000
+    { daysAgo: 5, qty: 5, unitPrice: 15000 },   // Total: 75,000
+  ];
+
+  let totalConsignmentRevenue = 0;
+  let totalConsignmentFee = 0;
+  let totalNetToConsignor = 0;
+
+  for (const sale of consignmentSalesData) {
+    const saleDate = new Date(now.getTime() - sale.daysAgo * 24 * 60 * 60 * 1000);
+    const totalRevenue = sale.qty * sale.unitPrice;
+    const feeAmount = totalRevenue * 0.20; // 20% komisi koperasi
+    const netToConsignor = totalRevenue - feeAmount; // 80% untuk consignor
+
+    totalConsignmentRevenue += totalRevenue;
+    totalConsignmentFee += feeAmount;
+    totalNetToConsignor += netToConsignor;
+
+    // Create a POS transaction for the consignment sale
+    const consignmentTransaction = await prisma.transactions.create({
+      data: {
+        id: randomUUID(),
+        type: 'SALE',
+        totalAmount: new Decimal(totalRevenue),
+        paymentMethod: 'CASH',
+        status: 'COMPLETED',
+        date: saleDate,
+        note: `Penjualan barang konsinyasi - ${consignor.name}`,
+        updatedAt: saleDate,
+      },
+    });
+
+    // Create transaction item
+    const transactionItem = await prisma.transaction_items.create({
+      data: {
+        id: randomUUID(),
+        transactionId: consignmentTransaction.id,
+        productId: consignmentProduct.id, // Use consignment product
+        quantity: sale.qty,
+        unitPrice: new Decimal(sale.unitPrice),
+        totalPrice: new Decimal(totalRevenue),
+      },
+    });
+
+    // Record consignment sale (link to transaction)
+    await prisma.consignment_sales.create({
+      data: {
+        id: randomUUID(),
+        batchId: batch1.id,
+        transactionItemId: transactionItem.id,
+        qtySold: sale.qty,
+        unitPrice: new Decimal(sale.unitPrice),
+        totalRevenue: new Decimal(totalRevenue),
+        feeType: 'PERCENTAGE',
+        feeAmount: new Decimal(feeAmount),
+        netToConsignor: new Decimal(netToConsignor),
+        isSettled: false, // BELUM DIBAYAR ke consignor
+        saleDate: saleDate,
+      },
+    });
+
+    // Update product stock (reduce by sold quantity)
+    await prisma.products.update({
+      where: { id: consignmentProduct.id },
+      data: {
+        stock: {
+          decrement: sale.qty,
+        },
+      },
+    });
+
+    // Record stock movement for consignment sale
+    await prisma.stock_movements.create({
+      data: {
+        id: randomUUID(),
+        productId: consignmentProduct.id,
+        movementType: 'SALE_OUT',
+        quantity: sale.qty,
+        occurredAt: saleDate,
+        note: `Penjualan konsinyasi ke customer`,
+        referenceId: consignmentTransaction.id,
+        referenceType: 'SALE',
+      },
+    });
+  }
+
+  console.log(`✅ Consignment data created:`);
+  console.log(`   - Consignor: ${consignor.name}`);
+  console.log(`   - Batch: 50 units received, 35 sold, 15 remaining`);
+  console.log(`   - Total Sales Revenue: Rp ${totalConsignmentRevenue.toLocaleString('id-ID')}`);
+  console.log(`   - Koperasi Fee (20%): Rp ${totalConsignmentFee.toLocaleString('id-ID')}`);
+  console.log(`   - Net to Consignor: Rp ${totalNetToConsignor.toLocaleString('id-ID')}`);
+  console.log(`   - Status: UNPAID (will show as liability in balance sheet)`);
+
+  console.log('✅ Realistic data seeding completed');
+
+  // ============================================================
+  // BROADCASTS
+  // ============================================================
+  console.log('📢 Creating sample broadcasts...');
+  
+  const adminUser = users[0];
   await prisma.users.update({
     where: { id: adminUser.id },
     data: { role: 'ADMIN' },
@@ -480,7 +764,68 @@ async function main() {
 
   console.log('✅ Broadcasts created');
 
-  console.log('🎉 Database seeding completed successfully!');
+  // ============================================================
+  // FINAL SUMMARY
+  // ============================================================
+  console.log('\n📊 ========== DATA SUMMARY ==========');
+  
+  const totalProducts = await prisma.products.count();
+  const totalTransactions = await prisma.transactions.count();
+  const totalStockMovements = await prisma.stock_movements.count();
+  const totalMembers = await prisma.members.count();
+  
+  // Calculate expected balance sheet values
+  const allProducts = await prisma.products.findMany();
+  const inventoryValue = allProducts.reduce((sum, p) => 
+    sum + (Number(p.buyPrice) * p.stock), 0
+  );
+  
+  const cashIncome = await prisma.transactions.aggregate({
+    where: { type: 'SALE', paymentMethod: 'CASH', status: 'COMPLETED' },
+    _sum: { totalAmount: true },
+  });
+  
+  const cashExpense = await prisma.transactions.aggregate({
+    where: { type: 'PURCHASE', paymentMethod: 'CASH', status: 'COMPLETED' },
+    _sum: { totalAmount: true },
+  });
+  
+  const bankIncome = await prisma.transactions.aggregate({
+    where: { type: 'SALE', paymentMethod: 'TRANSFER', status: 'COMPLETED' },
+    _sum: { totalAmount: true },
+  });
+  
+  const bankExpense = await prisma.transactions.aggregate({
+    where: { type: 'PURCHASE', paymentMethod: 'TRANSFER', status: 'COMPLETED' },
+    _sum: { totalAmount: true },
+  });
+
+  const expectedCash = Number(cashIncome._sum.totalAmount || 0) - Number(cashExpense._sum.totalAmount || 0);
+  const expectedBank = Number(bankIncome._sum.totalAmount || 0) - Number(bankExpense._sum.totalAmount || 0);
+  const expectedInventory = inventoryValue;
+  
+  // Calculate consignment liability (unpaid consignments)
+  const unpaidConsignments = await prisma.consignment_sales.findMany({
+    where: { isSettled: false }
+  });
+  const expectedLiability = unpaidConsignments.reduce((sum, sale) => 
+    sum + Number(sale.netToConsignor), 0
+  );
+
+  console.log(`✅ Total Products: ${totalProducts}`);
+  console.log(`✅ Total Members: ${totalMembers}`);
+  console.log(`✅ Total Transactions: ${totalTransactions}`);
+  console.log(`✅ Total Stock Movements: ${totalStockMovements}`);
+  console.log(`\n💰 EXPECTED BALANCE SHEET VALUES:`);
+  console.log(`   Kas (Cash): Rp ${expectedCash.toLocaleString('id-ID')}`);
+  console.log(`   Bank: Rp ${expectedBank.toLocaleString('id-ID')}`);
+  console.log(`   Persediaan (Inventory): Rp ${expectedInventory.toLocaleString('id-ID')}`);
+  console.log(`   Hutang Konsinyasi (Liability): Rp ${expectedLiability.toLocaleString('id-ID')}`);
+  console.log(`   Total Aktiva Lancar: Rp ${(expectedCash + expectedBank + expectedInventory).toLocaleString('id-ID')}`);
+  console.log(`   Total Liabilitas: Rp ${expectedLiability.toLocaleString('id-ID')}`);
+  console.log('=====================================\n');
+
+  console.log('🎉 Comprehensive database seeding completed successfully!');
 }
 
 main()

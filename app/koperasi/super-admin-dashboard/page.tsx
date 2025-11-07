@@ -17,7 +17,8 @@ import {
   Building2,
   CheckCircle,
   BarChart3,
-  Settings
+  Settings,
+  FileText
 } from 'lucide-react';
 
 interface SuperAdminDashboardStats {
@@ -44,16 +45,47 @@ interface SuperAdminDashboardStats {
   };
 }
 
+interface BalanceSheetSummary {
+  totalAktiva: number;
+  totalPasiva: number;
+  totalEkuitas: number;
+  isBalanced: boolean;
+}
+
 export default function SuperAdminDashboardPage() {
   const { user, loading, authorized } = useAuth(['SUPER_ADMIN']);
   const [stats, setStats] = useState<SuperAdminDashboardStats | null>(null);
+  const [balanceSheet, setBalanceSheet] = useState<BalanceSheetSummary | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     if (authorized) {
       fetchSuperAdminStats();
+      fetchBalanceSheetSummary();
     }
   }, [authorized]);
+
+  const fetchBalanceSheetSummary = async () => {
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/financial/balance-sheet', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      if (response.ok) {
+        const data = await response.json();
+        setBalanceSheet({
+          totalAktiva: data.aktiva.total,
+          totalPasiva: data.pasiva.total,
+          totalEkuitas: data.pasiva.ekuitas.subtotal,
+          isBalanced: data.isBalanced
+        });
+      }
+    } catch (error) {
+      console.error('Error fetching balance sheet summary:', error);
+    }
+  };
 
   const fetchSuperAdminStats = async () => {
     try {
@@ -260,6 +292,72 @@ export default function SuperAdminDashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Neraca Summary */}
+      {balanceSheet && (
+        <Card className={`shadow-md border-2 ${balanceSheet.isBalanced ? 'border-green-500' : 'border-orange-500'}`}>
+          <CardHeader className="pb-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg shadow">
+                  <FileText className="h-5 w-5 text-white" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-semibold text-slate-900">Ringkasan Neraca</h3>
+                  <p className="text-sm text-slate-600">Balance Sheet Summary</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2">
+                {balanceSheet.isBalanced ? (
+                  <CheckCircle className="h-5 w-5 text-green-600" />
+                ) : (
+                  <AlertTriangle className="h-5 w-5 text-orange-600" />
+                )}
+                <span className={`text-sm font-medium ${balanceSheet.isBalanced ? 'text-green-600' : 'text-orange-600'}`}>
+                  {balanceSheet.isBalanced ? 'Balance' : 'Unbalanced'}
+                </span>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+              <div className="p-4 bg-blue-50 rounded-lg border border-blue-200">
+                <p className="text-sm text-slate-600 mb-1 flex items-center gap-2">
+                  <TrendingUp className="h-4 w-4" />
+                  Total Aktiva
+                </p>
+                <p className="text-xl font-bold text-blue-900">
+                  {formatCurrency(balanceSheet.totalAktiva)}
+                </p>
+              </div>
+              <div className="p-4 bg-green-50 rounded-lg border border-green-200">
+                <p className="text-sm text-slate-600 mb-1 flex items-center gap-2">
+                  <DollarSign className="h-4 w-4" />
+                  Total Ekuitas
+                </p>
+                <p className="text-xl font-bold text-green-900">
+                  {formatCurrency(balanceSheet.totalEkuitas)}
+                </p>
+              </div>
+              <div className="p-4 bg-purple-50 rounded-lg border border-purple-200">
+                <p className="text-sm text-slate-600 mb-1 flex items-center gap-2">
+                  <BarChart3 className="h-4 w-4" />
+                  Total Pasiva
+                </p>
+                <p className="text-xl font-bold text-purple-900">
+                  {formatCurrency(balanceSheet.totalPasiva)}
+                </p>
+              </div>
+            </div>
+            <Link href="/koperasi/financial/neraca">
+              <Button className="w-full" variant="outline">
+                <FileText className="h-4 w-4 mr-2" />
+                Lihat Detail Neraca Lengkap
+              </Button>
+            </Link>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Quick Actions */}
       <Card>
