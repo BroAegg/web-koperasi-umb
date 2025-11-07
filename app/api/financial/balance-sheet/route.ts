@@ -170,62 +170,80 @@ export async function GET(request: NextRequest) {
     const totalLiabilitas = hutangKonsinyasi + hutangDagang + hutangGaji + hutangLainnya;
 
     // === EKUITAS (Equity) ===
-    // In a simple balance sheet: Ekuitas = Aktiva - Liabilitas
-    // Or broken down: Modal Awal + Laba Ditahan + SHU Periode Berjalan
+    // Proper accounting: AKTIVA = LIABILITAS + EKUITAS
+    // Ekuitas = Modal Disetor (FIXED) + Laba Ditahan + SHU Tahun Berjalan
     
-    // 1. MODAL AWAL (Initial Capital) - Could be from members' contributions
-    // For now, we'll calculate it as the difference to make balance sheet balanced
-    const totalEkuitasRequired = totalAktiva - totalLiabilitas;
+    // 1. MODAL AWAL (Initial Capital) - FIXED VALUE from transaction
+    // Look for transaction with note containing "Modal awal koperasi"
+    // This represents initial capital injection from members
+    const modalAwalTransaction = await prisma.transactions.findFirst({
+      where: {
+        type: 'SALE',
+        note: { contains: 'Modal awal koperasi' },
+        status: 'COMPLETED'
+      },
+      orderBy: { date: 'asc' }
+    });
+    
+    const modalAwal = modalAwalTransaction 
+      ? decimalToNumber(modalAwalTransaction.totalAmount) 
+      : 0; // If no modal awal transaction, default to 0
     
     // 2. SISA HASIL USAHA (Current Period Profit/Loss)
-    // Calculate from SALE income minus PURCHASE expenses for current period
+    // Calculate from SALE income minus PURCHASE/EXPENSE for current period
     const periodSales = await prisma.transactions.aggregate({
       where: { 
         type: 'SALE',
         status: 'COMPLETED', 
-        date: { gte: startDate, lte: endDate } 
+        date: { gte: startDate, lte: endDate },
+        NOT: { note: { contains: 'Modal awal koperasi' } } // Exclude modal awal
       },
       _sum: { totalAmount: true }
     });
     
-    const periodPurchases = await prisma.transactions.aggregate({
+    const periodExpenses = await prisma.transactions.aggregate({
       where: { 
-        type: 'PURCHASE',
+        OR: [
+          { type: 'PURCHASE' },
+          { type: 'EXPENSE' }
+        ],
         status: 'COMPLETED',
         date: { gte: startDate, lte: endDate } 
       },
       _sum: { totalAmount: true }
     });
     
-    const sisaHasilUsaha = decimalToNumber(periodSales._sum.totalAmount) - decimalToNumber(periodPurchases._sum.totalAmount);
+    const sisaHasilUsaha = decimalToNumber(periodSales._sum.totalAmount) - decimalToNumber(periodExpenses._sum.totalAmount);
 
     // 3. LABA RUGI DITAHAN (Retained Earnings from previous periods)
-    // Calculate cumulative profit before this period
+    // Calculate cumulative profit before this period (excluding modal awal)
     const previousPeriodEnd = new Date(year, month - 1, 0, 23, 59, 59);
     
     const prevSales = await prisma.transactions.aggregate({
       where: { 
         type: 'SALE',
         status: 'COMPLETED', 
-        date: { lte: previousPeriodEnd } 
+        date: { lte: previousPeriodEnd },
+        NOT: { note: { contains: 'Modal awal koperasi' } } // Exclude modal awal
       },
       _sum: { totalAmount: true }
     });
     
-    const prevPurchases = await prisma.transactions.aggregate({
+    const prevExpenses = await prisma.transactions.aggregate({
       where: { 
-        type: 'PURCHASE',
+        OR: [
+          { type: 'PURCHASE' },
+          { type: 'EXPENSE' }
+        ],
         status: 'COMPLETED',
         date: { lte: previousPeriodEnd } 
       },
       _sum: { totalAmount: true }
     });
     
-    const labaRugiDitahan = decimalToNumber(prevSales._sum.totalAmount) - decimalToNumber(prevPurchases._sum.totalAmount);
+    const labaRugiDitahan = decimalToNumber(prevSales._sum.totalAmount) - decimalToNumber(prevExpenses._sum.totalAmount);
 
-    // 4. MODAL AWAL (calculated to balance the equation)
-    // Modal Awal = Total Ekuitas Required - SHU - Laba Ditahan
-    const modalAwal = totalEkuitasRequired - sisaHasilUsaha - labaRugiDitahan;
+    // Calculate Total Ekuitas
     const totalEkuitas = modalAwal + sisaHasilUsaha + labaRugiDitahan;
     const totalPasiva = totalLiabilitas + totalEkuitas;
 
