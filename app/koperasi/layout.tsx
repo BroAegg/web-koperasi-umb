@@ -102,6 +102,12 @@ function KoperasiContent({ children }: { children: React.ReactNode }) {
       ]
     },
     {
+      title: "KEANGGOTAAN",
+      items: [
+        { name: "Import Anggota", href: "/koperasi/membership/import", icon: Users, roles: ["ADMIN", "SUPER_ADMIN"] },
+      ]
+    },
+    {
       title: "OPERASIONAL TOKO",
       items: [
         { name: "POS Kasir", href: "/koperasi/pos", icon: CreditCard, roles: ["ADMIN", "SUPER_ADMIN"] },
