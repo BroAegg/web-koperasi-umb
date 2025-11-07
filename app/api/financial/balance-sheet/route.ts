@@ -71,22 +71,59 @@ export async function GET(request: NextRequest) {
     const startDate = new Date(year, month - 1, 1);
     const endDate = new Date(year, month, 0, 23, 59, 59);
 
-    // Calculate KAS from cash transactions
-    const cashTransactions = await prisma.transactions.findMany({
-      where: { paymentMethod: 'CASH', createdAt: { lte: endDate } }
+    // === AKTIVA LANCAR ===
+    
+    // 1. KAS (Cash on Hand) - Accumulated cash up to endDate
+    // Count all CASH income transactions minus CASH expenses
+    const cashIncome = await prisma.transactions.findMany({
+      where: { 
+        paymentMethod: 'CASH', 
+        status: 'COMPLETED',
+        createdAt: { lte: endDate } 
+      }
     });
-    const kas = cashTransactions.reduce((sum: number, t) => sum + decimalToNumber(t.totalAmount), 0);
-
-    // Calculate BANK from non-cash transactions
-    const bankTransactions = await prisma.transactions.findMany({
+    const totalCashIncome = cashIncome.reduce((sum: number, t) => sum + decimalToNumber(t.totalAmount), 0);
+    
+    // Cash expenses (consignment payments with cash method)
+    const cashExpenses = await prisma.consignment_payments.findMany({
       where: {
-        OR: [{ paymentMethod: 'TRANSFER' }, { paymentMethod: 'CREDIT' }],
+        paymentMethod: 'CASH',
+        status: 'PAID',
         createdAt: { lte: endDate }
       }
     });
-    const bank = bankTransactions.reduce((sum: number, t) => sum + decimalToNumber(t.totalAmount), 0);
+    const totalCashExpenses = cashExpenses.reduce((sum: number, c) => sum + c.amount, 0);
+    
+    const kas = totalCashIncome - totalCashExpenses;
 
-    // Calculate PERSEDIAAN (inventory value)
+    // 2. BANK (Bank Balance) - Accumulated bank balance up to endDate
+    const bankIncome = await prisma.transactions.findMany({
+      where: {
+        OR: [{ paymentMethod: 'TRANSFER' }, { paymentMethod: 'CREDIT' }],
+        status: 'COMPLETED',
+        createdAt: { lte: endDate }
+      }
+    });
+    const totalBankIncome = bankIncome.reduce((sum: number, t) => sum + decimalToNumber(t.totalAmount), 0);
+    
+    const bankExpenses = await prisma.consignment_payments.findMany({
+      where: {
+        OR: [
+          { paymentMethod: 'TRANSFER' },
+          { paymentMethod: 'CREDIT' }
+        ],
+        status: 'PAID',
+        createdAt: { lte: endDate }
+      }
+    });
+    const totalBankExpenses = bankExpenses.reduce((sum: number, c) => sum + c.amount, 0);
+    
+    const bank = totalBankIncome - totalBankExpenses;
+
+    // 3. PIUTANG (Accounts Receivable)
+    const piutang = 0; // TODO: Implement if you track customer credit
+
+    // 4. PERSEDIAAN GUDANG (Inventory Stock Value)
     const products = await prisma.products.findMany({
       where: { stock: { gt: 0 } }
     });
@@ -94,10 +131,10 @@ export async function GET(request: NextRequest) {
       return sum + (decimalToNumber(p.buyPrice) * (p.stock || 0));
     }, 0);
 
-    const piutang = 0;
-    const peralatan = 0;
-    const kendaraan = 0;
-    const gedung = 0;
+    // 5. AKTIVA TETAP (Fixed Assets)
+    const peralatan = 0; // Equipment - TODO: Add if tracked
+    const kendaraan = 0; // Vehicles - TODO: Add if tracked
+    const gedung = 0; // Buildings - TODO: Add if tracked
 
     const aktivaLancarSubtotal = kas + bank + piutang + persediaan;
     const aktivaTetapSubtotal = peralatan + kendaraan + gedung;
