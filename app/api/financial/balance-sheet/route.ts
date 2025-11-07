@@ -26,11 +26,17 @@ interface BalanceSheetData {
     total: number;
   };
   pasiva: {
-    liabilitas: {
+    liabilitasLancar: {
       hutangKonsinyasi: number;
+      simpananSukarela: number;
       hutangDagang: number;
       hutangGaji: number;
       hutangLainnya: number;
+      subtotal: number;
+    };
+    liabilitasJangkaPanjang: {
+      simpananPokok: number;
+      simpananWajib: number;
       subtotal: number;
     };
     ekuitas: {
@@ -158,16 +164,44 @@ export async function GET(request: NextRequest) {
       return sum + decimalToNumber(sale.netToConsignor);
     }, 0);
 
-    // 2. HUTANG DAGANG (Trade Payables) - Other unpaid invoices
+    // 2. SIMPANAN ANGGOTA (Member Savings - Current Liability)
+    // Simpanan Sukarela can be withdrawn anytime = short-term liability
+    const simpananAnggota = await prisma.members.aggregate({
+      where: { status: 'ACTIVE' },
+      _sum: { 
+        simpananSukarela: true 
+      }
+    });
+    const simpananSukarela = decimalToNumber(simpananAnggota._sum.simpananSukarela);
+
+    // 3. HUTANG DAGANG (Trade Payables) - Other unpaid invoices
     const hutangDagang = 0; // TODO: Implement if tracking supplier invoices
 
-    // 3. HUTANG GAJI (Salary Payables)
+    // 4. HUTANG GAJI (Salary Payables)
     const hutangGaji = 0; // TODO: Implement if tracking unpaid salaries
     
-    // 4. HUTANG LAINNYA (Other Payables)
+    // 5. HUTANG LAINNYA (Other Payables)
     const hutangLainnya = 0;
 
-    const totalLiabilitas = hutangKonsinyasi + hutangDagang + hutangGaji + hutangLainnya;
+    const totalLiabilitasLancar = hutangKonsinyasi + simpananSukarela + hutangDagang + hutangGaji + hutangLainnya;
+
+    // === LIABILITAS JANGKA PANJANG (Long-term Liabilities) ===
+    
+    // 1. SIMPANAN POKOK & WAJIB (Member Mandatory Savings)
+    // These are long-term as they can only be withdrawn when member exits
+    const simpananPokokWajib = await prisma.members.aggregate({
+      where: { status: 'ACTIVE' },
+      _sum: { 
+        simpananPokok: true,
+        simpananWajib: true 
+      }
+    });
+    const simpananPokok = decimalToNumber(simpananPokokWajib._sum.simpananPokok);
+    const simpananWajib = decimalToNumber(simpananPokokWajib._sum.simpananWajib);
+    const totalSimpananPokokWajib = simpananPokok + simpananWajib;
+
+    const totalLiabilitasJangkaPanjang = totalSimpananPokokWajib;
+    const totalLiabilitas = totalLiabilitasLancar + totalLiabilitasJangkaPanjang;
 
     // === EKUITAS (Equity) ===
     // Proper accounting: AKTIVA = LIABILITAS + EKUITAS
@@ -272,12 +306,18 @@ export async function GET(request: NextRequest) {
         total: Math.round(totalAktiva)
       },
       pasiva: {
-        liabilitas: {
+        liabilitasLancar: {
           hutangKonsinyasi: Math.round(hutangKonsinyasi),
+          simpananSukarela: Math.round(simpananSukarela),
           hutangDagang: Math.round(hutangDagang),
           hutangGaji: Math.round(hutangGaji),
           hutangLainnya: Math.round(hutangLainnya),
-          subtotal: Math.round(totalLiabilitas)
+          subtotal: Math.round(totalLiabilitasLancar)
+        },
+        liabilitasJangkaPanjang: {
+          simpananPokok: Math.round(simpananPokok),
+          simpananWajib: Math.round(simpananWajib),
+          subtotal: Math.round(totalLiabilitasJangkaPanjang)
         },
         ekuitas: {
           modalAwal: Math.round(modalAwal),
