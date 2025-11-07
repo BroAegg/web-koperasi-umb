@@ -81,12 +81,39 @@ function KoperasiContent({ children }: { children: React.ReactNode }) {
   // Categorized navigation for better organization
   const navigationCategories = [
     {
-      title: "OPERASIONAL",
+      title: "DASHBOARD",
       items: [
         { name: "Dashboard", href: "/koperasi/dashboard", icon: LayoutDashboard, roles: ["ADMIN", "SUPER_ADMIN"] },
+      ]
+    },
+    {
+      title: "KEUANGAN & LAPORAN",
+      items: [
+        { name: "Transaksi Keuangan", href: "/koperasi/financial", icon: TrendingUp, roles: ["SUPER_ADMIN"] },
+        { name: "Neraca", href: "/koperasi/financial/neraca", icon: FileText, roles: ["SUPER_ADMIN"] },
+        { name: "Analytics", href: "/koperasi/analytics", icon: BarChart3, roles: ["SUPER_ADMIN", "ADMIN"] },
+        { name: "Produk Terlaris", href: "/koperasi/analytics/best-sellers", icon: Award, roles: ["SUPER_ADMIN", "ADMIN"] },
+      ]
+    },
+    {
+      title: "MANAJEMEN MITRA", 
+      items: [
+        { name: "Kelola Supplier", href: "/koperasi/super-admin/suppliers", icon: Building2, roles: ["SUPER_ADMIN"] },
+      ]
+    },
+    {
+      title: "OPERASIONAL TOKO",
+      items: [
         { name: "POS Kasir", href: "/koperasi/pos", icon: CreditCard, roles: ["ADMIN", "SUPER_ADMIN"] },
         { name: "Riwayat Transaksi", href: "/koperasi/transactions", icon: Receipt, roles: ["ADMIN", "SUPER_ADMIN"] },
         { name: "Inventory", href: "/koperasi/inventory", icon: Package, roles: ["ADMIN", "SUPER_ADMIN"] },
+      ]
+    },
+    {
+      title: "PENGATURAN SISTEM",
+      items: [
+        { name: "Broadcast", href: "/koperasi/broadcast", icon: Megaphone, roles: ["SUPER_ADMIN"] },
+        { name: "Pengaturan", href: "/koperasi/settings", icon: Settings, roles: ["SUPER_ADMIN"] },
       ]
     },
     {
@@ -98,28 +125,6 @@ function KoperasiContent({ children }: { children: React.ReactNode }) {
         { name: "Transaksi", href: "/koperasi/supplier/transactions", icon: Receipt, roles: ["SUPPLIER"] },
         { name: "Broadcast", href: "/koperasi/supplier/broadcast", icon: Megaphone, roles: ["SUPPLIER"] },
         { name: "Profil", href: "/koperasi/supplier/profile", icon: User, roles: ["SUPPLIER"] },
-      ]
-    },
-    {
-      title: "MITRA", 
-      items: [
-        { name: "Suppliers", href: "/koperasi/super-admin/suppliers", icon: Building2, roles: ["SUPER_ADMIN"] },
-      ]
-    },
-    {
-      title: "KEUANGAN",
-      items: [
-        { name: "Keuangan", href: "/koperasi/financial", icon: TrendingUp, roles: ["SUPER_ADMIN"] },
-        { name: "Neraca", href: "/koperasi/financial/neraca", icon: FileText, roles: ["SUPER_ADMIN"] },
-        { name: "Analytics Dashboard", href: "/koperasi/analytics", icon: BarChart3, roles: ["SUPER_ADMIN", "ADMIN"] },
-        { name: "Produk Terlaris", href: "/koperasi/analytics/best-sellers", icon: Award, roles: ["SUPER_ADMIN", "ADMIN"] },
-      ]
-    },
-    {
-      title: "SISTEM",
-      items: [
-        { name: "Broadcast", href: "/koperasi/broadcast", icon: Megaphone, roles: ["SUPER_ADMIN"] },
-        { name: "Pengaturan", href: "/koperasi/settings", icon: Settings, roles: ["SUPER_ADMIN"] },
       ]
     },
     {
