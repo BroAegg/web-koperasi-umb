@@ -100,20 +100,42 @@ async function clearAndSeed() {
     });
 
     // 2. Create TITIPAN Product (consignment from supplier)
-    // First, create a consignor (supplier)
-    const consignorId = `consignor-${timestamp}`;
-    console.log('👤 Creating consignor (supplier)...');
+    // First, create a supplier (required for products.supplierId FK)
+    const supplierId = `supplier-${timestamp}`;
+    console.log('👤 Creating supplier...');
+    await prisma.suppliers.create({
+      data: {
+        id: supplierId,
+        code: `SUP-${timestamp}`,
+        businessName: 'Supplier Test Titipan',
+        ownerName: 'Pemilik Test',
+        phone: '081234567890',
+        email: `supplier${timestamp}@test.com`,
+        address: 'Jl. Test No. 123',
+        password: 'hashed_password_here', // Dummy password
+        status: 'APPROVED',
+        isActive: true,
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        approvedAt: new Date()
+      }
+    });
+    console.log('✅ Supplier created');
+
+    // Create consignor (separate for consignment tracking) with same ID
+    const consignorId = supplierId; // Use same ID for linking
+    console.log('👤 Creating consignor...');
     await prisma.consignors.create({
       data: {
         id: consignorId,
-        code: `SUP-${timestamp}`,
+        code: `CON-${timestamp}`,
         name: 'Supplier Test Titipan',
         phone: '081234567890',
         createdAt: new Date(),
         updatedAt: new Date()
       }
     });
-    console.log('✅ Consignor created');
+    console.log('✅ Consignor created (linked to supplier)');
 
     console.log('📦 Creating TITIPAN product...');
     await prisma.products.create({
@@ -127,6 +149,7 @@ async function clearAndSeed() {
         stock: 20,
         threshold: 5,
         ownershipType: 'TITIPAN',
+        supplierId: supplierId, // ✅ Link to supplier!
         createdAt: new Date(),
         updatedAt: new Date(),
         isActive: true,
@@ -173,6 +196,30 @@ async function clearAndSeed() {
       }
     });
 
+    // ========== STEP 3: CREATE MODAL AWAL TRANSACTION ==========
+    console.log('\n💰 Creating Modal Awal transaction...');
+    
+    // Calculate total capital needed: 
+    // - TOKO product cost: 20 × 5000 = 100,000
+    // - TITIPAN is consignment (not our capital)
+    // Total: 100,000
+    const modalAwalAmount = 100000;
+    
+    await prisma.transactions.create({
+      data: {
+        id: `txn-modal-${timestamp}`,
+        type: 'SALE', // Using SALE type as income to equity
+        totalAmount: modalAwalAmount,
+        paymentMethod: 'CASH',
+        note: 'Modal awal koperasi - Initial capital injection',
+        status: 'COMPLETED',
+        date: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        isProduction: true
+      }
+    });
+    console.log(`✅ Modal Awal created: Rp ${modalAwalAmount.toLocaleString('id-ID')}`);
 
     // ========== STEP 4: SHOW STATUS ==========
     const userCount = await prisma.users.count();
