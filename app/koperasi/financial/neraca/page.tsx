@@ -231,6 +231,8 @@ export default function NeracaPage() {
                   </p>
                   <p className="text-sm text-red-700">
                     Selisih: {formatCurrency(Math.abs(balanceSheet.difference))}
+                    {balanceSheet.difference < 0 && ' (Aktiva < Pasiva)'}
+                    {balanceSheet.difference > 0 && ' (Aktiva > Pasiva)'}
                   </p>
                 </div>
               </>
@@ -238,6 +240,26 @@ export default function NeracaPage() {
           </div>
         </CardContent>
       </Card>
+
+      {/* Insolvency Warning - Show when Liabilities exceed Assets */}
+      {balanceSheet.pasiva.liabilitas.subtotal > balanceSheet.aktiva.total && (
+        <Card className="shadow-md border-2 border-yellow-500 bg-yellow-50">
+          <CardContent className="py-4">
+            <div className="flex items-center gap-3">
+              <AlertTriangle className="h-6 w-6 text-yellow-600" />
+              <div>
+                <p className="font-semibold text-yellow-900">
+                  Peringatan: Hutang Melebihi Total Aset
+                </p>
+                <p className="text-sm text-yellow-700">
+                  Total Liabilitas ({formatCurrency(balanceSheet.pasiva.liabilitas.subtotal)}) lebih besar dari Total Aktiva ({formatCurrency(balanceSheet.aktiva.total)}). 
+                  Ini menunjukkan risiko kesulitan keuangan. Pertimbangkan untuk mengurangi hutang atau meningkatkan aset.
+                </p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Main Balance Sheet - Side by Side */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
