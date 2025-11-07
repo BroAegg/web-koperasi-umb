@@ -250,6 +250,31 @@ export async function POST(req: NextRequest) {
         },
       });
 
+      // Update consignment_sales to mark as settled (reduce hutang konsinyasi)
+      // Find all unpaid sales for this supplier in the period
+      const salesToSettle = await prisma.consignment_sales.findMany({
+        where: {
+          consignment_batches: {
+            consignorId: supplierId
+          },
+          saleDate: { gte: periodStart, lte: periodEnd },
+          isSettled: false
+        },
+        select: { id: true, netToConsignor: true }
+      });
+
+      // Mark these sales as settled (reducing hutang konsinyasi in balance sheet)
+      if (salesToSettle.length > 0) {
+        await prisma.consignment_sales.updateMany({
+          where: {
+            id: { in: salesToSettle.map(s => s.id) }
+          },
+          data: {
+            isSettled: true
+          }
+        });
+      }
+
       // Create activity log
         // Create activity log
         await prisma.activity_logs.create({
