@@ -250,99 +250,20 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      // ✅ NEW LOGIC: Create consignment_sales from transaction_items
-      // Find all TITIPAN transaction_items in period that don't have consignment_sales yet
-      const titipanTransactionItems = await prisma.transaction_items.findMany({
-        where: {
-          transactions: {
-            type: 'SALE',
-            status: 'COMPLETED',
-            date: { gte: periodStart, lte: periodEnd }
-          },
-          products: {
-            ownershipType: 'TITIPAN'
-          },
-          // Check if consignment_sales doesn't exist for this transaction_item
-          consignment_sales: {
-            none: {} // No related consignment_sales records
-          }
-        },
-        include: {
-          products: {
-            include: {
-              consignment_batches: {
-                where: {
-                  consignorId: supplierId,
-                  status: 'ACTIVE'
-                },
-                orderBy: { receivedAt: 'asc' } // FIFO
-              }
-            }
-          }
-        }
-      });
-
-      // Create consignment_sales for each transaction_item
-      const createdSalesCount = titipanTransactionItems.length;
-      for (const item of titipanTransactionItems) {
-        const batch = item.products.consignment_batches[0]; // Get first active batch (FIFO)
-        
-        if (batch) {
-          const totalRevenue = Number(item.totalPrice);
-          const feeType = batch.feeType;
-          
-          let feeAmount = 0;
-          if (feeType === 'PERCENTAGE') {
-            feeAmount = (totalRevenue * Number(batch.feePercent || 0)) / 100;
-          } else if (feeType === 'FLAT') {
-            feeAmount = Number(batch.feeFlat || 0) * item.quantity;
-          }
-
-          const netToConsignor = totalRevenue - feeAmount;
-
-          // Create consignment_sales record
-          await prisma.consignment_sales.create({
-            data: {
-              id: `csale-${Date.now()}-${Math.random().toString(36).substring(7)}`,
-              batchId: batch.id,
-              transactionItemId: item.id,
-              qtySold: item.quantity,
-              unitPrice: item.unitPrice,
-              totalRevenue: totalRevenue,
-              feeType: feeType,
-              feeAmount: feeAmount,
-              netToConsignor: netToConsignor,
-              isSettled: true, // ✅ Langsung settled karena ini payment action
-              saleDate: new Date(), // Use transaction date
-              createdAt: new Date(),
-            },
-          });
-
-          // Update batch quantities
-          await prisma.consignment_batches.update({
-            where: { id: batch.id },
-            data: {
-              qtySold: { increment: item.quantity },
-              qtyRemaining: { decrement: item.quantity },
-              updatedAt: new Date(),
-            },
-          });
-        }
-      }
-
-      // Update any existing unpaid consignment_sales to settled (if any)
-      // This handles cases where consignment_sales were created before (for backward compatibility)
+      // ✅ UPDATE existing consignment_sales to mark as settled (reduce hutang konsinyasi)
+      // Find all unpaid sales for this supplier in the period
       const salesToSettle = await prisma.consignment_sales.findMany({
         where: {
           consignment_batches: {
             consignorId: supplierId
           },
           saleDate: { gte: periodStart, lte: periodEnd },
-          isSettled: false
+          isSettled: false // Only unsettled sales
         },
-        select: { id: true }
+        select: { id: true, netToConsignor: true }
       });
 
+      // Mark these sales as settled (reducing hutang konsinyasi in balance sheet)
       if (salesToSettle.length > 0) {
         await prisma.consignment_sales.updateMany({
           where: {
@@ -352,6 +273,10 @@ export async function POST(req: NextRequest) {
             isSettled: true
           }
         });
+        
+        console.log(`[Payment] Settled ${salesToSettle.length} consignment_sales for supplier ${supplierId}`);
+      } else {
+        console.warn(`[Payment] No unsettled consignment_sales found for supplier ${supplierId} in period`);
       }
 
       // Create activity log
