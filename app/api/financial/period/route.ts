@@ -192,10 +192,12 @@ export async function GET(request: NextRequest) {
           const isConsignment = item.products?.isConsignment || item.products?.ownershipType === 'TITIPAN';
 
           if (isConsignment) {
-            // Consignment product sold: COGS is expense (payment to consignor)
+            // Consignment product sold: Revenue only, NO expense until payment made
+            // COGS tracked for profit calculation, but NOT counted as expense
+            // Expense akan di-count nanti pas payment via /api/consignment/payments
             consignmentGrossRevenue += itemRevenue;
-            consignmentCOGS += itemCOGS;
-            totalExpense += itemCOGS; // TITIPAN COGS = expense
+            consignmentCOGS += itemCOGS; // For profit calc only
+            // ❌ DO NOT: totalExpense += itemCOGS (expense counted on payment, not sale!)
             
             // Track consignment by supplier
             const supplierId = item.products?.supplierId || 'unknown';
