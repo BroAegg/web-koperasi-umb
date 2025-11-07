@@ -68,7 +68,7 @@ interface BalanceSheetData {
 }
 
 export default function NeracaPage() {
-  const { user, loading, authorized } = useAuth(['SUPER_ADMIN', 'DEVELOPER']);
+  const { user, loading, authorized } = useAuth(['SUPER_ADMIN']);
   const [balanceSheet, setBalanceSheet] = useState<BalanceSheetData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [selectedMonth, setSelectedMonth] = useState(new Date().getMonth() + 1);

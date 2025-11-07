@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
     }
 
     const user = await getUserFromToken(token);
-    if (!user || !['SUPER_ADMIN', 'DEVELOPER'].includes(user.role)) {
+    if (!user || !['SUPER_ADMIN'].includes(user.role)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 
