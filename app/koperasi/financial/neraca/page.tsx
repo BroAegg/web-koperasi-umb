@@ -207,7 +207,17 @@ export default function NeracaPage() {
       </Card>
 
       {/* Balance Check Indicator */}
-      <Card className={`shadow-md border-2 ${balanceSheet.isBalanced ? 'border-green-500 bg-green-50' : 'border-red-500 bg-red-50'}`}>
+      {/* Show different colors based on financial health:
+          - Green: Aktiva = Pasiva (Perfect balance)
+          - Blue: Aktiva > Pasiva (Positive equity - HEALTHY!)
+          - Red: Aktiva < Pasiva (Negative equity - DANGER!) */}
+      <Card className={`shadow-md border-2 ${
+        balanceSheet.isBalanced 
+          ? 'border-green-500 bg-green-50' 
+          : balanceSheet.difference > 0 
+            ? 'border-blue-500 bg-blue-50' 
+            : 'border-red-500 bg-red-50'
+      }`}>
         <CardContent className="py-4">
           <div className="flex items-center gap-3">
             {balanceSheet.isBalanced ? (
@@ -215,10 +225,24 @@ export default function NeracaPage() {
                 <CheckCircle className="h-6 w-6 text-green-600" />
                 <div>
                   <p className="font-semibold text-green-900">
-                    Neraca Balance
+                    Neraca Balance Sempurna
                   </p>
                   <p className="text-sm text-green-700">
-                    Total Aktiva = Total Pasiva
+                    Total Aktiva = Total Pasiva + Ekuitas
+                  </p>
+                </div>
+              </>
+            ) : balanceSheet.difference > 0 ? (
+              <>
+                <CheckCircle className="h-6 w-6 text-blue-600" />
+                <div>
+                  <p className="font-semibold text-blue-900">
+                    Ekuitas Positif (Sehat)
+                  </p>
+                  <p className="text-sm text-blue-700">
+                    Aktiva lebih besar Rp {formatCurrency(balanceSheet.difference)} dari Pasiva
+                    <br />
+                    <span className="text-xs italic">Ini bagus! Koperasi punya kekayaan bersih positif.</span>
                   </p>
                 </div>
               </>
@@ -227,12 +251,12 @@ export default function NeracaPage() {
                 <AlertTriangle className="h-6 w-6 text-red-600" />
                 <div>
                   <p className="font-semibold text-red-900">
-                    Neraca Tidak Balance
+                    ⚠️ Ekuitas Negatif (Bahaya!)
                   </p>
                   <p className="text-sm text-red-700">
-                    Selisih: {formatCurrency(Math.abs(balanceSheet.difference))}
-                    {balanceSheet.difference < 0 && ' (Aktiva < Pasiva)'}
-                    {balanceSheet.difference > 0 && ' (Aktiva > Pasiva)'}
+                    Pasiva lebih besar Rp {formatCurrency(Math.abs(balanceSheet.difference))} dari Aktiva
+                    <br />
+                    <span className="text-xs italic">Hutang melebihi aset - risiko insolvency!</span>
                   </p>
                 </div>
               </>
@@ -240,26 +264,6 @@ export default function NeracaPage() {
           </div>
         </CardContent>
       </Card>
-
-      {/* Insolvency Warning - Show when Liabilities exceed Assets */}
-      {balanceSheet.pasiva.liabilitas.subtotal > balanceSheet.aktiva.total && (
-        <Card className="shadow-md border-2 border-yellow-500 bg-yellow-50">
-          <CardContent className="py-4">
-            <div className="flex items-center gap-3">
-              <AlertTriangle className="h-6 w-6 text-yellow-600" />
-              <div>
-                <p className="font-semibold text-yellow-900">
-                  Peringatan: Hutang Melebihi Total Aset
-                </p>
-                <p className="text-sm text-yellow-700">
-                  Total Liabilitas ({formatCurrency(balanceSheet.pasiva.liabilitas.subtotal)}) lebih besar dari Total Aktiva ({formatCurrency(balanceSheet.aktiva.total)}). 
-                  Ini menunjukkan risiko kesulitan keuangan. Pertimbangkan untuk mengurangi hutang atau meningkatkan aset.
-                </p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Main Balance Sheet - Side by Side */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
