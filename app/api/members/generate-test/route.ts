@@ -53,10 +53,17 @@ export async function POST() {
       const phone = `08${Math.floor(Math.random() * 900000000 + 100000000)}`;
       const address = `Jl. Raya No. ${Math.floor(Math.random() * 100 + 1)}, Jakarta`;
 
+      // Generate join date (random between Jan-Jun 2024)
+      const joinMonth = Math.floor(Math.random() * 6); // 0-5 (Jan-Jun)
+      const joinDate = new Date(2024, joinMonth, 1);
+      
+      // Calculate months active (from join date to now - Nov 2024)
+      const monthsActive = 11 - joinMonth; // Nov is month 10 (0-indexed), so 11 total months in year
+      
       // Generate realistic savings amounts
-      const simpananPokok = 100000; // Standard 100k
-      const simpananWajib = Math.floor(Math.random() * 5 + 3) * 50000; // 150k - 400k
-      const simpananSukarela = Math.floor(Math.random() * 10) * 100000; // 0 - 900k
+      const simpananPokok = 200000; // Fixed Rp 200.000 saat pendaftaran
+      const simpananWajib = monthsActive * 50000; // Rp 50.000 per bulan × bulan aktif
+      const simpananSukarela = Math.floor(Math.random() * 10) * 100000; // 0 - 900k (optional)
 
       const userId = randomUUID();
       const memberId = randomUUID();
@@ -90,7 +97,7 @@ export async function POST() {
           simpananWajib,
           simpananSukarela,
           status: 'ACTIVE',
-          joinDate: new Date(2024, Math.floor(Math.random() * 3), 1), // Jan-Mar 2024
+          joinDate: joinDate,
           updatedAt: new Date(),
         }
       });
@@ -98,28 +105,28 @@ export async function POST() {
       // Generate savings transaction history
       const savingsHistory = [];
 
-      // 1. Simpanan Pokok (once, at join)
+      // 1. Simpanan Pokok (once, at join date)
       savingsHistory.push({
         id: randomUUID(),
         memberId,
         type: 'POKOK',
         amount: simpananPokok,
         description: 'Simpanan Pokok - Pendaftaran',
-        date: new Date(2024, 0, 15), // Jan 15, 2024
+        date: joinDate,
         createdAt: new Date(),
       });
 
-      // 2. Simpanan Wajib (monthly for 6-10 months)
-      const wajibMonths = Math.floor(Math.random() * 5 + 6); // 6-10 months
-      const monthlyWajib = simpananWajib / wajibMonths;
-      for (let m = 0; m < wajibMonths; m++) {
+      // 2. Simpanan Wajib (monthly - Rp 50.000/month since join date)
+      const monthlyWajib = 50000;
+      for (let m = 0; m < monthsActive; m++) {
+        const wajibMonth = joinMonth + m;
         savingsHistory.push({
           id: randomUUID(),
           memberId,
           type: 'WAJIB',
           amount: monthlyWajib,
-          description: `Simpanan Wajib - ${months[m]} 2024`,
-          date: new Date(2024, m, 10),
+          description: `Simpanan Wajib - ${months[wajibMonth]} 2024`,
+          date: new Date(2024, wajibMonth, 10),
           createdAt: new Date(),
         });
       }
