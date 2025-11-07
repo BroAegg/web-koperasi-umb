@@ -11,9 +11,9 @@ async function main() {
   // Clean up ALL existing data for fresh start
   console.log('🧹 Cleaning up ALL existing data...');
   await prisma.stock_movements.deleteMany({});
+  await prisma.consignment_sales.deleteMany({}); // Delete first (has FK to transaction_items)
   await prisma.transaction_items.deleteMany({});
   await prisma.transactions.deleteMany({});
-  await prisma.consignment_sales.deleteMany({});
   await prisma.consignment_payments.deleteMany({});
   await prisma.consignment_batches.deleteMany({});
   await prisma.consignors.deleteMany({});
@@ -558,14 +558,36 @@ async function main() {
     },
   });
 
+  // Create consignment products (Produk Titipan)
+  const consignmentProduct = await prisma.products.create({
+    data: {
+      id: randomUUID(),
+      name: 'Kue Kering Coklat (Titipan)',
+      description: 'Kue kering coklat chip homemade dari Ibu Siti',
+      categoryId: categories[2].id, // Makanan Ringan
+      sku: 'CONS-KUE-001',
+      buyPrice: new Decimal(0), // Tidak ada buyPrice karena konsinyasi
+      sellPrice: new Decimal(15000),
+      stock: 15, // Sisa 15 unit (dari 50 awal, 35 terjual)
+      threshold: 5,
+      unit: 'pack',
+      isConsignment: true, // PENTING: Tandai sebagai konsinyasi
+      ownershipType: 'TITIPAN',
+      status: 'ACTIVE',
+      supplierContact: consignor.phone,
+      updatedAt: new Date(),
+    },
+  });
+
+  console.log(`✅ Consignment product created: ${consignmentProduct.name}`);
+
   // Create consignment batch (Penerimaan barang titipan)
-  // Batch 1: Kue Kering (Received 20 days ago)
   const batch1 = await prisma.consignment_batches.create({
     data: {
       id: randomUUID(),
       code: 'BATCH-001',
       consignorId: consignor.id,
-      productId: products[3].id, // Kopi Bubuk (we'll use as example product)
+      productId: consignmentProduct.id,
       qtyIn: 50, // Terima 50 unit
       qtySold: 35, // Sudah terjual 35 unit
       qtyReturned: 0,
@@ -577,6 +599,20 @@ async function main() {
       status: 'ACTIVE',
       note: 'Kue kering titipan untuk dijual',
       updatedAt: new Date(),
+    },
+  });
+
+  // Record stock movement for consignment receipt
+  await prisma.stock_movements.create({
+    data: {
+      id: randomUUID(),
+      productId: consignmentProduct.id,
+      movementType: 'PURCHASE_IN',
+      quantity: 50,
+      occurredAt: new Date('2025-10-18T10:00:00'),
+      note: `Penerimaan barang konsinyasi - Batch ${batch1.code}`,
+      referenceId: batch1.id,
+      referenceType: 'CONSIGNMENT_BATCH',
     },
   });
 
@@ -621,7 +657,7 @@ async function main() {
       data: {
         id: randomUUID(),
         transactionId: consignmentTransaction.id,
-        productId: products[3].id,
+        productId: consignmentProduct.id, // Use consignment product
         quantity: sale.qty,
         unitPrice: new Decimal(sale.unitPrice),
         totalPrice: new Decimal(totalRevenue),
@@ -642,6 +678,30 @@ async function main() {
         netToConsignor: new Decimal(netToConsignor),
         isSettled: false, // BELUM DIBAYAR ke consignor
         saleDate: saleDate,
+      },
+    });
+
+    // Update product stock (reduce by sold quantity)
+    await prisma.products.update({
+      where: { id: consignmentProduct.id },
+      data: {
+        stock: {
+          decrement: sale.qty,
+        },
+      },
+    });
+
+    // Record stock movement for consignment sale
+    await prisma.stock_movements.create({
+      data: {
+        id: randomUUID(),
+        productId: consignmentProduct.id,
+        movementType: 'SALE_OUT',
+        quantity: sale.qty,
+        occurredAt: saleDate,
+        note: `Penjualan konsinyasi ke customer`,
+        referenceId: consignmentTransaction.id,
+        referenceType: 'SALE',
       },
     });
   }
