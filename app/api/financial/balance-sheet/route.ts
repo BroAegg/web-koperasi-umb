@@ -153,53 +153,63 @@ export async function GET(request: NextRequest) {
     const hutangLainnya = 0;
     const totalLiabilitas = hutangDagang + hutangGaji + hutangLainnya;
 
-    // Calculate revenue and costs for current period
-    const periodTransactions = await prisma.transactions.findMany({
-      where: { status: 'COMPLETED', createdAt: { gte: startDate, lte: endDate } },
-      include: { transaction_items: { include: { products: true } } }
+    // === EKUITAS (Equity) ===
+    // In a simple balance sheet: Ekuitas = Aktiva - Liabilitas
+    // Or broken down: Modal Awal + Laba Ditahan + SHU Periode Berjalan
+    
+    // 1. MODAL AWAL (Initial Capital) - Could be from members' contributions
+    // For now, we'll calculate it as the difference to make balance sheet balanced
+    const totalEkuitasRequired = totalAktiva - totalLiabilitas;
+    
+    // 2. SISA HASIL USAHA (Current Period Profit/Loss)
+    // Calculate from SALE income minus PURCHASE expenses for current period
+    const periodSales = await prisma.transactions.aggregate({
+      where: { 
+        type: 'SALE',
+        status: 'COMPLETED', 
+        date: { gte: startDate, lte: endDate } 
+      },
+      _sum: { totalAmount: true }
     });
-
-    let totalRevenue = 0;
-    let totalCost = 0;
-
-    periodTransactions.forEach(t => {
-      totalRevenue += decimalToNumber(t.totalAmount);
-      t.transaction_items.forEach(item => {
-        if (item.products) {
-          totalCost += decimalToNumber(item.products.buyPrice) * item.quantity;
-        }
-      });
+    
+    const periodPurchases = await prisma.transactions.aggregate({
+      where: { 
+        type: 'PURCHASE',
+        status: 'COMPLETED',
+        date: { gte: startDate, lte: endDate } 
+      },
+      _sum: { totalAmount: true }
     });
+    
+    const sisaHasilUsaha = decimalToNumber(periodSales._sum.totalAmount) - decimalToNumber(periodPurchases._sum.totalAmount);
 
-    const periodConsignmentPayments = await prisma.consignment_payments.findMany({
-      where: { status: 'PAID', createdAt: { gte: startDate, lte: endDate } }
-    });
-    periodConsignmentPayments.forEach(p => { totalCost += p.amount; });
-
-    const sisaHasilUsaha = totalRevenue - totalCost;
-
-    // Calculate retained earnings
+    // 3. LABA RUGI DITAHAN (Retained Earnings from previous periods)
+    // Calculate cumulative profit before this period
     const previousPeriodEnd = new Date(year, month - 1, 0, 23, 59, 59);
-    const previousTransactions = await prisma.transactions.findMany({
-      where: { status: 'COMPLETED', createdAt: { lte: previousPeriodEnd } },
-      include: { transaction_items: { include: { products: true } } }
+    
+    const prevSales = await prisma.transactions.aggregate({
+      where: { 
+        type: 'SALE',
+        status: 'COMPLETED', 
+        date: { lte: previousPeriodEnd } 
+      },
+      _sum: { totalAmount: true }
     });
-
-    let totalPrevRevenue = 0;
-    let totalPrevCost = 0;
-
-    previousTransactions.forEach(t => {
-      totalPrevRevenue += decimalToNumber(t.totalAmount);
-      t.transaction_items.forEach(item => {
-        if (item.products) {
-          totalPrevCost += decimalToNumber(item.products.buyPrice) * item.quantity;
-        }
-      });
+    
+    const prevPurchases = await prisma.transactions.aggregate({
+      where: { 
+        type: 'PURCHASE',
+        status: 'COMPLETED',
+        date: { lte: previousPeriodEnd } 
+      },
+      _sum: { totalAmount: true }
     });
+    
+    const labaRugiDitahan = decimalToNumber(prevSales._sum.totalAmount) - decimalToNumber(prevPurchases._sum.totalAmount);
 
-    const labaRugiDitahan = totalPrevRevenue - totalPrevCost;
-
-    const modalAwal = 50000000;
+    // 4. MODAL AWAL (calculated to balance the equation)
+    // Modal Awal = Total Ekuitas Required - SHU - Laba Ditahan
+    const modalAwal = totalEkuitasRequired - sisaHasilUsaha - labaRugiDitahan;
     const totalEkuitas = modalAwal + sisaHasilUsaha + labaRugiDitahan;
     const totalPasiva = totalLiabilitas + totalEkuitas;
 
