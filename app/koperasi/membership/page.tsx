@@ -348,6 +348,95 @@ export default function MembershipPage() {
         </div>
       </div>
 
+      {/* Import Success Result */}
+      {importResult && (
+        <Card className="border-green-200 bg-green-50">
+          <CardContent className="p-6">
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0">
+                <CheckCircle className="h-8 w-8 text-green-600" />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <h3 className="text-lg font-semibold text-green-900 mb-1">
+                      Import Berhasil!
+                    </h3>
+                    <p className="text-sm text-green-700">{importResult.message}</p>
+                  </div>
+                  <button
+                    onClick={() => setImportResult(null)}
+                    className="text-green-600 hover:text-green-800 p-1"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+
+                {/* Stats Grid */}
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                  {/* Members Stats */}
+                  <div className="bg-white rounded-lg p-4 border border-green-200">
+                    <p className="text-xs text-gray-600 mb-1">Total Rows</p>
+                    <p className="text-2xl font-bold text-gray-900">{importResult.stats.total}</p>
+                    <p className="text-xs text-gray-500 mt-1">Anggota</p>
+                  </div>
+                  <div className="bg-white rounded-lg p-4 border border-green-200">
+                    <p className="text-xs text-gray-600 mb-1">Imported</p>
+                    <p className="text-2xl font-bold text-green-600">{importResult.stats.imported}</p>
+                    <p className="text-xs text-gray-500 mt-1">Anggota baru</p>
+                  </div>
+                  <div className="bg-white rounded-lg p-4 border border-yellow-200">
+                    <p className="text-xs text-gray-600 mb-1">Skipped</p>
+                    <p className="text-2xl font-bold text-yellow-600">{importResult.stats.skipped}</p>
+                    <p className="text-xs text-gray-500 mt-1">Duplikat</p>
+                  </div>
+
+                  {/* Transactions Stats */}
+                  {importResult.stats.transactionsTotal > 0 && (
+                    <>
+                      <div className="bg-white rounded-lg p-4 border border-blue-200">
+                        <p className="text-xs text-gray-600 mb-1">Transaksi Total</p>
+                        <p className="text-2xl font-bold text-gray-900">{importResult.stats.transactionsTotal}</p>
+                        <p className="text-xs text-gray-500 mt-1">Dari sheet Data</p>
+                      </div>
+                      <div className="bg-white rounded-lg p-4 border border-blue-200">
+                        <p className="text-xs text-gray-600 mb-1">Transaksi Imported</p>
+                        <p className="text-2xl font-bold text-blue-600">{importResult.stats.transactionsImported}</p>
+                        <p className="text-xs text-gray-500 mt-1">Setor/Tarik</p>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* Errors if any */}
+                {importResult.stats.errors && importResult.stats.errors.length > 0 && (
+                  <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <div className="flex items-start gap-2 mb-2">
+                      <AlertTriangle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                      <div className="flex-1">
+                        <p className="font-semibold text-yellow-900 mb-2">
+                          {importResult.stats.errors.length} Warning(s)
+                        </p>
+                        <div className="space-y-1 max-h-32 overflow-y-auto">
+                          {importResult.stats.errors.slice(0, 10).map((err: string, i: number) => (
+                            <p key={i} className="text-xs text-yellow-800">• {err}</p>
+                          ))}
+                          {importResult.stats.errors.length > 10 && (
+                            <p className="text-xs text-yellow-700 italic mt-2">
+                              ...dan {importResult.stats.errors.length - 10} warning lainnya
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <Card>
@@ -827,12 +916,41 @@ export default function MembershipPage() {
             <CardContent className="space-y-6">
               {/* Instructions */}
               <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <p className="font-medium text-blue-900 mb-2">Format File Excel:</p>
-                <ul className="text-sm text-blue-800 space-y-1 list-disc list-inside">
-                  <li>Sheet: <strong>ANGGOTA</strong></li>
-                  <li>Kolom: NO, NAMA ANGGOTA, PENDAFTARAN ANGGOTA, SIMPANAN POKOK, TOTAL SIMPANAN WAJIB</li>
-                  <li>Anggota yang sudah ada akan di-skip otomatis</li>
-                </ul>
+                <p className="font-medium text-blue-900 mb-3">Format File Excel:</p>
+                
+                <div className="space-y-3">
+                  {/* Sheet ANGGOTA */}
+                  <div className="bg-white/60 rounded p-3 border border-blue-100">
+                    <p className="font-semibold text-blue-900 text-sm mb-2 flex items-center gap-2">
+                      <span className="bg-blue-600 text-white text-xs px-2 py-0.5 rounded">Sheet 1</span>
+                      ANGGOTA
+                    </p>
+                    <ul className="text-xs text-blue-800 space-y-1 ml-4">
+                      <li>• <strong>NO</strong> - Nomor urut</li>
+                      <li>• <strong>NAMA ANGGOTA</strong> - Nama lengkap</li>
+                      <li>• <strong>PENDAFTARAN ANGGOTA</strong> - Tanggal bergabung</li>
+                      <li>• <strong>SIMPANAN POKOK</strong> - Nominal simpanan pokok</li>
+                      <li>• <strong>TOTAL SIMPANAN WAJIB</strong> - Akumulasi simpanan wajib</li>
+                    </ul>
+                  </div>
+
+                  {/* Sheet Data */}
+                  <div className="bg-white/60 rounded p-3 border border-blue-100">
+                    <p className="font-semibold text-blue-900 text-sm mb-2 flex items-center gap-2">
+                      <span className="bg-blue-600 text-white text-xs px-2 py-0.5 rounded">Sheet 2</span>
+                      Data (History Transaksi)
+                    </p>
+                    <ul className="text-xs text-blue-800 space-y-1 ml-4">
+                      <li>• <strong>NO, NAMA, TAHUN, BULAN, NOMINAL, TIPE</strong></li>
+                      <li>• TIPE: <span className="font-semibold">SETOR</span> (setoran) atau <span className="font-semibold">TARIK</span> (penarikan)</li>
+                      <li>• Akan diimport sebagai history simpanan sukarela</li>
+                    </ul>
+                  </div>
+                </div>
+
+                <p className="text-xs text-blue-700 italic mt-3">
+                  💡 Tips: Anggota yang sudah ada akan di-skip otomatis. Transaksi akan di-match berdasarkan nama anggota.
+                </p>
               </div>
 
               {/* File Input */}
