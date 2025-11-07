@@ -324,6 +324,41 @@ export default function MembershipPage() {
     }
   };
 
+  const handleDeleteAll = async () => {
+    const confirmed = await confirm({
+      title: '⚠️ Hapus Semua Anggota?',
+      message: `Ini akan menghapus SEMUA ${members.length} anggota dan data terkait (users, savings, loans). Aksi ini tidak bisa dibatalkan! Fitur ini hanya untuk testing.`,
+      type: 'danger',
+      confirmText: 'Ya, Hapus Semua',
+      cancelText: 'Batal'
+    });
+
+    if (!confirmed) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/members/delete-all', {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        success('Berhasil!', `${data.deleted} anggota berhasil dihapus`);
+        setMembers([]);
+        setImportResult(null);
+      } else {
+        error('Gagal menghapus', data.error || 'Terjadi kesalahan');
+      }
+    } catch (err: any) {
+      error('Gagal menghapus', err.message || 'Terjadi kesalahan');
+    }
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -332,7 +367,7 @@ export default function MembershipPage() {
           <h1 className="text-3xl font-bold text-gray-900">Keanggotaan</h1>
           <p className="text-gray-600 mt-1">Kelola data anggota koperasi</p>
         </div>
-        <div className="mt-4 md:mt-0 flex gap-3">
+        <div className="mt-4 md:mt-0 flex gap-3 flex-wrap">
           <Button variant="outline" size="sm" onClick={() => setShowImportModal(true)}>
             <Upload className="w-4 h-4 mr-2" />
             Import Data
@@ -341,6 +376,18 @@ export default function MembershipPage() {
             <Download className="w-4 h-4 mr-2" />
             Export Data
           </Button>
+          {/* Testing only - Delete All */}
+          {members.length > 0 && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleDeleteAll}
+              className="border-red-300 text-red-600 hover:bg-red-50 hover:border-red-400"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Hapus Semua ({members.length})
+            </Button>
+          )}
           <Button size="sm" onClick={() => setShowAddModal(true)}>
             <UserPlus className="w-4 h-4 mr-2" />
             Tambah Anggota
