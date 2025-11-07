@@ -43,6 +43,13 @@ export async function GET(request: NextRequest) {
             isActive: true,
           },
         },
+        savings: {
+          orderBy: [
+            { year: 'desc' },
+            { month: 'desc' },
+            { createdAt: 'desc' },
+          ],
+        },
       },
       orderBy: {
         createdAt: 'desc',
@@ -57,6 +64,11 @@ export async function GET(request: NextRequest) {
       simpananPokok: Number(member.simpananPokok),
       simpananWajib: Number(member.simpananWajib),
       simpananSukarela: Number(member.simpananSukarela),
+      // Convert savings amounts to number
+      savings: member.savings.map(s => ({
+        ...s,
+        amount: Number(s.amount),
+      })),
     }));
 
     return NextResponse.json({
