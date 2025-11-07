@@ -27,6 +27,7 @@ interface BalanceSheetData {
   };
   pasiva: {
     liabilitas: {
+      hutangKonsinyasi: number;
       hutangDagang: number;
       hutangGaji: number;
       hutangLainnya: number;
@@ -143,15 +144,30 @@ export async function GET(request: NextRequest) {
     const aktivaTetapSubtotal = peralatan + kendaraan + gedung;
     const totalAktiva = aktivaLancarSubtotal + aktivaTetapSubtotal;
 
-    // Calculate HUTANG DAGANG from unpaid consignments
-    const unpaidConsignments = await prisma.consignment_payments.findMany({
-      where: { status: { not: 'PAID' }, periodEnd: { lte: endDate } }
+    // === LIABILITAS JANGKA PENDEK (Current Liabilities) ===
+    
+    // 1. HUTANG KONSINYASI (Consignment Payables)
+    // Money owed to consignors for sold goods that haven't been settled yet
+    const unpaidConsignmentSales = await prisma.consignment_sales.findMany({
+      where: { 
+        isSettled: false,
+        saleDate: { lte: endDate }
+      }
     });
-    const hutangDagang = unpaidConsignments.reduce((sum: number, c) => sum + c.amount, 0);
+    const hutangKonsinyasi = unpaidConsignmentSales.reduce((sum: number, sale) => {
+      return sum + decimalToNumber(sale.netToConsignor);
+    }, 0);
 
-    const hutangGaji = 0;
+    // 2. HUTANG DAGANG (Trade Payables) - Other unpaid invoices
+    const hutangDagang = 0; // TODO: Implement if tracking supplier invoices
+
+    // 3. HUTANG GAJI (Salary Payables)
+    const hutangGaji = 0; // TODO: Implement if tracking unpaid salaries
+    
+    // 4. HUTANG LAINNYA (Other Payables)
     const hutangLainnya = 0;
-    const totalLiabilitas = hutangDagang + hutangGaji + hutangLainnya;
+
+    const totalLiabilitas = hutangKonsinyasi + hutangDagang + hutangGaji + hutangLainnya;
 
     // === EKUITAS (Equity) ===
     // In a simple balance sheet: Ekuitas = Aktiva - Liabilitas
@@ -239,6 +255,7 @@ export async function GET(request: NextRequest) {
       },
       pasiva: {
         liabilitas: {
+          hutangKonsinyasi: Math.round(hutangKonsinyasi),
           hutangDagang: Math.round(hutangDagang),
           hutangGaji: Math.round(hutangGaji),
           hutangLainnya: Math.round(hutangLainnya),

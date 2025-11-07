@@ -537,6 +537,123 @@ async function main() {
 
   console.log('✅ Operational transactions created');
 
+  // ============================================================
+  // CONSIGNMENT DATA (Barang Titipan)
+  // ============================================================
+  console.log('📦 Creating consignment data...');
+
+  // Create consignor (Penitip barang)
+  const consignor = await prisma.consignors.create({
+    data: {
+      id: randomUUID(),
+      code: 'CONS-001',
+      name: 'Ibu Siti - Titipan Kue',
+      phone: '081234567890',
+      email: 'ibu.siti@example.com',
+      address: 'Jakarta Selatan',
+      feeType: 'PERCENTAGE',
+      defaultFeePercent: new Decimal(20), // Koperasi ambil komisi 20%
+      isActive: true,
+      updatedAt: new Date(),
+    },
+  });
+
+  // Create consignment batch (Penerimaan barang titipan)
+  // Batch 1: Kue Kering (Received 20 days ago)
+  const batch1 = await prisma.consignment_batches.create({
+    data: {
+      id: randomUUID(),
+      code: 'BATCH-001',
+      consignorId: consignor.id,
+      productId: products[3].id, // Kopi Bubuk (we'll use as example product)
+      qtyIn: 50, // Terima 50 unit
+      qtySold: 35, // Sudah terjual 35 unit
+      qtyReturned: 0,
+      qtyExpired: 0,
+      qtyRemaining: 15, // Sisa 15 unit
+      feeType: 'PERCENTAGE',
+      feePercent: new Decimal(20),
+      receivedAt: new Date('2025-10-18T10:00:00'),
+      status: 'ACTIVE',
+      note: 'Kue kering titipan untuk dijual',
+      updatedAt: new Date(),
+    },
+  });
+
+  // Create some consignment sales (Penjualan barang titipan)
+  const consignmentSalesData = [
+    { daysAgo: 18, qty: 10, unitPrice: 15000 }, // Total: 150,000
+    { daysAgo: 15, qty: 12, unitPrice: 15000 }, // Total: 180,000
+    { daysAgo: 10, qty: 8, unitPrice: 15000 },  // Total: 120,000
+    { daysAgo: 5, qty: 5, unitPrice: 15000 },   // Total: 75,000
+  ];
+
+  let totalConsignmentRevenue = 0;
+  let totalConsignmentFee = 0;
+  let totalNetToConsignor = 0;
+
+  for (const sale of consignmentSalesData) {
+    const saleDate = new Date(now.getTime() - sale.daysAgo * 24 * 60 * 60 * 1000);
+    const totalRevenue = sale.qty * sale.unitPrice;
+    const feeAmount = totalRevenue * 0.20; // 20% komisi koperasi
+    const netToConsignor = totalRevenue - feeAmount; // 80% untuk consignor
+
+    totalConsignmentRevenue += totalRevenue;
+    totalConsignmentFee += feeAmount;
+    totalNetToConsignor += netToConsignor;
+
+    // Create a POS transaction for the consignment sale
+    const consignmentTransaction = await prisma.transactions.create({
+      data: {
+        id: randomUUID(),
+        type: 'SALE',
+        totalAmount: new Decimal(totalRevenue),
+        paymentMethod: 'CASH',
+        status: 'COMPLETED',
+        date: saleDate,
+        note: `Penjualan barang konsinyasi - ${consignor.name}`,
+        updatedAt: saleDate,
+      },
+    });
+
+    // Create transaction item
+    const transactionItem = await prisma.transaction_items.create({
+      data: {
+        id: randomUUID(),
+        transactionId: consignmentTransaction.id,
+        productId: products[3].id,
+        quantity: sale.qty,
+        unitPrice: new Decimal(sale.unitPrice),
+        totalPrice: new Decimal(totalRevenue),
+      },
+    });
+
+    // Record consignment sale (link to transaction)
+    await prisma.consignment_sales.create({
+      data: {
+        id: randomUUID(),
+        batchId: batch1.id,
+        transactionItemId: transactionItem.id,
+        qtySold: sale.qty,
+        unitPrice: new Decimal(sale.unitPrice),
+        totalRevenue: new Decimal(totalRevenue),
+        feeType: 'PERCENTAGE',
+        feeAmount: new Decimal(feeAmount),
+        netToConsignor: new Decimal(netToConsignor),
+        isSettled: false, // BELUM DIBAYAR ke consignor
+        saleDate: saleDate,
+      },
+    });
+  }
+
+  console.log(`✅ Consignment data created:`);
+  console.log(`   - Consignor: ${consignor.name}`);
+  console.log(`   - Batch: 50 units received, 35 sold, 15 remaining`);
+  console.log(`   - Total Sales Revenue: Rp ${totalConsignmentRevenue.toLocaleString('id-ID')}`);
+  console.log(`   - Koperasi Fee (20%): Rp ${totalConsignmentFee.toLocaleString('id-ID')}`);
+  console.log(`   - Net to Consignor: Rp ${totalNetToConsignor.toLocaleString('id-ID')}`);
+  console.log(`   - Status: UNPAID (will show as liability in balance sheet)`);
+
   console.log('✅ Realistic data seeding completed');
 
   // ============================================================
@@ -626,7 +743,14 @@ async function main() {
   const expectedCash = Number(cashIncome._sum.totalAmount || 0) - Number(cashExpense._sum.totalAmount || 0);
   const expectedBank = Number(bankIncome._sum.totalAmount || 0) - Number(bankExpense._sum.totalAmount || 0);
   const expectedInventory = inventoryValue;
-  const expectedLiability = 0; // No consignment data in simplified seed
+  
+  // Calculate consignment liability (unpaid consignments)
+  const unpaidConsignments = await prisma.consignment_sales.findMany({
+    where: { isSettled: false }
+  });
+  const expectedLiability = unpaidConsignments.reduce((sum, sale) => 
+    sum + Number(sale.netToConsignor), 0
+  );
 
   console.log(`✅ Total Products: ${totalProducts}`);
   console.log(`✅ Total Members: ${totalMembers}`);
@@ -638,6 +762,7 @@ async function main() {
   console.log(`   Persediaan (Inventory): Rp ${expectedInventory.toLocaleString('id-ID')}`);
   console.log(`   Hutang Konsinyasi (Liability): Rp ${expectedLiability.toLocaleString('id-ID')}`);
   console.log(`   Total Aktiva Lancar: Rp ${(expectedCash + expectedBank + expectedInventory).toLocaleString('id-ID')}`);
+  console.log(`   Total Liabilitas: Rp ${expectedLiability.toLocaleString('id-ID')}`);
   console.log('=====================================\n');
 
   console.log('🎉 Comprehensive database seeding completed successfully!');

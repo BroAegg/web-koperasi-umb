@@ -50,6 +50,7 @@ interface BalanceSheetData {
   };
   pasiva: {
     liabilitas: {
+      hutangKonsinyasi: number;
       hutangDagang: number;
       hutangGaji: number;
       hutangLainnya: number;
@@ -372,6 +373,15 @@ export default function NeracaPage() {
                 Liabilitas (Liabilities)
               </h3>
               <div className="space-y-3 ml-7">
+                <div className="flex items-center justify-between py-2 border-b border-slate-100">
+                  <span className="text-slate-700 flex items-center gap-2">
+                    <Package className="h-4 w-4 text-slate-500" />
+                    Hutang Konsinyasi
+                  </span>
+                  <span className="font-medium text-slate-900">
+                    {formatCurrency(balanceSheet.pasiva.liabilitas.hutangKonsinyasi)}
+                  </span>
+                </div>
                 <div className="flex items-center justify-between py-2 border-b border-slate-100">
                   <span className="text-slate-700 flex items-center gap-2">
                     <Building className="h-4 w-4 text-slate-500" />
