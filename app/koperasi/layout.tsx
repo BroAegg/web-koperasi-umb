@@ -30,7 +30,8 @@ import {
   Award,
   BarChart3,
   ChevronLeft,
-  ChevronRight
+  ChevronRight,
+  FileText
 } from "lucide-react";
 
 function KoperasiContent({ children }: { children: React.ReactNode }) {
@@ -109,6 +110,7 @@ function KoperasiContent({ children }: { children: React.ReactNode }) {
       title: "KEUANGAN",
       items: [
         { name: "Keuangan", href: "/koperasi/financial", icon: TrendingUp, roles: ["SUPER_ADMIN"] },
+        { name: "Neraca", href: "/koperasi/financial/neraca", icon: FileText, roles: ["SUPER_ADMIN", "DEVELOPER"] },
         { name: "Analytics Dashboard", href: "/koperasi/analytics", icon: BarChart3, roles: ["SUPER_ADMIN", "ADMIN"] },
         { name: "Produk Terlaris", href: "/koperasi/analytics/best-sellers", icon: Award, roles: ["SUPER_ADMIN", "ADMIN"] },
       ]
