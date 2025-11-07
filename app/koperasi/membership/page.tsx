@@ -543,49 +543,98 @@ export default function MembershipPage() {
       )}
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Total Anggota</p>
-                <h3 className="text-2xl font-bold text-gray-900">{totalMembers}</h3>
-              </div>
-              <div className="p-3 rounded-lg bg-blue-50">
-                <Users className="w-6 h-6 text-blue-600" />
-              </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Total Anggota */}
+        <Card className="border-l-4 border-l-blue-500">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-medium text-gray-600 uppercase tracking-wide">Total Anggota</p>
+              <Users className="w-5 h-5 text-blue-500" />
+            </div>
+            <h3 className="text-3xl font-bold text-gray-900 mb-1">{totalMembers}</h3>
+            <div className="flex items-center gap-2 text-xs">
+              <span className="inline-flex items-center gap-1 text-emerald-600 font-medium">
+                <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                {activeMembers} Aktif
+              </span>
+              {totalMembers - activeMembers > 0 && (
+                <span className="text-gray-500">• {totalMembers - activeMembers} Tidak Aktif</span>
+              )}
             </div>
           </CardContent>
         </Card>
-        
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Anggota Aktif</p>
-                <h3 className="text-2xl font-bold text-gray-900">{activeMembers}</h3>
-              </div>
-              <div className="p-3 rounded-lg bg-emerald-50">
-                <Users className="w-6 h-6 text-emerald-600" />
-              </div>
+
+        {/* Simpanan Pokok */}
+        <Card className="border-l-4 border-l-indigo-500">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-medium text-gray-600 uppercase tracking-wide">Simpanan Pokok</p>
+              <CreditCard className="w-5 h-5 text-indigo-500" />
             </div>
+            <h3 className="text-2xl font-bold text-gray-900 mb-1">
+              {formatCurrency(members.reduce((sum, m) => sum + m.simpananPokok, 0))}
+            </h3>
+            <p className="text-xs text-gray-500">
+              Rata-rata: {formatCurrency(totalMembers > 0 ? members.reduce((sum, m) => sum + m.simpananPokok, 0) / totalMembers : 0)}
+            </p>
           </CardContent>
         </Card>
-        
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Total Simpanan</p>
-                <h3 className="text-2xl font-bold text-gray-900">{formatCurrency(totalSimpanan)}</h3>
-              </div>
-              <div className="p-3 rounded-lg bg-green-50">
-                <Users className="w-6 h-6 text-green-600" />
-              </div>
+
+        {/* Simpanan Wajib */}
+        <Card className="border-l-4 border-l-emerald-500">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-medium text-gray-600 uppercase tracking-wide">Simpanan Wajib</p>
+              <CreditCard className="w-5 h-5 text-emerald-500" />
             </div>
+            <h3 className="text-2xl font-bold text-gray-900 mb-1">
+              {formatCurrency(members.reduce((sum, m) => sum + m.simpananWajib, 0))}
+            </h3>
+            <p className="text-xs text-gray-500">
+              Rata-rata: {formatCurrency(totalMembers > 0 ? members.reduce((sum, m) => sum + m.simpananWajib, 0) / totalMembers : 0)}
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Simpanan Sukarela */}
+        <Card className="border-l-4 border-l-green-500">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-medium text-gray-600 uppercase tracking-wide">Simpanan Sukarela</p>
+              <CreditCard className="w-5 h-5 text-green-500" />
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900 mb-1">
+              {formatCurrency(members.reduce((sum, m) => sum + m.simpananSukarela, 0))}
+            </h3>
+            <p className="text-xs text-gray-500">
+              Rata-rata: {formatCurrency(totalMembers > 0 ? members.reduce((sum, m) => sum + m.simpananSukarela, 0) / totalMembers : 0)}
+            </p>
           </CardContent>
         </Card>
       </div>
+
+      {/* Total Simpanan Summary */}
+      <Card className="bg-gradient-to-r from-slate-50 to-slate-100 border-2 border-slate-300">
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-slate-600">
+                <CreditCard className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-slate-700">Total Simpanan Keseluruhan</p>
+                <p className="text-xs text-slate-600">Pokok + Wajib + Sukarela dari {totalMembers} anggota</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <h2 className="text-3xl font-bold text-slate-900">{formatCurrency(totalSimpanan)}</h2>
+              <p className="text-xs text-slate-600 mt-1">
+                Masuk ke Neraca sebagai Liabilitas
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Search and Filter */}
       <Card>
