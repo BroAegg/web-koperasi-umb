@@ -173,18 +173,44 @@ async function clearAndSeed() {
       }
     });
 
-    // ========== STEP 3: SHOW STATUS ==========
+    // ========== STEP 3: CREATE MODAL AWAL TRANSACTION ==========
+    console.log('\n💰 Creating Modal Awal transaction...');
+    
+    // Calculate total capital needed: 
+    // - TOKO product cost: 20 × 5000 = 100,000
+    // - TITIPAN is consignment (not our capital)
+    // Total: 100,000
+    const modalAwalAmount = 100000;
+    
+    await prisma.transactions.create({
+      data: {
+        id: `txn-modal-${timestamp}`,
+        type: 'SALE', // Using SALE type as income to equity
+        totalAmount: modalAwalAmount,
+        paymentMethod: 'CASH',
+        note: 'Modal awal koperasi - Initial capital injection',
+        status: 'COMPLETED',
+        date: new Date(),
+        createdAt: new Date(),
+        updatedAt: new Date(),
+        isProduction: true
+      }
+    });
+    console.log(`✅ Modal Awal created: Rp ${modalAwalAmount.toLocaleString('id-ID')}`);
+
+    // ========== STEP 4: SHOW STATUS ==========
     const userCount = await prisma.users.count();
     const memberCount = await prisma.members.count();
     const categoryCount = await prisma.categories.count();
     const productCount = await prisma.products.count();
+    const transactionCount = await prisma.transactions.count();
 
     console.log('\n📊 ========== DATABASE STATUS ==========');
     console.log(`✅ Users: ${userCount} (preserved)`);
     console.log(`✅ Members: ${memberCount} (preserved)`);
     console.log(`✅ Categories: ${categoryCount} (preserved)`);
     console.log(`✅ Products: ${productCount} (2 new - 1 TOKO, 1 TITIPAN)`);
-    console.log('✅ Transactions: 0');
+    console.log(`✅ Transactions: ${transactionCount} (1 Modal Awal)`);
     console.log('✅ Stock Movements: 2 (initial stock for both products)');
     console.log('✅ Consignment Batches: 1 (for TITIPAN product)');
     console.log('========================================\n');
@@ -205,6 +231,16 @@ async function clearAndSeed() {
     console.log('      - Sell: Rp 10.000');
     console.log('      - Fee: 20% to koperasi (Rp 2.000)');
     console.log('      - Net to supplier: Rp 8.000');
+    console.log('');
+    console.log('💰 Modal Awal:');
+    console.log('   - Amount: Rp 100.000');
+    console.log('   - Purpose: Initial capital for TOKO product stock');
+    console.log('   - Note: TITIPAN stock is consignment (not our capital)');
+    console.log('');
+    console.log('📊 Balance Sheet:');
+    console.log('   - Aktiva: Rp 100.000 (Persediaan TOKO)');
+    console.log('   - Ekuitas: Rp 100.000 (Modal Awal)');
+    console.log('   - Status: ✅ BALANCED');
     console.log('');
 
   } catch (error) {
