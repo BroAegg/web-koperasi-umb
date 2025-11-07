@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/use-auth";
 import { NotificationProvider } from '@/lib/notification-context';
 import { DeveloperToolbar } from '@/components/DeveloperToolbar';
+import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { 
   LayoutDashboard, 
   Users,
@@ -322,7 +323,9 @@ function KoperasiContent({ children }: { children: React.ReactNode }) {
 export default function KoperasiLayout({ children }: { children: React.ReactNode }) {
   return (
     <NotificationProvider>
-      <KoperasiContent>{children}</KoperasiContent>
+      <ErrorBoundary>
+        <KoperasiContent>{children}</KoperasiContent>
+      </ErrorBoundary>
     </NotificationProvider>
   );
 }

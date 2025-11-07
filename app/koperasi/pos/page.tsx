@@ -45,6 +45,17 @@ interface CartItem extends Product {
   subtotal: number;
 }
 
+interface Member {
+  id: string;
+  name: string;
+  nomorAnggota: string;
+  email: string | null;
+  phone: string | null;
+  points: number;
+  tier: 'BRONZE' | 'SILVER' | 'GOLD' | 'PLATINUM';
+  totalSpent: number;
+}
+
 export default function POSPage() {
   const { user, loading } = useAuth(['ADMIN', 'SUPER_ADMIN']);
   const { success, error } = useNotification();
@@ -58,10 +69,16 @@ export default function POSPage() {
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [lastTransactionId, setLastTransactionId] = useState<string | null>(null);
   const [refreshTransactions, setRefreshTransactions] = useState(0);
+  
+  // Member loyalty state
+  const [members, setMembers] = useState<Member[]>([]);
+  const [selectedMember, setSelectedMember] = useState<Member | null>(null);
+  const [memberSearchTerm, setMemberSearchTerm] = useState('');
 
   // Fetch products for POS
   useEffect(() => {
     fetchProducts();
+    fetchMembers();
   }, []);
 
   const fetchProducts = async () => {
@@ -75,6 +92,20 @@ export default function POSPage() {
       }
     } catch (error) {
       console.error('Error fetching products:', error);
+    }
+  };
+
+  const fetchMembers = async () => {
+    try {
+      const response = await fetch('/api/members');
+      const result = await response.json();
+      if (result.success) {
+        // Only active members
+        const activeMembers = result.data.filter((m: any) => m.isActive);
+        setMembers(activeMembers);
+      }
+    } catch (error) {
+      console.error('Error fetching members:', error);
     }
   };
 
@@ -170,7 +201,81 @@ export default function POSPage() {
     );
   };
 
+  // Barcode Scanner Integration - Listen for rapid keyboard input
+  useEffect(() => {
+    let barcode = '';
+    let timeout: NodeJS.Timeout;
+    
+    const handleKeyPress = (e: KeyboardEvent) => {
+      // Ignore if user is typing in input field
+      const target = e.target as HTMLElement;
+      if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA') {
+        return;
+      }
+
+      // Clear timeout to detect rapid scanning
+      if (timeout) clearTimeout(timeout);
+      
+      // Enter key = barcode scan complete
+      if (e.key === 'Enter' && barcode.length > 0) {
+        e.preventDefault();
+        // Search product by SKU or name
+        const product = products.find(p => 
+          p.sku?.toLowerCase() === barcode.toLowerCase() ||
+          p.name.toLowerCase().includes(barcode.toLowerCase())
+        );
+        
+        if (product) {
+          addToCart(product);
+          success('Produk Ditambahkan', `${product.name} berhasil di-scan`);
+        } else {
+          error('Produk Tidak Ditemukan', `SKU/Barcode: ${barcode}`);
+        }
+        
+        barcode = '';
+        return;
+      }
+      
+      // Accumulate barcode characters (rapid input from scanner)
+      if (e.key.length === 1) { // Single character
+        barcode += e.key;
+        
+        // Reset after 100ms of no input (human typing is slower)
+        timeout = setTimeout(() => {
+          barcode = '';
+        }, 100);
+      }
+    };
+    
+    window.addEventListener('keypress', handleKeyPress);
+    return () => {
+      window.removeEventListener('keypress', handleKeyPress);
+      if (timeout) clearTimeout(timeout);
+    };
+  }, [products, addToCart, success, error]);
+
   const categories = ['ALL', 'Sembako', 'Minuman', 'Makanan Ringan', 'Gorengan'];
+
+  // Helper functions for member tiers
+  const getTierIcon = (tier: string) => {
+    switch (tier) {
+      case 'PLATINUM': return '💎';
+      case 'GOLD': return '🥇';
+      case 'SILVER': return '🥈';
+      case 'BRONZE': return '🥉';
+      default: return '👤';
+    }
+  };
+
+  const getTierDiscount = (tier: string) => {
+    switch (tier) {
+      case 'PLATINUM': return 10;
+      case 'GOLD': return 5;
+      case 'SILVER': return 2;
+      case 'BRONZE': return 0;
+      default: return 0;
+    }
+  };
 
   if (loading) {
     return (
@@ -214,6 +319,81 @@ export default function POSPage() {
           <div className={`space-y-3 md:space-y-4 ${
             orientation === 'landscape' ? 'lg:col-span-2' : ''
           }`}>
+            {/* Member Selection - LOYALTY SYSTEM */}
+            <Card className="shadow-md border-slate-200 bg-gradient-to-r from-amber-50 to-yellow-50">
+              <CardContent className="p-4 md:p-5">
+                <div className="flex flex-col md:flex-row items-start md:items-center gap-3 md:gap-4">
+                  <div className="flex-1 w-full">
+                    <label className="block text-sm font-semibold text-slate-700 mb-2">
+                      👤 Member (Optional)
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="Search member by name or number..."
+                        value={memberSearchTerm}
+                        onChange={(e) => setMemberSearchTerm(e.target.value)}
+                        className="w-full px-4 py-3 border border-amber-300 rounded-lg focus:ring-2 focus:ring-amber-500 focus:border-amber-500 text-base"
+                      />
+                      {memberSearchTerm && (
+                        <div className="absolute z-10 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-lg max-h-48 overflow-y-auto">
+                          {members
+                            .filter(m => 
+                              m.name.toLowerCase().includes(memberSearchTerm.toLowerCase()) ||
+                              m.nomorAnggota.toLowerCase().includes(memberSearchTerm.toLowerCase())
+                            )
+                            .slice(0, 5)
+                            .map(member => (
+                              <button
+                                key={member.id}
+                                onClick={() => {
+                                  setSelectedMember(member);
+                                  setMemberSearchTerm('');
+                                }}
+                                className="w-full px-4 py-2 text-left hover:bg-slate-50 border-b border-slate-100 last:border-0"
+                              >
+                                <div className="font-medium text-slate-900">{member.name}</div>
+                                <div className="text-xs text-slate-600 flex items-center gap-2">
+                                  <span>{member.nomorAnggota}</span>
+                                  <span>•</span>
+                                  <span className="font-semibold text-amber-600">
+                                    {getTierIcon(member.tier)} {member.tier}
+                                  </span>
+                                  <span>•</span>
+                                  <span>{member.points.toLocaleString('id-ID')} pts</span>
+                                </div>
+                              </button>
+                            ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  {selectedMember && (
+                    <div className="bg-white rounded-lg p-3 border border-amber-300 shadow-sm flex-shrink-0">
+                      <div className="flex items-center gap-3">
+                        <div>
+                          <div className="text-xs text-slate-600">Selected Member</div>
+                          <div className="font-bold text-slate-900">{selectedMember.name}</div>
+                          <div className="text-xs text-amber-600 font-semibold">
+                            {getTierIcon(selectedMember.tier)} {selectedMember.tier} • {selectedMember.points.toLocaleString('id-ID')} pts
+                          </div>
+                          <div className="text-xs text-slate-600">
+                            Discount: {getTierDiscount(selectedMember.tier)}%
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => setSelectedMember(null)}
+                          className="text-red-500 hover:text-red-700 p-1"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Search Bar - TABLET OPTIMIZED */}
             <Card className="shadow-md border-slate-200">
               <CardContent className="p-4 md:p-5">
@@ -224,6 +404,7 @@ export default function POSPage() {
                       placeholder="Search products by name or SKU..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
+                      autoFocus
                       className="pl-11 h-14 text-base border-slate-300 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 rounded-xl shadow-sm"
                     />
                   </div>
@@ -424,6 +605,7 @@ export default function POSPage() {
           cart={cart}
           total={getCartTotal}
           onPaymentComplete={handlePaymentComplete}
+          selectedMember={selectedMember}
         />
       </div>
     </div>

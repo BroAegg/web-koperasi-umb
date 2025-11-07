@@ -96,6 +96,64 @@ services:
     volumes:
       - redis_data:/data
 
+  # Database Backup Service (runs daily at 2 AM)
+  backup:
+    image: mysql:8.0
+    container_name: koperasi-backup
+    restart: unless-stopped
+    environment:
+      - MYSQL_HOST=database
+      - MYSQL_USER=koperasi_user
+      - MYSQL_PASSWORD=KoperasiUMB2025!
+      - MYSQL_DATABASE=koperasi_umb
+      - BACKUP_RETENTION=30
+    volumes:
+      - ./backups:/backups
+      - ./scripts/docker-backup.sh:/backup.sh:ro
+    networks:
+      - koperasi-network
+    depends_on:
+      database:
+        condition: service_healthy
+    entrypoint: ["/bin/sh", "-c"]
+    command:
+      - |
+        # Install cron
+        apt-get update && apt-get install -y cron
+        
+        # Create backup script
+        cat > /usr/local/bin/backup-db.sh << 'EOF'
+        #!/bin/bash
+        TIMESTAMP=$$(date +%Y%m%d_%H%M%S)
+        BACKUP_FILE="/backups/koperasi_umb_$${TIMESTAMP}.sql"
+        
+        echo "[INFO] Starting backup at $$(date)"
+        
+        mysqldump -h$$MYSQL_HOST -u$$MYSQL_USER -p$$MYSQL_PASSWORD $$MYSQL_DATABASE > $$BACKUP_FILE
+        
+        if [ $$? -eq 0 ]; then
+          echo "[SUCCESS] Backup created: $$BACKUP_FILE"
+          
+          # Keep only last 30 backups
+          cd /backups
+          ls -t koperasi_umb_*.sql | tail -n +31 | xargs -r rm
+          echo "[INFO] Cleanup complete - keeping last 30 backups"
+        else
+          echo "[ERROR] Backup failed!"
+        fi
+        EOF
+        
+        chmod +x /usr/local/bin/backup-db.sh
+        
+        # Add cron job (daily at 2 AM)
+        echo "0 2 * * * /usr/local/bin/backup-db.sh >> /var/log/backup.log 2>&1" | crontab -
+        
+        echo "[INFO] Backup service started - running daily at 2 AM"
+        echo "[INFO] Manual backup: docker exec koperasi-backup /usr/local/bin/backup-db.sh"
+        
+        # Keep container running
+        cron && tail -f /var/log/backup.log
+
 networks:
   koperasi-network:
     driver: bridge

@@ -1,0 +1,11 @@
+name,sku,category,supplier,buyPrice,sellPrice,stock,threshold,unit,description
+Indomie Goreng,8993333501010,Makanan,PT Indofood,2500,3000,100,10,pcs,Mie instan rasa original goreng
+Aqua 600ml,8993333601011,Minuman,PT Aqua,2000,3000,50,20,botol,Air mineral kemasan 600ml
+Teh Botol Sosro,8993333701012,Minuman,PT Sosro,2500,4000,40,15,botol,Teh manis kemasan botol
+Pulpen Standard,8993333801013,Alat Tulis,Supplier ATK,1500,3000,30,10,pcs,Pulpen warna biru/hitam
+Mie Sedaap Goreng,8993333901014,Makanan,PT Wings,2400,2900,80,15,pcs,Mie instant goreng
+Chitato BBQ,8994334001015,Snack,PT Indofood,5000,8000,25,10,pack,Keripik kentang rasa BBQ
+Beras Premium,8994334101016,Sembako,Toko Beras,12000,15000,200,50,kg,Beras premium kualitas terbaik
+Sabun Mandi,8994334201017,Personal Care,Supplier Sabun,5000,8000,40,15,pcs,Sabun mandi wangi
+Gula Pasir,8994334301018,Sembako,Toko Gula,13000,15000,150,30,kg,Gula pasir putih
+Tissue,8994334401019,Perlengkapan Rumah,Supplier Tissue,8000,12000,60,20,pack,Tissue wajah kemasan

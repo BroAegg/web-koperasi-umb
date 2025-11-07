@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSession, signOut } from "next-auth/react";
 
 interface User {
   id: string;
@@ -12,85 +13,63 @@ interface User {
 
 export function useAuth(requiredRole?: string[]) {
   const router = useRouter();
+  const { data: session, status } = useSession();
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [authorized, setAuthorized] = useState(false);
-  const hasFetched = useRef(false);
 
   useEffect(() => {
-    // Prevent multiple fetches
-    if (hasFetched.current) {
+    // Wait for session to load
+    if (status === "loading") {
+      setLoading(true);
       return;
     }
-    
-    hasFetched.current = true;
-    
-    const token = localStorage.getItem("token");
-    
-    if (!token) {
+
+    // Not authenticated
+    if (status === "unauthenticated" || !session?.user) {
       router.push("/login");
       setLoading(false);
       return;
     }
 
-    // Fetch current user
-    fetch("/api/auth/me", {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((r) => r.json())
-      .then((data) => {
-        console.log('Auth me response:', data); // Debug log
-        
-        if (data.success && data.data) {
-          setUser(data.data);
-          
-          // Check role authorization
-          console.log('[useAuth] Checking authorization:', { 
-            userRole: data.data.role, 
-            requiredRole, 
-            requiredRoleArray: JSON.stringify(requiredRole),
-            includes: requiredRole?.includes(data.data.role)
-          });
-          if (requiredRole && requiredRole.length > 0) {
-            if (requiredRole.includes(data.data.role)) {
-              console.log('[useAuth] User authorized for', requiredRole);
-              setAuthorized(true);
-            } else {
-              console.log('[useAuth] User not authorized, redirecting...');
-              // Redirect based on role to unified dashboard
-              if (data.data.role === "SUPPLIER") {
-                router.push("/koperasi/supplier");
-              } else if (data.data.role === "ADMIN" || data.data.role === "SUPER_ADMIN") {
-                router.push("/koperasi/dashboard");
-              } else {
-                router.push("/koperasi/dashboard");
-              }
-            }
-          } else {
-            console.log('[useAuth] No role requirement, authorized');
-            setAuthorized(true);
-          }
-        } else {
-          console.error('Auth failed:', data);
-          localStorage.removeItem("token");
-          router.push("/login");
-        }
-      })
-      .catch((err) => {
-        console.error('Auth error:', err);
-        localStorage.removeItem("token");
-        router.push("/login");
-      })
-      .finally(() => {
-        setLoading(false);
-      });
-  }, []); // Empty dependency array - only run once
+    // Session loaded successfully
+    if (status === "authenticated" && session?.user) {
+      const userData: User = {
+        id: session.user.id,
+        email: session.user.email,
+        name: session.user.name,
+        role: session.user.role as any,
+      };
+      
+      setUser(userData);
 
-  const logout = () => {
+      // Check role authorization
+      if (requiredRole && requiredRole.length > 0) {
+        if (requiredRole.includes(userData.role)) {
+          setAuthorized(true);
+        } else {
+          // Redirect based on role
+          if (userData.role === "SUPPLIER") {
+            router.push("/koperasi/supplier");
+          } else if (userData.role === "ADMIN" || userData.role === "SUPER_ADMIN") {
+            router.push("/koperasi/dashboard");
+          } else if (userData.role === "DEVELOPER") {
+            router.push("/koperasi/developer-dashboard");
+          } else {
+            router.push("/koperasi/dashboard");
+          }
+        }
+      } else {
+        setAuthorized(true);
+      }
+      
+      setLoading(false);
+    }
+  }, [session, status]);
+
+  const logout = async () => {
     console.log('[useAuth] Logging out...');
-    localStorage.removeItem("token");
-    // Use hard navigation for logout to ensure clean state
-    window.location.href = "/login";
+    await signOut({ redirect: true, callbackUrl: "/login" });
   };
 
   return { user, loading, authorized, logout };

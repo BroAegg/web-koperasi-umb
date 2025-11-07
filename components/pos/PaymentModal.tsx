@@ -18,12 +18,20 @@ interface CartItem {
   subtotal: number;
 }
 
+interface Member {
+  id: string;
+  name: string;
+  tier: string;
+  points: number;
+}
+
 interface PaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
   cart: CartItem[];
   total: number;
   onPaymentComplete: (transactionId: string) => void;
+  selectedMember?: Member | null;
 }
 
 export function PaymentModal({ 
@@ -31,19 +39,51 @@ export function PaymentModal({
   onClose, 
   cart, 
   total, 
-  onPaymentComplete 
+  onPaymentComplete,
+  selectedMember 
 }: PaymentModalProps) {
   const [paymentMethod, setPaymentMethod] = useState<'CASH' | 'TRANSFER'>('CASH');
   const [amountPaid, setAmountPaid] = useState<string>('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [customerName, setCustomerName] = useState('');
+  
+  // Points redemption state
+  const [usePoints, setUsePoints] = useState(false);
+  const [pointsToRedeem, setPointsToRedeem] = useState<string>('');
+  
+  // Helper function for tier discount
+  const getTierDiscount = (tier: string) => {
+    switch (tier) {
+      case 'PLATINUM': return 10;
+      case 'GOLD': return 5;
+      case 'SILVER': return 2;
+      case 'BRONZE': return 0;
+      default: return 0;
+    }
+  };
+
+  // Calculate points cash value (100 points = Rp 1,000)
+  const calculatePointsCashValue = (points: number): number => {
+    return Math.floor((points / 100) * 1000);
+  };
+
+  // Member discount calculation
+  const memberDiscount = selectedMember ? getTierDiscount(selectedMember.tier) : 0;
+  const discountAmount = Math.floor((total * memberDiscount) / 100);
+  
+  // Points redemption calculation
+  const pointsRedeemed = usePoints && selectedMember ? parseInt(pointsToRedeem) || 0 : 0;
+  const pointsCashValue = calculatePointsCashValue(pointsRedeemed);
+  
+  // Final total after all discounts
+  const finalTotal = total - discountAmount - pointsCashValue;
 
   // Auto-fill amount when switching to TRANSFER mode
   const handlePaymentMethodChange = (method: 'CASH' | 'TRANSFER') => {
     setPaymentMethod(method);
     if (method === 'TRANSFER') {
-      // Auto-fill with exact total for transfer
-      setAmountPaid(formatNumberWithDots(total.toString()));
+      // Auto-fill with exact total for transfer (after discount)
+      setAmountPaid(formatNumberWithDots(finalTotal.toString()));
     } else {
       // Clear amount for cash
       setAmountPaid('');
@@ -74,15 +114,26 @@ export function PaymentModal({
 
   const calculateChange = () => {
     const paid = getNumericValue(amountPaid);
-    return paid - total;
+    return paid - finalTotal;
   };
 
   const canProcessPayment = () => {
+    // Check if points redemption is valid
+    if (usePoints && selectedMember) {
+      if (pointsRedeemed > selectedMember.points) {
+        return false; // Insufficient points
+      }
+      if (pointsRedeemed <= 0) {
+        return false; // No points entered
+      }
+    }
+    
+    // Check payment amount
     if (paymentMethod === 'CASH') {
-      return getNumericValue(amountPaid) >= total;
+      return getNumericValue(amountPaid) >= finalTotal;
     } else {
       // For transfer, assume payment is confirmed
-      return getNumericValue(amountPaid) >= total;
+      return getNumericValue(amountPaid) >= finalTotal;
     }
   };
 
@@ -95,6 +146,27 @@ export function PaymentModal({
       const token = localStorage.getItem('token');
       if (!token) {
         throw new Error('Authentication required. Please login again.');
+      }
+
+      // Redeem points first if applicable
+      if (usePoints && selectedMember && pointsRedeemed > 0) {
+        const redeemResponse = await fetch('/api/members/points/redeem', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            memberId: selectedMember.id,
+            points: pointsRedeemed,
+            description: `Penukaran ${pointsRedeemed} poin untuk diskon`
+          }),
+        });
+
+        const redeemResult = await redeemResponse.json();
+        if (!redeemResult.success) {
+          throw new Error(redeemResult.error || 'Failed to redeem points');
+        }
       }
 
       const response = await fetch('/api/pos/transaction', {
@@ -110,10 +182,14 @@ export function PaymentModal({
             unitPrice: item.sellPrice,
             subtotal: item.subtotal
           })),
-          totalAmount: total,
+          totalAmount: finalTotal,
+          originalAmount: total,
+          discountAmount: discountAmount + pointsCashValue,
           paymentMethod,
           amountPaid: getNumericValue(amountPaid),
           customerName: customerName || 'Walk-in Customer',
+          memberId: selectedMember?.id,
+          pointsRedeemed: pointsRedeemed,
           change: paymentMethod === 'CASH' ? calculateChange() : 0
         }),
       });
@@ -152,6 +228,8 @@ export function PaymentModal({
     setAmountPaid('');
     setCustomerName('');
     setPaymentMethod('CASH');
+    setUsePoints(false);
+    setPointsToRedeem('');
   };
 
   // Quick amount buttons - ONLY for CASH mode
@@ -195,14 +273,136 @@ export function PaymentModal({
                 ))}
               </div>
               <hr className="my-3" />
+              
+              {/* Member discount display */}
+              {selectedMember && (
+                <>
+                  <div className="flex justify-between text-sm text-slate-600">
+                    <span>Subtotal:</span>
+                    <span>Rp {total.toLocaleString('id-ID')}</span>
+                  </div>
+                  {discountAmount > 0 && (
+                    <div className="flex justify-between text-sm text-green-600 font-medium">
+                      <span>Tier Discount ({memberDiscount}%):</span>
+                      <span>- Rp {discountAmount.toLocaleString('id-ID')}</span>
+                    </div>
+                  )}
+                  {pointsCashValue > 0 && (
+                    <div className="flex justify-between text-sm text-purple-600 font-medium">
+                      <span>Points Redeemed ({pointsRedeemed} pts):</span>
+                      <span>- Rp {pointsCashValue.toLocaleString('id-ID')}</span>
+                    </div>
+                  )}
+                  <hr className="my-2" />
+                </>
+              )}
+              
               <div className="flex justify-between text-lg font-bold">
                 <span>Total:</span>
                 <span className="text-blue-600">
-                  Rp {total.toLocaleString('id-ID')}
+                  Rp {finalTotal.toLocaleString('id-ID')}
                 </span>
               </div>
+              
+              {selectedMember && (
+                <div className="mt-2 p-2 bg-amber-50 border border-amber-200 rounded text-xs">
+                  <div className="flex items-center justify-between">
+                    <div className="font-semibold text-amber-900">
+                      💰 Member: {selectedMember.name}
+                    </div>
+                    <div className="text-amber-800 font-bold">
+                      {selectedMember.points.toLocaleString('id-ID')} pts
+                    </div>
+                  </div>
+                  <div className="text-amber-700 mt-1">
+                    Will earn: ~{Math.floor(finalTotal * 0.01)} pts
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
+
+          {/* Points Redemption - Only for members */}
+          {selectedMember && selectedMember.points > 0 && (
+            <Card className="bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={usePoints}
+                      onChange={(e) => {
+                        setUsePoints(e.target.checked);
+                        if (!e.target.checked) setPointsToRedeem('');
+                      }}
+                      className="w-4 h-4 text-purple-600 rounded focus:ring-2 focus:ring-purple-500"
+                    />
+                    <span className="font-semibold text-purple-900">
+                      🎁 Use Points for Discount
+                    </span>
+                  </label>
+                  <span className="text-xs text-purple-700 font-medium">
+                    Available: {selectedMember.points.toLocaleString('id-ID')} pts
+                  </span>
+                </div>
+
+                {usePoints && (
+                  <div className="space-y-2">
+                    <div className="flex gap-2">
+                      <Input
+                        type="number"
+                        placeholder="Enter points"
+                        value={pointsToRedeem}
+                        onChange={(e) => {
+                          const value = parseInt(e.target.value) || 0;
+                          const maxPoints = Math.min(
+                            selectedMember.points,
+                            Math.floor((total - discountAmount) / 10) * 100 // Can't exceed remaining total
+                          );
+                          setPointsToRedeem(Math.min(value, maxPoints).toString());
+                        }}
+                        max={selectedMember.points}
+                        className="flex-1"
+                      />
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          const maxPoints = Math.min(
+                            selectedMember.points,
+                            Math.floor((total - discountAmount) / 10) * 100
+                          );
+                          setPointsToRedeem(maxPoints.toString());
+                        }}
+                        className="whitespace-nowrap"
+                      >
+                        Use Max
+                      </Button>
+                    </div>
+                    {pointsRedeemed > 0 && (
+                      <div className="text-sm bg-white rounded p-2 border border-purple-200">
+                        <div className="flex justify-between text-purple-700">
+                          <span>{pointsRedeemed.toLocaleString('id-ID')} points</span>
+                          <span className="font-bold">
+                            = Rp {pointsCashValue.toLocaleString('id-ID')}
+                          </span>
+                        </div>
+                        <div className="text-xs text-purple-600 mt-1">
+                          Rate: 100 points = Rp 1,000
+                        </div>
+                      </div>
+                    )}
+                    {pointsRedeemed > selectedMember.points && (
+                      <div className="text-xs text-red-600">
+                        ⚠️ Insufficient points balance
+                      </div>
+                    )}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Customer Name */}
           <div>

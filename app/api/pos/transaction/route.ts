@@ -51,10 +51,13 @@ async function handlePOSTransaction(req: NextRequest) {
     const {
       items,
       totalAmount,
+      originalAmount,
+      discountAmount = 0,
       paymentMethod,
       amountPaid,
       customerName,
-      change = 0
+      change = 0,
+      memberId
     } = body;
 
     console.log('[POS] Processing transaction:', {
@@ -202,10 +205,35 @@ async function handlePOSTransaction(req: NextRequest) {
       };
     });
 
+    // Process member loyalty points if member is selected
+    let memberResult = null;
+    if (memberId) {
+      try {
+        const { processMemberPurchase } = await import('@/lib/member-points');
+        memberResult = await processMemberPurchase(
+          memberId,
+          totalAmount,
+          result.transaction.id
+        );
+        
+        console.log('[POS] Member points processed:', {
+          memberId,
+          pointsEarned: memberResult.pointsEarned,
+          discount: memberResult.discount,
+          tier: memberResult.tier,
+          tierUpgraded: memberResult.tierUpgraded
+        });
+      } catch (memberError) {
+        console.error('[POS] Member points error (non-blocking):', memberError);
+        // Continue even if points processing fails
+      }
+    }
+
     console.log('[POS] Transaction completed successfully:', {
       transactionId: result.transaction.id,
       itemsProcessed: result.transactionItems.length,
-      totalAmount
+      totalAmount,
+      memberProcessed: !!memberResult
     });
 
     // Return success with transaction details
@@ -216,6 +244,8 @@ async function handlePOSTransaction(req: NextRequest) {
         transactionId: result.transaction.id,
         receiptNumber: result.transaction.id.slice(-8).toUpperCase(),
         totalAmount,
+        originalAmount,
+        discountAmount,
         amountPaid,
         change,
         paymentMethod,
@@ -226,7 +256,13 @@ async function handlePOSTransaction(req: NextRequest) {
           quantity: item.quantity,
           unitPrice: item.unitPrice,
           subtotal: item.totalPrice // ✅ FIX: Use totalPrice from database
-        }))
+        })),
+        memberPoints: memberResult ? {
+          pointsEarned: memberResult.pointsEarned,
+          discount: memberResult.discount,
+          tier: memberResult.tier,
+          tierUpgraded: memberResult.tierUpgraded
+        } : null
       }
     });
 

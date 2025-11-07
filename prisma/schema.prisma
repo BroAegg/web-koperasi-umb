@@ -18,6 +18,11 @@ model audit_logs {
   ipAddress String?
   userAgent String?
   createdAt DateTime @default(now())
+
+  @@index([userId, createdAt])
+  @@index([action, createdAt])
+  @@index([entity, createdAt])
+  @@index([createdAt])
 }
 
 model activity_logs {
@@ -65,6 +70,9 @@ model categories {
   id          String     @id
   name        String     @unique
   description String?
+  icon        String?    @default("📦")
+  order       Int        @default(0)
+  isActive    Boolean    @default(true)
   createdAt   DateTime   @default(now())
   updatedAt   DateTime
   products    products[]
@@ -207,26 +215,31 @@ model loans {
 }
 
 model members {
-  id               String         @id
-  userId           String         @unique
-  nomorAnggota     String         @unique
+  id               String              @id
+  userId           String              @unique
+  nomorAnggota     String              @unique
   name             String
-  email            String         @unique
+  email            String              @unique
   phone            String?
   address          String?
   gender           Gender
   unitKerja        String
-  joinDate         DateTime       @default(now())
-  status           MemberStatus   @default(ACTIVE)
-  simpananPokok    Decimal        @default(0)
-  simpananWajib    Decimal        @default(0)
-  simpananSukarela Decimal        @default(0)
-  createdAt        DateTime       @default(now())
+  joinDate         DateTime            @default(now())
+  status           MemberStatus        @default(ACTIVE)
+  simpananPokok    Decimal             @default(0)
+  simpananWajib    Decimal             @default(0)
+  simpananSukarela Decimal             @default(0)
+  points           Int                 @default(0)
+  tier             MemberTier          @default(BRONZE)
+  totalSpent       Decimal             @default(0)
+  lastPurchase     DateTime?
+  createdAt        DateTime            @default(now())
   updatedAt        DateTime
   loans            loans[]
-  users            users          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  users            users               @relation(fields: [userId], references: [id], onDelete: Cascade)
   savings          savings[]
   transactions     transactions[]
+  pointsHistory    member_points_history[]
 }
 
 model products {
@@ -258,6 +271,13 @@ model products {
   purchase_items      purchase_items[]
   stock_movements     stock_movements[]
   transaction_items   transaction_items[]
+
+  @@index([categoryId])
+  @@index([supplierId])
+  @@index([isActive])
+  @@index([name])
+  @@index([createdAt])
+  @@index([stock])
 }
 
 model purchase_items {
@@ -437,6 +457,10 @@ model transactions {
   members              members?              @relation(fields: [memberId], references: [id])
 
   @@index([isProduction])
+  @@index([memberId, createdAt])
+  @@index([status])
+  @@index([date])
+  @@index([paymentMethod])
 }
 
 model users {
@@ -446,12 +470,49 @@ model users {
   name                 String
   role                 Role                   @default(USER)
   isActive             Boolean                @default(true)
+  lastLoginAt          DateTime?
+  mustChangePassword   Boolean                @default(true)
+  passwordChangedAt    DateTime?
   createdAt            DateTime               @default(now())
   updatedAt            DateTime
   activity_logs        activity_logs[]
   broadcasts           broadcasts[]
   consignment_payments consignment_payments[]
   members              members?
+  sessions             sessions[]
+}
+
+model sessions {
+  id           String   @id @default(cuid())
+  userId       String
+  token        String   @unique
+  expiresAt    DateTime
+  ipAddress    String?
+  userAgent    String?
+  lastActiveAt DateTime @default(now())
+  createdAt    DateTime @default(now())
+  users        users    @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([token])
+  @@index([expiresAt])
+}
+
+model member_points_history {
+  id            String                @id @default(cuid())
+  memberId      String
+  transactionId String?
+  type          PointsTransactionType
+  points        Int
+  balance       Int
+  description   String
+  expiresAt     DateTime?
+  createdAt     DateTime              @default(now())
+  member        members               @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([memberId])
+  @@index([createdAt])
+  @@index([type])
 }
 
 enum BatchStatus {
@@ -609,6 +670,20 @@ enum TransactionStatus {
   PENDING
   COMPLETED
   CANCELLED
+}
+
+enum MemberTier {
+  BRONZE
+  SILVER
+  GOLD
+  PLATINUM
+}
+
+enum PointsTransactionType {
+  EARNED
+  REDEEMED
+  EXPIRED
+  ADJUSTED
 }
 
 enum TransactionType {

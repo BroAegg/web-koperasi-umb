@@ -18,65 +18,32 @@ export default function LoginPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!formData.email || !formData.password) {
+      alert('Email dan password harus diisi');
+      return;
+    }
+
     setIsLoading(true);
+
     try {
-      console.log('Attempting login with:', { email: formData.email });
-      
-      const res = await fetch('/api/auth/login', {
-        method: 'POST',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Accept': 'application/json'
-        },
-        body: JSON.stringify(formData),
-        cache: 'no-store'
+      // Use NextAuth signIn
+      const { signIn } = await import('next-auth/react');
+      const result = await signIn('credentials', {
+        email: formData.email,
+        password: formData.password,
+        redirect: false,
       });
 
-      console.log('Response status:', res.status);
-      
-      // Parse JSON first to get error message
-      const data = await res.json();
-      console.log('Login response:', { success: data.success, error: data.error, status: data.status });
-
-      // Check if login failed
-      if (!res.ok || !data.success) {
-        // If supplier is PENDING, redirect to pending page instead of showing alert
-        if (data.status === 'PENDING') {
-          // Store email in sessionStorage to display on pending page
-          sessionStorage.setItem('pendingSupplierEmail', formData.email);
-          window.location.href = '/supplier/pending';
-          return;
-        }
-        
-        // For other errors, show alert
-        alert(data.error || 'Gagal login');
-        setIsLoading(false);
-        return;
+      if (result?.error) {
+        alert(result.error);
+      } else if (result?.ok) {
+        // Success - redirect to dashboard
+        window.location.href = '/koperasi/dashboard';
       }
-
-      // Save token
-      localStorage.setItem('token', data.data.token);
-      console.log('Token saved, redirecting...');
-      
-      // Redirect based on user role (unified dashboard for ADMIN/SUPER_ADMIN)
-      const userRole = data.data.user.role;
-      let redirectPath = '/koperasi/dashboard'; // default
-      
-      if (userRole === 'SUPPLIER') {
-        redirectPath = '/koperasi/supplier';
-      } else if (userRole === 'DEVELOPER') {
-        redirectPath = '/koperasi/developer-dashboard';
-      } else if (userRole === 'ADMIN' || userRole === 'SUPER_ADMIN') {
-        redirectPath = '/koperasi/dashboard';
-      } else {
-        redirectPath = '/koperasi/dashboard'; // USER role or any other
-      }
-      
-      console.log('Redirecting to:', redirectPath);
-      window.location.href = redirectPath;
-    } catch (err) {
-      console.error('Login error:', err);
-      alert('Terjadi kesalahan saat login. Silakan cek console untuk detail.');
+    } catch (error) {
+      console.error('Login error:', error);
+      alert('Terjadi kesalahan. Silakan coba lagi.');
     } finally {
       setIsLoading(false);
     }

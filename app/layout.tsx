@@ -2,6 +2,10 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { DeveloperProvider } from "@/contexts/DeveloperContext";
 import { reportWebVitals } from "@/lib/performance";
+import { Providers } from "./providers";
+import { Toaster } from "sonner";
+import { SpeedInsights } from "@vercel/speed-insights/next";
+import { Analytics } from "@vercel/analytics/react";
 
 export const metadata: Metadata = {
   title: "Koperasi UM BANDUNG",
@@ -23,7 +27,22 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="id">
       <body className="bg-white text-gray-800 antialiased">
-        <DeveloperProvider>{children}</DeveloperProvider>
+        <Providers>
+          <DeveloperProvider>{children}</DeveloperProvider>
+        </Providers>
+        <Toaster 
+          position="top-right"
+          toastOptions={{
+            style: {
+              background: 'white',
+              border: '1px solid rgb(226 232 240)',
+              borderRadius: '0.75rem',
+              boxShadow: '0 10px 15px -3px rgb(0 0 0 / 0.1)'
+            }
+          }}
+        />
+        <SpeedInsights />
+        <Analytics />
       </body>
     </html>
   );

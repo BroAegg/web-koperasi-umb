@@ -1,48 +1,14 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useAuth } from '@/lib/use-auth';
 import { useRouter } from 'next/navigation';
-
-interface DeveloperSession {
-  actualRole: 'DEVELOPER';
-  activeRole: string;
-  isProduction: boolean;
-  switchedAt?: string;
-}
+import { useState } from 'react';
 
 export default function DeveloperDashboard() {
+  const { user, loading: authLoading, authorized } = useAuth(['DEVELOPER']);
   const router = useRouter();
   const [loading, setLoading] = useState(false);
-  const [token, setToken] = useState<string>('');
-  const [devSession, setDevSession] = useState<DeveloperSession | null>(null);
   const [error, setError] = useState<string>('');
-
-  useEffect(() => {
-    // Get token from localStorage
-    const storedToken = localStorage.getItem('token');
-    if (!storedToken) {
-      router.push('/login');
-      return;
-    }
-    setToken(storedToken);
-
-    // Decode token to get developerSession
-    try {
-      const payload = JSON.parse(atob(storedToken.split('.')[1]));
-      if (payload.role !== 'DEVELOPER' && payload.developerSession?.actualRole !== 'DEVELOPER') {
-        router.push('/koperasi/dashboard');
-        return;
-      }
-      setDevSession(payload.developerSession || {
-        actualRole: 'DEVELOPER',
-        activeRole: 'DEVELOPER',
-        isProduction: false,
-      });
-    } catch (err) {
-      console.error('Token decode error:', err);
-      router.push('/login');
-    }
-  }, [router]);
 
   const switchRole = async (targetRole: string) => {
     setLoading(true);
@@ -52,7 +18,6 @@ export default function DeveloperDashboard() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({ targetRole }),
       });
@@ -61,11 +26,6 @@ export default function DeveloperDashboard() {
       if (!response.ok) {
         throw new Error(data.error || 'Failed to switch role');
       }
-
-      // Update token in localStorage
-      localStorage.setItem('token', data.token);
-      setToken(data.token);
-      setDevSession(data.developerSession);
 
       // Refresh page to apply new role
       window.location.reload();
@@ -81,14 +41,12 @@ export default function DeveloperDashboard() {
     setLoading(true);
     setError('');
     try {
-      const newMode = !devSession?.isProduction;
       const response = await fetch('/api/developer/toggle-environment', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({ isProduction: newMode }),
+        body: JSON.stringify({ isProduction: !isProduction }),
       });
 
       const data = await response.json();
@@ -96,10 +54,8 @@ export default function DeveloperDashboard() {
         throw new Error(data.error || 'Failed to toggle environment');
       }
 
-      // Update token in localStorage
-      localStorage.setItem('token', data.token);
-      setToken(data.token);
-      setDevSession(data.developerSession);
+      // Refresh page to apply new environment
+      window.location.reload();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to toggle environment');
       console.error('Toggle environment error:', err);
@@ -108,7 +64,7 @@ export default function DeveloperDashboard() {
     }
   };
 
-  if (!devSession) {
+  if (authLoading || !authorized) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
@@ -119,7 +75,9 @@ export default function DeveloperDashboard() {
     );
   }
 
-  const { activeRole, isProduction } = devSession;
+  // Mock data for now - simplified version
+  const activeRole = user?.role || 'DEVELOPER';
+  const isProduction = false; // Will be implemented later
 
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto">

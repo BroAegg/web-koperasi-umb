@@ -25,9 +25,16 @@ import {
   DollarSign,
   Plus,
   Download,
-  TrendingUp
+  TrendingUp,
+  FileText,
+  FileSpreadsheet,
+  Calendar
 } from 'lucide-react';
 import { ShoppingCart, Receipt, TrendingDown } from 'lucide-react';
+import { exportEnhancedFinancialPDF, exportEnhancedFinancialExcel } from '@/lib/financial-export';
+import { calculateProfitData, enrichTransactionsWithProfit } from '@/lib/profit-calculator';
+import DatePicker from 'react-datepicker';
+import 'react-datepicker/dist/react-datepicker.css';
 
 export default function FinancialPage() {
   // Authorization check - Only SUPER_ADMIN and ADMIN can access
@@ -46,6 +53,12 @@ export default function FinancialPage() {
   const [editingTransaction, setEditingTransaction] = useState<string | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [dailySummary, setDailySummary] = useState<DailySummary | null>(null);
+  
+  // Date range for custom reports
+  const [startDate, setStartDate] = useState<Date>(new Date());
+  const [endDate, setEndDate] = useState<Date>(new Date());
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [isExporting, setIsExporting] = useState(false);
   
   const { success, error, warning, confirm, info } = useNotification();
 
@@ -361,6 +374,113 @@ export default function FinancialPage() {
     return matchesSearch && matchesType;
   });
 
+  // Export handlers
+  const handleExportPDF = async () => {
+    if (!dailySummary) {
+      error('Data Kosong', 'Tidak ada data untuk diexport');
+      return;
+    }
+
+    setIsExporting(true);
+    try {
+      // Enrich transactions with profit data
+      const enrichedTransactions = enrichTransactionsWithProfit(filteredTransactions);
+      
+      // Calculate profit summary
+      const profitData = calculateProfitData(filteredTransactions);
+      
+      // Prepare export data
+      const exportData = {
+        title: 'Laporan Keuangan Lengkap',
+        period: showDatePicker
+          ? `${startDate.toLocaleDateString('id-ID')} - ${endDate.toLocaleDateString('id-ID')}`
+          : financialPeriod === 'today' ? 'Hari Ini' : 
+            financialPeriod === '7days' ? '7 Hari Terakhir' : 
+            financialPeriod === '1month' ? '1 Bulan Terakhir' : '3 Bulan Terakhir',
+        dateRange: showDatePicker ? {
+          from: startDate.toISOString().split('T')[0],
+          to: endDate.toISOString().split('T')[0],
+        } : undefined,
+        summary: {
+          totalRevenue: dailySummary.totalIncome,
+          totalExpense: dailySummary.totalExpense,
+          grossProfit: profitData.grossProfit,
+          netProfit: profitData.netProfit,
+          transactionCount: dailySummary.transactionCount,
+        },
+        transactions: enrichedTransactions.map(t => ({
+          date: new Date(t.date).toLocaleDateString('id-ID'),
+          type: t.type === 'INCOME' ? 'Pemasukan' : 'Pengeluaran',
+          description: t.description,
+          category: t.category,
+          amount: t.amount,
+          paymentMethod: t.paymentMethod,
+          profit: t.profit,
+          margin: t.margin,
+        })),
+      };
+
+      exportEnhancedFinancialPDF(exportData);
+      success('Export PDF Berhasil', 'Laporan keuangan berhasil diexport');
+    } catch (err) {
+      console.error('PDF export error:', err);
+      error('Export Gagal', 'Terjadi kesalahan saat export PDF');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleExportExcel = async () => {
+    if (!dailySummary) {
+      error('Data Kosong', 'Tidak ada data untuk diexport');
+      return;
+    }
+
+    setIsExporting(true);
+    try {
+      const enrichedTransactions = enrichTransactionsWithProfit(filteredTransactions);
+      const profitData = calculateProfitData(filteredTransactions);
+      
+      const exportData = {
+        title: 'Laporan Keuangan Lengkap',
+        period: showDatePicker
+          ? `${startDate.toLocaleDateString('id-ID')} - ${endDate.toLocaleDateString('id-ID')}`
+          : financialPeriod === 'today' ? 'Hari Ini' : 
+            financialPeriod === '7days' ? '7 Hari Terakhir' : 
+            financialPeriod === '1month' ? '1 Bulan Terakhir' : '3 Bulan Terakhir',
+        dateRange: showDatePicker ? {
+          from: startDate.toISOString().split('T')[0],
+          to: endDate.toISOString().split('T')[0],
+        } : undefined,
+        summary: {
+          totalRevenue: dailySummary.totalIncome,
+          totalExpense: dailySummary.totalExpense,
+          grossProfit: profitData.grossProfit,
+          netProfit: profitData.netProfit,
+          transactionCount: dailySummary.transactionCount,
+        },
+        transactions: enrichedTransactions.map(t => ({
+          date: new Date(t.date).toLocaleDateString('id-ID'),
+          type: t.type === 'INCOME' ? 'Pemasukan' : 'Pengeluaran',
+          description: t.description,
+          category: t.category,
+          amount: t.amount,
+          paymentMethod: t.paymentMethod,
+          profit: t.profit,
+          margin: t.margin,
+        })),
+      };
+
+      exportEnhancedFinancialExcel(exportData);
+      success('Export Excel Berhasil', 'Laporan keuangan berhasil diexport');
+    } catch (err) {
+      console.error('Excel export error:', err);
+      error('Export Gagal', 'Terjadi kesalahan saat export Excel');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
   // Show loading while checking authorization
   if (authLoading) {
     return <Loading />;
@@ -374,22 +494,107 @@ export default function FinancialPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Pencatatan Keuangan</h1>
           <p className="text-gray-600 mt-1">Kelola transaksi dan laporan keuangan harian</p>
         </div>
-        <div className="mt-4 md:mt-0 flex gap-3">
-          <Button variant="outline" size="sm">
-            <Download className="w-4 h-4 mr-2" />
-            Export
+        <div className="flex flex-wrap gap-2">
+          {/* Date Range Picker */}
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={() => setShowDatePicker(!showDatePicker)}
+          >
+            <Calendar className="w-4 h-4 mr-2" />
+            Custom Range
           </Button>
+          
+          {/* Export Buttons */}
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={handleExportPDF}
+            disabled={isExporting || !dailySummary}
+          >
+            <FileText className="w-4 h-4 mr-2" />
+            {isExporting ? 'Exporting...' : 'Export PDF'}
+          </Button>
+          <Button 
+            variant="outline" 
+            size="sm"
+            onClick={handleExportExcel}
+            disabled={isExporting || !dailySummary}
+          >
+            <FileSpreadsheet className="w-4 h-4 mr-2" />
+            {isExporting ? 'Exporting...' : 'Export Excel'}
+          </Button>
+          
           <Button size="sm" onClick={() => setShowAddModal(true)}>
             <Plus className="w-4 h-4 mr-2" />
             Catat Pemasukan/Pengeluaran
           </Button>
         </div>
       </div>
+
+      {/* Date Range Picker */}
+      {showDatePicker && (
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex flex-col md:flex-row gap-4 items-center">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Tanggal Mulai
+                </label>
+                <DatePicker
+                  selected={startDate}
+                  onChange={(date) => date && setStartDate(date)}
+                  selectsStart
+                  startDate={startDate}
+                  endDate={endDate}
+                  dateFormat="dd/MM/yyyy"
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Tanggal Akhir
+                </label>
+                <DatePicker
+                  selected={endDate}
+                  onChange={(date) => date && setEndDate(date)}
+                  selectsEnd
+                  startDate={startDate}
+                  endDate={endDate}
+                  minDate={startDate}
+                  dateFormat="dd/MM/yyyy"
+                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+              <div className="flex gap-2 mt-6">
+                <Button 
+                  size="sm"
+                  onClick={() => {
+                    // Apply custom date range filter
+                    setFinancialPeriod('today'); // Reset to trigger fetch
+                    fetchTransactions();
+                    success('Filter Diterapkan', 'Menampilkan data sesuai rentang tanggal');
+                  }}
+                >
+                  Terapkan
+                </Button>
+                <Button 
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowDatePicker(false)}
+                >
+                  Tutup
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
 
       {/* Financial Summary Card - Full Width */}
       {dailySummary && (

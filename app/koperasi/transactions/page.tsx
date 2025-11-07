@@ -3,12 +3,14 @@
 import { useState, useEffect } from 'react';
 import { useTransactions } from '@/hooks/useTransactions';
 import { Card, CardHeader, CardContent, Button, Input } from '@/components/ui';
-import { Search, Filter, Download, Printer, Eye, Trash2 } from 'lucide-react';
+import { Search, Filter, Download, Printer, Eye, Trash2, FileText, FileSpreadsheet } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import ReceiptModal from '@/components/transactions/ReceiptModal';
 import { useAuth } from '@/lib/use-auth';
 import { useNotification } from '@/lib/notification-context';
 import { useDeveloper } from '@/contexts/DeveloperContext';
+import { exportTransactionListPDF } from '@/lib/export-pdf';
+import { exportTransactionsExcel } from '@/lib/export-excel';
 
 // Helper function to get transaction type label
 const getTransactionTypeLabel = (type: string) => {
@@ -57,6 +59,9 @@ export default function TransactionsPage() {
   const [selectedTransaction, setSelectedTransaction] = useState<any>(null);
   const [showReceiptModal, setShowReceiptModal] = useState(false);
 
+  // Export loading state
+  const [isExporting, setIsExporting] = useState(false);
+
   // Check if user is developer (real developer OR in developer context)
   const isDeveloper = user?.role === 'DEVELOPER' || isDeveloperContext;
 
@@ -69,6 +74,63 @@ export default function TransactionsPage() {
     setSelectedTransaction(transaction);
     setShowReceiptModal(true);
     // Print will be triggered by user clicking print button in modal
+  };
+
+  const handleExportPDF = async () => {
+    setIsExporting(true);
+    try {
+      // Create date range string if filters exist
+      let dateRangeStr = undefined;
+      if (dateFrom && dateTo) {
+        dateRangeStr = `${new Date(dateFrom).toLocaleDateString('id-ID')} - ${new Date(dateTo).toLocaleDateString('id-ID')}`;
+      } else if (dateFrom) {
+        dateRangeStr = `Dari ${new Date(dateFrom).toLocaleDateString('id-ID')}`;
+      } else if (dateTo) {
+        dateRangeStr = `Sampai ${new Date(dateTo).toLocaleDateString('id-ID')}`;
+      }
+      
+      // Transform transactions to match export interface
+      const transactionsForExport = transactions.map(t => ({
+        id: t.id,
+        receiptId: t.receiptId,
+        date: t.createdAt,
+        totalAmount: t.totalAmount,
+        paymentMethod: t.paymentMethod,
+        status: 'completed',
+        customerName: t.customerName,
+      }));
+      
+      await exportTransactionListPDF(transactionsForExport, dateRangeStr);
+      success('Export PDF Berhasil', 'Data transaksi berhasil diexport ke PDF');
+    } catch (err) {
+      console.error('PDF export error:', err);
+      notifyError('Export Gagal', 'Terjadi kesalahan saat export PDF');
+    } finally {
+      setIsExporting(false);
+    }
+  };
+
+  const handleExportExcel = async () => {
+    setIsExporting(true);
+    try {
+      // Transform transactions to match export interface
+      const transactionsForExport = transactions.map(t => ({
+        id: t.id,
+        date: t.createdAt,
+        totalAmount: t.totalAmount,
+        paymentMethod: t.paymentMethod,
+        status: 'completed',
+        customerName: t.customerName,
+      }));
+      
+      await exportTransactionsExcel(transactionsForExport);
+      success('Export Excel Berhasil', 'Data transaksi berhasil diexport ke Excel');
+    } catch (err) {
+      console.error('Excel export error:', err);
+      notifyError('Export Gagal', 'Terjadi kesalahan saat export Excel');
+    } finally {
+      setIsExporting(false);
+    }
   };
 
   const handleDeleteTransaction = async (transactionId: string, receiptId: string) => {
@@ -172,6 +234,7 @@ export default function TransactionsPage() {
                     placeholder="Cari receipt ID atau nama customer..."
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
+                    autoFocus
                     className="pl-10"
                   />
                 </div>
@@ -248,6 +311,35 @@ export default function TransactionsPage() {
             )}
           </CardContent>
         </Card>
+
+        {/* Export Buttons */}
+        <div className="mb-6 flex items-center justify-between">
+          <div className="text-sm text-gray-600">
+            {transactions.length > 0 && (
+              <span>Menampilkan {transactions.length} transaksi</span>
+            )}
+          </div>
+          <div className="flex gap-2">
+            <Button
+              onClick={handleExportPDF}
+              disabled={isExporting || transactions.length === 0}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <FileText className="w-4 h-4" />
+              {isExporting ? 'Exporting...' : 'Export PDF'}
+            </Button>
+            <Button
+              onClick={handleExportExcel}
+              disabled={isExporting || transactions.length === 0}
+              variant="outline"
+              className="flex items-center gap-2"
+            >
+              <FileSpreadsheet className="w-4 h-4" />
+              {isExporting ? 'Exporting...' : 'Export Excel'}
+            </Button>
+          </div>
+        </div>
 
         {/* Summary Cards */}
         {summary && (

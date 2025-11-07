@@ -42,6 +42,8 @@ export const authOptions: NextAuthOptions = {
           email: user.email,
           name: user.name,
           role: user.role,
+          mustChangePassword: user.mustChangePassword,
+          isActive: user.isActive,
         };
       }
     })
@@ -59,7 +61,7 @@ export const authOptions: NextAuthOptions = {
     async session({ session, token }) {
       if (token) {
         session.user.id = token.sub!;
-        session.user.role = token.role as string;
+        session.user.role = token.role as any;
       }
       return session;
     },

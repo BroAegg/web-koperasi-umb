@@ -32,8 +32,10 @@ import {
   Trash2,
   Minus,
   User,
-  MapPin
+  MapPin,
+  FileSpreadsheet
 } from 'lucide-react';
+import { exportProductsExcel } from '@/lib/export-excel';
 
 // Import centralized types
 import { 
@@ -1373,25 +1375,55 @@ export default function InventoryPage() {
                   </p>
                 </div>
                 
-                {/* Use ProductFilters Component */}
-                <ProductFilters
-                  searchTerm={searchTerm}
-                  onSearchChange={(value) => {
-                    setSearchTerm(value);
-                    setCurrentPage(1);
-                  }}
-                  hideOutOfStock={hideOutOfStock}
-                  onToggleOutOfStock={() => setHideOutOfStock(!hideOutOfStock)}
-                  selectedCategory={selectedCategory}
-                  selectedOwnership={selectedOwnership}
-                  selectedCycle={selectedCycle}
-                  onCategoryChange={setSelectedCategory}
-                  onOwnershipChange={setSelectedOwnership}
-                  onCycleChange={setSelectedCycle}
-                  onShowFilterModal={() => setShowFilterModal(true)}
-                  totalProducts={products.length}
-                  filteredCount={filteredProducts.length}
-                />
+                <div className="flex flex-col sm:flex-row gap-2">
+                  {/* Export Button */}
+                  <Button
+                    onClick={async () => {
+                      try {
+                        // Transform products to match export interface
+                        const productsForExport = filteredProducts.map(p => ({
+                          name: p.name,
+                          sku: p.sku,
+                          category: p.category?.name || '-',
+                          stock: p.stock,
+                          buyPrice: p.buyPrice || undefined,
+                          sellPrice: p.sellPrice,
+                          threshold: p.threshold,
+                        }));
+                        await exportProductsExcel(productsForExport);
+                        success('Export Berhasil', 'Data produk berhasil diexport ke Excel');
+                      } catch (err) {
+                        error('Export Gagal', 'Terjadi kesalahan saat export data');
+                      }
+                    }}
+                    disabled={filteredProducts.length === 0}
+                    variant="outline"
+                    className="flex items-center gap-2 text-sm"
+                  >
+                    <FileSpreadsheet className="w-4 h-4" />
+                    Export Excel
+                  </Button>
+                  
+                  {/* Use ProductFilters Component */}
+                  <ProductFilters
+                    searchTerm={searchTerm}
+                    onSearchChange={(value) => {
+                      setSearchTerm(value);
+                      setCurrentPage(1);
+                    }}
+                    hideOutOfStock={hideOutOfStock}
+                    onToggleOutOfStock={() => setHideOutOfStock(!hideOutOfStock)}
+                    selectedCategory={selectedCategory}
+                    selectedOwnership={selectedOwnership}
+                    selectedCycle={selectedCycle}
+                    onCategoryChange={setSelectedCategory}
+                    onOwnershipChange={setSelectedOwnership}
+                    onCycleChange={setSelectedCycle}
+                    onShowFilterModal={() => setShowFilterModal(true)}
+                    totalProducts={products.length}
+                    filteredCount={filteredProducts.length}
+                  />
+                </div>
               </div>
             </CardHeader>
             <CardContent className="p-0">
