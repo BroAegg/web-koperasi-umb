@@ -44,11 +44,9 @@ export async function GET(request: NextRequest) {
           },
         },
         savings: {
-          orderBy: [
-            { year: 'desc' },
-            { month: 'desc' },
-            { createdAt: 'desc' },
-          ],
+          orderBy: {
+            date: 'desc',
+          },
         },
       },
       orderBy: {

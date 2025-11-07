@@ -1,4 +1,4 @@
-x'use client';
+'use client';
 
 import { useState, useEffect } from 'react';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
@@ -36,9 +36,8 @@ interface Saving {
   id: string;
   amount: number;
   type: 'POKOK' | 'WAJIB' | 'SUKARELA' | 'WITHDRAWAL';
+  date: string;
   createdAt: string;
-  year?: number;
-  month?: number;
   description?: string;
 }
 
@@ -783,18 +782,14 @@ export default function MembershipPage() {
                     <div className="bg-gray-50 rounded-lg p-4 max-h-96 overflow-y-auto">
                       <div className="space-y-2">
                         {selectedMember.savings
-                          .sort((a, b) => {
-                            // Sort by year, then month, then date
-                            if (a.year && b.year && a.year !== b.year) return b.year - a.year;
-                            if (a.month && b.month && a.month !== b.month) return b.month - a.month;
-                            return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-                          })
-                          .map((saving, idx) => {
+                          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                          .map((saving) => {
                             const isWithdrawal = saving.type === 'WITHDRAWAL';
-                            const monthNames = ['', 'Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
-                            const displayDate = saving.year && saving.month 
-                              ? `${monthNames[saving.month]} ${saving.year}`
-                              : new Date(saving.createdAt).toLocaleDateString('id-ID', { year: 'numeric', month: 'short', day: 'numeric' });
+                            const displayDate = new Date(saving.date).toLocaleDateString('id-ID', { 
+                              year: 'numeric', 
+                              month: 'short', 
+                              day: 'numeric' 
+                            });
                             
                             let typeLabel = '';
                             let typeColor = '';
