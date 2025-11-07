@@ -43,12 +43,22 @@ export async function POST(req: NextRequest) {
       'TOTAL SIMPANAN WAJIB': number;
     }>(anggotaSheet, { header: 1 }) as any[];
 
+    // Parse Data sheet (savings transactions)
+    const dataSheet = workbook.Sheets['Data'];
+    let transactionData: any[] = [];
+    if (dataSheet) {
+      const rawTransactionData = XLSX.utils.sheet_to_json(dataSheet, { header: 1 }) as any[];
+      transactionData = rawTransactionData.slice(1).filter(row => row[1]); // Skip header, filter empty
+    }
+
     // Skip header row
     const members = anggotaData.slice(1).filter(row => row[1]); // Filter out empty rows
 
     let imported = 0;
     let skipped = 0;
+    let transactionsImported = 0;
     const errors: string[] = [];
+    const memberNameMap = new Map<string, string>(); // Map nama → memberId for transactions
 
     for (const row of members) {
       const [no, nama, pendaftaranSerial, simpananPokok, simpananWajib] = row;
@@ -114,6 +124,8 @@ export async function POST(req: NextRequest) {
           }
         });
 
+        // Map nama untuk transactions nanti
+        memberNameMap.set(nama.trim().toUpperCase(), memberId);
         imported++;
       } catch (error: any) {
         errors.push(`Row ${no} (${nama}): ${error.message}`);
@@ -121,13 +133,85 @@ export async function POST(req: NextRequest) {
       }
     }
 
+    // Import savings transactions from Data sheet
+    if (transactionData.length > 0) {
+      console.log(`[Import] Processing ${transactionData.length} transactions from Data sheet`);
+      
+      for (const txRow of transactionData) {
+        const [txNo, nama, tahun, bulan, nominal, tipe] = txRow;
+        
+        if (!nama || !nominal || !tipe) {
+          continue; // Skip incomplete rows
+        }
+
+        try {
+          // Find member by name (case insensitive)
+          const namaUpper = nama.toString().trim().toUpperCase();
+          let memberId = memberNameMap.get(namaUpper);
+          
+          // If not found in new imports, check existing members
+          if (!memberId) {
+            const existingMember = await prisma.members.findFirst({
+              where: { 
+                name: {
+                  contains: nama.trim()
+                }
+              }
+            });
+            if (existingMember) {
+              memberId = existingMember.id;
+              memberNameMap.set(namaUpper, memberId);
+            }
+          }
+
+          if (!memberId) {
+            errors.push(`Transaction ${txNo}: Member "${nama}" not found`);
+            continue;
+          }
+
+          // Convert month name to date
+          const monthNames: { [key: string]: number } = {
+            'JAN': 1, 'FEB': 2, 'MAR': 3, 'APR': 4, 'MEI': 5, 'JUN': 6,
+            'JUL': 7, 'AUG': 8, 'SEP': 9, 'OKT': 10, 'NOV': 11, 'DES': 12
+          };
+          const bulanStr = bulan?.toString().toUpperCase() || '';
+          const monthNum = monthNames[bulanStr] || 1;
+          const transactionDate = new Date(parseInt(tahun) || 2024, monthNum - 1, 15); // Mid-month
+
+          // Determine transaction type and amount
+          const amount = Math.abs(parseFloat(nominal) || 0);
+          const savingType = tipe?.toString().toUpperCase() === 'TARIK' ? 'WITHDRAWAL' : 'SUKARELA';
+          const description = `${tipe?.toString().toUpperCase()} - ${bulan} ${tahun}`;
+
+          // Create savings transaction
+          await prisma.savings.create({
+            data: {
+              id: `saving-import-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+              memberId: memberId,
+              type: savingType as any,
+              amount: amount,
+              description: description,
+              date: transactionDate,
+              createdAt: new Date(),
+            }
+          });
+
+          transactionsImported++;
+        } catch (error: any) {
+          errors.push(`Transaction ${txNo} (${nama}): ${error.message}`);
+        }
+      }
+    }
+
     return NextResponse.json({
       success: true,
-      message: `Import completed: ${imported} imported, ${skipped} skipped`,
+      message: `Import completed: ${imported} members, ${transactionsImported} transactions imported, ${skipped} skipped`,
       stats: {
         total: members.length,
         imported,
         skipped,
+        transactionsTotal: transactionData.length,
+        transactionsImported,
         errors: errors.length > 0 ? errors : undefined
       }
     });

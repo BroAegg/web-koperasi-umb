@@ -307,7 +307,10 @@ export default function MembershipPage() {
         setImportFile(null);
         setShowImportModal(false);
         fetchMembers(); // Refresh list
-        success('Import berhasil!', `${data.stats.imported} anggota berhasil diimport`);
+        const txMsg = data.stats.transactionsImported 
+          ? ` dan ${data.stats.transactionsImported} transaksi` 
+          : '';
+        success('Import berhasil!', `${data.stats.imported} anggota${txMsg} berhasil diimport`);
         // Reset file input
         const fileInput = document.getElementById('file-input-import') as HTMLInputElement;
         if (fileInput) fileInput.value = '';
