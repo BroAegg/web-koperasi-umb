@@ -555,12 +555,12 @@ export default function NeracaPage() {
             <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
               <p className="text-sm text-slate-600 mb-1">Current Ratio</p>
               <p className="text-2xl font-bold text-blue-900">
-                {balanceSheet.pasiva.liabilitas.subtotal > 0
-                  ? (balanceSheet.aktiva.lancar.subtotal / balanceSheet.pasiva.liabilitas.subtotal).toFixed(2) + 'x'
+                {balanceSheet.pasiva.liabilitasLancar.subtotal > 0
+                  ? (balanceSheet.aktiva.lancar.subtotal / balanceSheet.pasiva.liabilitasLancar.subtotal).toFixed(2) + 'x'
                   : 'N/Ax'}
               </p>
-              <p className="text-xs text-slate-500 mt-1">Aktiva Lancar / Liabilitas</p>
-              {balanceSheet.pasiva.liabilitas.subtotal === 0 && (
+              <p className="text-xs text-slate-500 mt-1">Aktiva Lancar / Liabilitas Lancar</p>
+              {balanceSheet.pasiva.liabilitasLancar.subtotal === 0 && (
                 <p className="text-xs text-blue-600 mt-2 italic">Tidak ada liabilitas jangka pendek</p>
               )}
             </div>
@@ -570,11 +570,11 @@ export default function NeracaPage() {
               <p className="text-sm text-slate-600 mb-1">Debt to Equity Ratio</p>
               <p className="text-2xl font-bold text-green-900">
                 {balanceSheet.pasiva.ekuitas.subtotal > 0
-                  ? (balanceSheet.pasiva.liabilitas.subtotal / balanceSheet.pasiva.ekuitas.subtotal).toFixed(2) + 'x'
+                  ? ((balanceSheet.pasiva.liabilitasLancar.subtotal + balanceSheet.pasiva.liabilitasJangkaPanjang.subtotal) / balanceSheet.pasiva.ekuitas.subtotal).toFixed(2) + 'x'
                   : '0.00x'}
               </p>
-              <p className="text-xs text-slate-500 mt-1">Liabilitas / Ekuitas</p>
-              {balanceSheet.pasiva.liabilitas.subtotal === 0 && (
+              <p className="text-xs text-slate-500 mt-1">Total Liabilitas / Ekuitas</p>
+              {(balanceSheet.pasiva.liabilitasLancar.subtotal + balanceSheet.pasiva.liabilitasJangkaPanjang.subtotal) === 0 && (
                 <p className="text-xs text-green-600 mt-2 italic">✓ Tidak ada hutang</p>
               )}
             </div>
@@ -598,21 +598,21 @@ export default function NeracaPage() {
           <div className="mt-4 p-3 bg-slate-50 rounded-lg border border-slate-200">
             <p className="text-xs font-medium text-slate-700 mb-2">📊 Analisis Rasio:</p>
             <ul className="text-xs text-slate-600 space-y-1">
-              {balanceSheet.pasiva.liabilitas.subtotal === 0 ? (
+              {balanceSheet.pasiva.liabilitasLancar.subtotal === 0 ? (
                 <li>• <strong>Current Ratio N/A</strong>: Koperasi tidak memiliki liabilitas jangka pendek (kondisi sangat baik)</li>
-              ) : balanceSheet.aktiva.lancar.subtotal / balanceSheet.pasiva.liabilitas.subtotal >= 2 ? (
-                <li>• <strong>Current Ratio Sangat Baik</strong>: Aktiva lancar {(balanceSheet.aktiva.lancar.subtotal / balanceSheet.pasiva.liabilitas.subtotal).toFixed(2)}x lebih besar dari liabilitas</li>
-              ) : balanceSheet.aktiva.lancar.subtotal / balanceSheet.pasiva.liabilitas.subtotal >= 1 ? (
+              ) : balanceSheet.aktiva.lancar.subtotal / balanceSheet.pasiva.liabilitasLancar.subtotal >= 2 ? (
+                <li>• <strong>Current Ratio Sangat Baik</strong>: Aktiva lancar {(balanceSheet.aktiva.lancar.subtotal / balanceSheet.pasiva.liabilitasLancar.subtotal).toFixed(2)}x lebih besar dari liabilitas lancar</li>
+              ) : balanceSheet.aktiva.lancar.subtotal / balanceSheet.pasiva.liabilitasLancar.subtotal >= 1 ? (
                 <li>• <strong>Current Ratio Baik</strong>: Aktiva lancar cukup untuk menutup liabilitas jangka pendek</li>
               ) : (
                 <li>• <strong>Current Ratio Rendah</strong>: Perlu perhatian - liabilitas lebih besar dari aktiva lancar</li>
               )}
               
-              {balanceSheet.pasiva.liabilitas.subtotal === 0 ? (
+              {(balanceSheet.pasiva.liabilitasLancar.subtotal + balanceSheet.pasiva.liabilitasJangkaPanjang.subtotal) === 0 ? (
                 <li>• <strong>Debt to Equity 0.00x</strong>: Koperasi dibiayai 100% dari ekuitas tanpa hutang (sangat konservatif)</li>
-              ) : balanceSheet.pasiva.liabilitas.subtotal / balanceSheet.pasiva.ekuitas.subtotal <= 0.5 ? (
+              ) : (balanceSheet.pasiva.liabilitasLancar.subtotal + balanceSheet.pasiva.liabilitasJangkaPanjang.subtotal) / balanceSheet.pasiva.ekuitas.subtotal <= 0.5 ? (
                 <li>• <strong>Debt to Equity Rendah</strong>: Struktur modal sangat konservatif dengan hutang minimal</li>
-              ) : balanceSheet.pasiva.liabilitas.subtotal / balanceSheet.pasiva.ekuitas.subtotal <= 1 ? (
+              ) : (balanceSheet.pasiva.liabilitasLancar.subtotal + balanceSheet.pasiva.liabilitasJangkaPanjang.subtotal) / balanceSheet.pasiva.ekuitas.subtotal <= 1 ? (
                 <li>• <strong>Debt to Equity Sehat</strong>: Rasio hutang terhadap ekuitas masih dalam batas aman</li>
               ) : (
                 <li>• <strong>Debt to Equity Tinggi</strong>: Hutang lebih besar dari ekuitas - perlu evaluasi</li>
