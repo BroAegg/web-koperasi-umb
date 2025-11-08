@@ -1,5 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
+import { PrismaClient } from '@prisma/client';
+import { randomUUID } from 'crypto';
+
+const prisma = new PrismaClient();
 
 export async function POST(
   request: NextRequest,
@@ -26,7 +29,7 @@ export async function POST(
     }
 
     // Check if member exists
-    const member = await prisma.member.findUnique({
+    const member = await prisma.members.findUnique({
       where: { id },
     });
 
@@ -49,8 +52,9 @@ export async function POST(
     }
 
     // Create withdrawal transaction
-    const saving = await prisma.saving.create({
+    const saving = await prisma.savings.create({
       data: {
+        id: randomUUID(),
         memberId: id,
         type: 'WITHDRAWAL',
         amount,
@@ -60,7 +64,7 @@ export async function POST(
     });
 
     // Update member balance (deduct from Simpanan Sukarela)
-    const updatedMember = await prisma.member.update({
+    const updatedMember = await prisma.members.update({
       where: { id },
       data: {
         simpananSukarela: member.simpananSukarela - amount,
