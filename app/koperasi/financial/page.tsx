@@ -165,30 +165,31 @@ export default function FinancialPage() {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      // Use current financialPeriod instead of hardcoded 'today'
-      const response = await fetch(`/api/financial/period?period=${financialPeriod}`, {
+      // Call /api/financial/summary to get cumulativeBalance
+      const summaryResponse = await fetch(`/api/financial/summary?date=${selectedDate}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
       });
       
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
+      if (!summaryResponse.ok) {
+        throw new Error(`API error: ${summaryResponse.status}`);
       }
 
-      const result = await response.json();
+      const summaryResult = await summaryResponse.json();
       
-      if (result.success) {
-        // Map period API response to dailySummary format
+      if (summaryResult.success) {
+        // Use summary API response which includes cumulativeBalance
         setDailySummary({
           date: selectedDate,
-          totalIncome: result.data.totalRevenue,
-          totalExpense: result.data.totalExpense, // ✅ FIXED: Use actual expense (not COGS)
-          netIncome: result.data.totalProfit,
-          transactionCount: result.data.totalSoldItems,
-          toko: result.data.toko || { revenue: 0, cogs: 0, profit: 0 },
-          consignment: result.data.consignment || { grossRevenue: 0, cogs: 0, profit: 0 },
+          totalIncome: summaryResult.data.totalIncome || 0,
+          totalExpense: summaryResult.data.totalExpense || 0,
+          netIncome: summaryResult.data.netIncome || 0,
+          transactionCount: summaryResult.data.transactionCount || 0,
+          cumulativeBalance: summaryResult.data.cumulativeBalance || 0, // ✅ FIXED: Include cumulative balance
+          toko: { revenue: 0, cogs: 0, profit: 0 },
+          consignment: { grossRevenue: 0, cogs: 0, profit: 0 },
         });
       }
     } catch (err) {
