@@ -1,14 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getServerSession } from 'next-auth';
-import { authOptions } from '@/lib/auth-options';
+import { getUserFromToken } from '@/lib/auth';
 
 export async function GET(req: NextRequest) {
   try {
-    // Authentication check using NextAuth
-    const session = await getServerSession(authOptions);
+    // Authentication check - Support both cookie and Authorization header
+    const cookieToken = req.cookies.get('token')?.value;
+    const authHeader = req.headers.get('authorization');
+    const headerToken = authHeader?.replace(/^Bearer\s+/i, '');
+    const token = headerToken || cookieToken;
     
-    if (!session || !session.user) {
+    const user = await getUserFromToken(token);
+    
+    if (!user) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
@@ -16,7 +20,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Authorization check - Only ADMIN and SUPER_ADMIN
-    if (!['ADMIN', 'SUPER_ADMIN'].includes(session.user.role)) {
+    if (!['ADMIN', 'SUPER_ADMIN'].includes(user.role)) {
       return NextResponse.json(
         { success: false, error: 'Forbidden - Admin access required' },
         { status: 403 }
@@ -49,6 +53,15 @@ export async function GET(req: NextRequest) {
         in: ['SALE', 'EXPENSE'],
       };
     }
+
+    // FILTER: Exclude transaksi simpanan anggota (setor/tarik)
+    // Note: Prisma count() doesn't support mode, so we use startsWith
+    where.NOT = {
+      OR: [
+        { note: { startsWith: 'Setor Simpanan' } },
+        { note: { startsWith: 'Tarik Simpanan' } },
+      ]
+    };
 
     // Date range filter
     if (dateFrom && dateTo) {
@@ -119,23 +132,51 @@ export async function GET(req: NextRequest) {
     const allTransactions = await prisma.transactions.findMany({
       where,
       select: {
+        type: true, // PENTING: perlu field type untuk filter SALE vs EXPENSE
         totalAmount: true,
         paymentMethod: true,
       },
     });
 
-    const totalRevenue = allTransactions.reduce(
-      (sum: number, t: any) => sum + Number(t.totalAmount),
+    // KPI Calculations (Operasional)
+    
+    // 1. Gross Sales = total nilai penjualan POS (sebelum retur/discount)
+    const grossSales = allTransactions.reduce(
+      (sum: number, t: any) => t.type === 'SALE' ? sum + Number(t.totalAmount) : sum,
       0
     );
 
+    // 2. Cash In (Operasional) = semua pemasukan kas dari aktivitas operasional
+    // Untuk sekarang: hanya SALE yang masuk sebagai cash in
+    const cashInOperational = grossSales;
+
+    // 3. Cash Out (Operasional) = semua pengeluaran kas operasional
+    // EXPENSE (pembayaran titipan supplier, dll)
+    const cashOutOperational = allTransactions.reduce(
+      (sum: number, t: any) => t.type === 'EXPENSE' ? sum + Number(t.totalAmount) : sum,
+      0
+    );
+
+    // 4. Net Cash Flow (Operasional) = Cash In − Cash Out
+    const netCashFlow = cashInOperational - cashOutOperational;
+
+    // Payment breakdown: per metode pembayaran
     const paymentBreakdown = allTransactions.reduce((acc: any, t: any) => {
       const method = t.paymentMethod;
-      acc[method] = (acc[method] || 0) + Number(t.totalAmount);
+      const amount = Number(t.totalAmount);
+      acc[method] = (acc[method] || 0) + amount;
       return acc;
     }, {});
 
-    const averageTransaction = totalCount > 0 ? totalRevenue / totalCount : 0;
+    // Transaction source breakdown: per jenis transaksi
+    const sourceBreakdown = allTransactions.reduce((acc: any, t: any) => {
+      const type = t.type;
+      const amount = Number(t.totalAmount);
+      acc[type] = (acc[type] || 0) + amount;
+      return acc;
+    }, {});
+
+    const averageTransaction = totalCount > 0 ? grossSales / totalCount : 0;
 
     // Format response
     const formattedTransactions = transactions.map((transaction: any) => {
@@ -174,9 +215,17 @@ export async function GET(req: NextRequest) {
       data: {
         transactions: formattedTransactions,
         summary: {
-          totalRevenue,
-          totalTransactions: totalCount,
+          // KPI Metrics
+          grossSales,
+          cashInOperational,
+          cashOutOperational,
+          netCashFlow,
+          // Breakdowns
           paymentBreakdown,
+          sourceBreakdown,
+          // Legacy (untuk backward compatibility)
+          totalRevenue: grossSales,
+          totalTransactions: totalCount,
           averageTransaction,
         },
         pagination: {
