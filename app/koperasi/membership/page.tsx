@@ -1480,12 +1480,17 @@ export default function MembershipPage() {
                       Jumlah <span className="text-red-500">*</span>
                     </label>
                     <Input
-                      type="number"
-                      value={transactionForm.amount}
-                      onChange={(e) => setTransactionForm(prev => ({ ...prev, amount: e.target.value }))}
+                      type="text"
+                      value={transactionForm.amount ? Number(transactionForm.amount).toLocaleString('id-ID') : ''}
+                      onChange={(e) => {
+                        const rawValue = e.target.value.replace(/\./g, '');
+                        const numValue = parseFloat(rawValue);
+                        
+                        if (rawValue === '' || !isNaN(numValue)) {
+                          setTransactionForm(prev => ({ ...prev, amount: rawValue }));
+                        }
+                      }}
                       placeholder="Masukkan jumlah"
-                      min="1"
-                      step="1000"
                       required
                     />
                   </div>
@@ -1618,16 +1623,26 @@ export default function MembershipPage() {
                       Jumlah Penarikan <span className="text-red-500">*</span>
                     </label>
                     <Input
-                      type="number"
-                      value={transactionForm.amount}
-                      onChange={(e) => setTransactionForm(prev => ({ ...prev, amount: e.target.value }))}
+                      type="text"
+                      value={transactionForm.amount ? Number(transactionForm.amount).toLocaleString('id-ID') : ''}
+                      onChange={(e) => {
+                        const rawValue = e.target.value.replace(/\./g, '');
+                        const numValue = parseFloat(rawValue);
+                        
+                        if (rawValue === '' || !isNaN(numValue)) {
+                          setTransactionForm(prev => ({ ...prev, amount: rawValue }));
+                          
+                          // Real-time validation alert
+                          if (numValue > selectedMember.simpananSukarela) {
+                            warning('Melebihi Saldo', `Saldo Simpanan Sukarela hanya ${formatCurrency(selectedMember.simpananSukarela)}`);
+                          }
+                        }
+                      }}
                       placeholder="Masukkan jumlah"
-                      min="1"
-                      step="1000"
-                      max={selectedMember.simpananSukarela}
                       required
+                      className={transactionForm.amount && parseFloat(transactionForm.amount) > selectedMember.simpananSukarela ? 'border-red-500 focus:ring-red-500' : ''}
                     />
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className={`text-xs mt-1 ${transactionForm.amount && parseFloat(transactionForm.amount) > selectedMember.simpananSukarela ? 'text-red-600 font-medium' : 'text-gray-500'}`}>
                       Maksimal: {formatCurrency(selectedMember.simpananSukarela)}
                     </p>
                   </div>
