@@ -29,7 +29,9 @@ import {
   Calendar,
   FileSpreadsheet,
   CheckCircle,
-  AlertTriangle
+  AlertTriangle,
+  ArrowUp,
+  ArrowDown
 } from 'lucide-react';
 
 interface Saving {
@@ -62,11 +64,11 @@ interface Member {
 export default function MembershipPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [showAddModal, setShowAddModal] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false); // For adding new member only
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
+  const [modalMode, setModalMode] = useState<'view' | 'edit'>('view'); // Single modal dual state
   const [members, setMembers] = useState<Member[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [editingMember, setEditingMember] = useState<string | null>(null);
   
   // Import states
   const [showImportModal, setShowImportModal] = useState(false);
@@ -78,7 +80,7 @@ export default function MembershipPage() {
   // Global notifications
   const { success, error, warning, confirm } = useNotification();
 
-  // Form state for new member
+  // Form state for new member (Add modal only)
   const [newMember, setNewMember] = useState({
     name: '',
     email: '',
@@ -89,6 +91,16 @@ export default function MembershipPage() {
     simpananPokok: '200000', // Fixed at registration - Rp 200.000
     simpananWajib: '0', // Will accumulate Rp 50.000/month
     simpananSukarela: '0', // Optional, managed via Setor/Tarik
+  });
+
+  // Form state for editing (used in edit mode of single modal)
+  const [editForm, setEditForm] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    address: '',
+    gender: 'MALE' as 'MALE' | 'FEMALE',
+    unitKerja: '',
   });
 
   useEffect(() => {
@@ -126,23 +138,22 @@ export default function MembershipPage() {
 
   const handleViewMember = (member: Member) => {
     setSelectedMember(member);
+    setModalMode('view'); // Always start in view mode
   };
 
-  const handleEditMember = (member: Member) => {
-    // Populate form with existing member data for editing
-    setNewMember({
-      name: member.name,
-      email: member.email,
-      phone: member.phone || '',
-      address: member.address || '',
-      gender: member.gender,
-      unitKerja: member.unitKerja,
-      simpananPokok: member.simpananPokok.toString(),
-      simpananWajib: member.simpananWajib.toString(),
-      simpananSukarela: member.simpananSukarela.toString(),
-    });
-    setEditingMember(member.id);
-    setShowAddModal(true);
+  const handleEditMember = () => {
+    // Switch to edit mode and populate form
+    if (selectedMember) {
+      setEditForm({
+        name: selectedMember.name,
+        email: selectedMember.email,
+        phone: selectedMember.phone || '',
+        address: selectedMember.address || '',
+        gender: selectedMember.gender,
+        unitKerja: selectedMember.unitKerja,
+      });
+      setModalMode('edit');
+    }
   };
 
   const handleDeleteMember = async (memberId: string) => {
@@ -192,8 +203,8 @@ export default function MembershipPage() {
     }
 
     // Validate savings values
-    const simpananPokok = parseFloat(newMember.simpananPokok) || 50000;
-    const simpananWajib = parseFloat(newMember.simpananWajib) || 200000;
+    const simpananPokok = parseFloat(newMember.simpananPokok) || 200000;
+    const simpananWajib = parseFloat(newMember.simpananWajib) || 0;
     const simpananSukarela = parseFloat(newMember.simpananSukarela) || 0;
 
     if (simpananPokok < 0 || simpananWajib < 0 || simpananSukarela < 0) {
@@ -212,14 +223,8 @@ export default function MembershipPage() {
     setIsSubmitting(true);
     
     try {
-      const url = editingMember 
-        ? `/api/members/${editingMember}`
-        : '/api/members';
-      
-      const method = editingMember ? 'PUT' : 'POST';
-      
-      const response = await fetch(url, {
-        method,
+      const response = await fetch('/api/members', {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -237,24 +242,72 @@ export default function MembershipPage() {
           address: '',
           gender: 'MALE',
           unitKerja: '',
-          simpananPokok: '50000',
-          simpananWajib: '200000',
+          simpananPokok: '200000',
+          simpananWajib: '0',
           simpananSukarela: '0',
         });
         
-        setEditingMember(null);
         setShowAddModal(false);
         fetchMembers(); // Refresh list
         
-        const successMessage = editingMember 
-          ? `${newMember.name} berhasil diupdate`
-          : `${newMember.name} telah ditambahkan sebagai anggota koperasi`;
-        success(editingMember ? 'Update Berhasil' : 'Anggota Berhasil Ditambahkan', successMessage);
+        success('Anggota Berhasil Ditambahkan', `${newMember.name} telah ditambahkan sebagai anggota koperasi`);
       } else {
-        error(editingMember ? 'Gagal Update Anggota' : 'Gagal Menambahkan Anggota', result.error || 'Terjadi kesalahan saat menyimpan data anggota');
+        error('Gagal Menambahkan Anggota', result.error || 'Terjadi kesalahan saat menyimpan data anggota');
       }
     } catch (err) {
       console.error('Error saving member:', err);
+      error('Kesalahan Server', 'Terjadi kesalahan pada server, silakan coba lagi');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleUpdateMember = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!selectedMember) return;
+
+    if (!editForm.name || !editForm.email || !editForm.unitKerja) {
+      warning('Form Tidak Lengkap', 'Nama, email, dan unit kerja wajib diisi');
+      return;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(editForm.email)) {
+      warning('Email Tidak Valid', 'Masukkan format email yang benar (contoh: user@example.com)');
+      return;
+    }
+
+    setIsSubmitting(true);
+    
+    try {
+      const response = await fetch(`/api/members/${selectedMember.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(editForm),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        // Update selectedMember with new data
+        setSelectedMember({
+          ...selectedMember,
+          ...editForm,
+        });
+        
+        setModalMode('view'); // Switch back to view mode
+        fetchMembers(); // Refresh list
+        
+        success('Update Berhasil', `${editForm.name} berhasil diupdate`);
+      } else {
+        error('Gagal Update Anggota', result.error || 'Terjadi kesalahan saat menyimpan data anggota');
+      }
+    } catch (err) {
+      console.error('Error updating member:', err);
       error('Kesalahan Server', 'Terjadi kesalahan pada server, silakan coba lagi');
     } finally {
       setIsSubmitting(false);
@@ -721,15 +774,6 @@ export default function MembershipPage() {
                           <Eye className="w-4 h-4" />
                         </Button>
                         <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleEditMember(member)}
-                          className="text-amber-600 hover:bg-amber-50"
-                          title="Edit Anggota"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button 
                           variant="danger" 
                           size="sm"
                           onClick={() => handleDeleteMember(member.id)}
@@ -747,87 +791,245 @@ export default function MembershipPage() {
         </CardContent>
       </Card>
 
-      {/* Member Detail Modal */}
+      {/* Member Detail Modal - Single Modal with View/Edit modes */}
       {selectedMember && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <CardHeader className="border-b">
+            <CardHeader className="border-b sticky top-0 bg-white z-10">
               <div className="flex items-center justify-between">
-                <h3 className="text-xl font-bold text-gray-900">Detail Anggota</h3>
-                <button
-                  onClick={() => setSelectedMember(null)}
-                  className="text-gray-400 hover:text-gray-600 transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">
+                    {modalMode === 'view' ? 'Detail Anggota' : 'Edit Anggota'}
+                  </h3>
+                  <p className="text-sm text-gray-500 mt-1">{selectedMember.nomorAnggota}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  {modalMode === 'view' ? (
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleEditMember}
+                        className="text-blue-600 hover:bg-blue-50"
+                      >
+                        <Edit className="w-4 h-4 mr-2" />
+                        Edit
+                      </Button>
+                      <button
+                        onClick={() => {
+                          setSelectedMember(null);
+                          setModalMode('view');
+                        }}
+                        className="text-gray-400 hover:text-gray-600 transition-colors"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setModalMode('view')}
+                        disabled={isSubmitting}
+                      >
+                        Batal
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={handleUpdateMember}
+                        disabled={isSubmitting}
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
+                        {isSubmitting ? 'Menyimpan...' : 'Simpan'}
+                      </Button>
+                    </>
+                  )}
+                </div>
               </div>
             </CardHeader>
 
             <CardContent className="p-6">
-              {/* Information Grid */}
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6">
-                {/* Left Column - Personal Info */}
-                <div>
-                  <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                    <User className="w-5 h-5 text-blue-600" />
-                    Informasi Pribadi
-                  </h4>
-                  <div className="space-y-3">
+              {modalMode === 'view' ? (
+                /* VIEW MODE - Read-only display */
+                <>
+                  {/* Information Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6">
+                    {/* Left Column - Personal Info */}
                     <div>
-                      <label className="text-xs text-gray-500 uppercase tracking-wide">Nama Lengkap</label>
-                      <p className="font-semibold text-gray-900 mt-1">{selectedMember.name}</p>
-                    </div>
-                    <div>
-                      <label className="text-xs text-gray-500 uppercase tracking-wide">Nomor Anggota</label>
-                      <p className="font-semibold text-gray-900 mt-1">{selectedMember.nomorAnggota}</p>
-                    </div>
-                    <div>
-                      <label className="text-xs text-gray-500 uppercase tracking-wide">Gender</label>
-                      <p className="font-medium text-gray-700 mt-1">
-                        {selectedMember.gender === 'MALE' ? 'Laki-laki' : 'Perempuan'}
-                      </p>
-                    </div>
-                    <div>
-                      <label className="text-xs text-gray-500 uppercase tracking-wide">Unit Kerja</label>
-                      <p className="font-medium text-gray-700 mt-1">{selectedMember.unitKerja}</p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Right Column - Contact */}
-                <div>
-                  <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                    <Mail className="w-5 h-5 text-blue-600" />
-                    Kontak
-                  </h4>
-                  <div className="space-y-3">
-                    <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                      <Mail className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-sm text-gray-900 break-all">{selectedMember.email}</p>
-                      </div>
-                    </div>
-                    {selectedMember.phone && (
-                      <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                        <Phone className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
-                        <div className="flex-1">
-                          <p className="text-sm text-gray-900">{selectedMember.phone}</p>
+                      <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                        <User className="w-5 h-5 text-blue-600" />
+                        Informasi Pribadi
+                      </h4>
+                      <div className="space-y-3">
+                        <div>
+                          <label className="text-xs text-gray-500 uppercase tracking-wide">Nama Lengkap</label>
+                          <p className="font-semibold text-gray-900 mt-1">{selectedMember.name}</p>
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-500 uppercase tracking-wide">Nomor Anggota</label>
+                          <p className="font-semibold text-gray-900 mt-1">{selectedMember.nomorAnggota}</p>
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-500 uppercase tracking-wide">Gender</label>
+                          <p className="font-medium text-gray-700 mt-1">
+                            {selectedMember.gender === 'MALE' ? 'Laki-laki' : 'Perempuan'}
+                          </p>
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-500 uppercase tracking-wide">Unit Kerja</label>
+                          <p className="font-medium text-gray-700 mt-1">{selectedMember.unitKerja}</p>
                         </div>
                       </div>
-                    )}
-                    {selectedMember.address && (
-                      <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
-                        <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
-                        <div className="flex-1">
-                          <p className="text-sm text-gray-900">{selectedMember.address}</p>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
+                    </div>
 
-              {/* Savings Section */}
+                    {/* Right Column - Contact */}
+                    <div>
+                      <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                        <Mail className="w-5 h-5 text-blue-600" />
+                        Kontak
+                      </h4>
+                      <div className="space-y-3">
+                        <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                          <Mail className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-gray-900 break-all">{selectedMember.email}</p>
+                          </div>
+                        </div>
+                        {selectedMember.phone && (
+                          <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                            <Phone className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                            <div className="flex-1">
+                              <p className="text-sm text-gray-900">{selectedMember.phone}</p>
+                            </div>
+                          </div>
+                        )}
+                        {selectedMember.address && (
+                          <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                            <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                            <div className="flex-1">
+                              <p className="text-sm text-gray-900">{selectedMember.address}</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                /* EDIT MODE - Editable form fields */
+                <form onSubmit={handleUpdateMember}>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    {/* Left Column - Personal Info */}
+                    <div className="space-y-4">
+                      <h4 className="font-semibold text-gray-900 flex items-center gap-2">
+                        <User className="w-5 h-5 text-blue-600" />
+                        Informasi Pribadi
+                      </h4>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Nama Lengkap <span className="text-red-500">*</span>
+                        </label>
+                        <Input
+                          type="text"
+                          value={editForm.name}
+                          onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
+                          placeholder="Masukkan nama lengkap"
+                          leftIcon={<User className="w-4 h-4 text-gray-400" />}
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Jenis Kelamin <span className="text-red-500">*</span>
+                        </label>
+                        <select
+                          value={editForm.gender}
+                          onChange={(e) => setEditForm(prev => ({ ...prev, gender: e.target.value as 'MALE' | 'FEMALE' }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          required
+                        >
+                          <option value="MALE">Laki-laki</option>
+                          <option value="FEMALE">Perempuan</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Unit Kerja <span className="text-red-500">*</span>
+                        </label>
+                        <select
+                          value={editForm.unitKerja}
+                          onChange={(e) => setEditForm(prev => ({ ...prev, unitKerja: e.target.value }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          required
+                        >
+                          <option value="">Pilih Unit Kerja</option>
+                          <option value="Keuangan">Keuangan</option>
+                          <option value="HRD">HRD</option>
+                          <option value="IT">IT</option>
+                          <option value="Marketing">Marketing</option>
+                          <option value="Operasional">Operasional</option>
+                          <option value="Akademik">Akademik</option>
+                          <option value="Kemahasiswaan">Kemahasiswaan</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Right Column - Contact */}
+                    <div className="space-y-4">
+                      <h4 className="font-semibold text-gray-900 flex items-center gap-2">
+                        <Mail className="w-5 h-5 text-blue-600" />
+                        Kontak
+                      </h4>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Email <span className="text-red-500">*</span>
+                        </label>
+                        <Input
+                          type="email"
+                          value={editForm.email}
+                          onChange={(e) => setEditForm(prev => ({ ...prev, email: e.target.value }))}
+                          placeholder="contoh@email.com"
+                          leftIcon={<Mail className="w-4 h-4 text-gray-400" />}
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Nomor Telepon
+                        </label>
+                        <Input
+                          type="tel"
+                          value={editForm.phone}
+                          onChange={(e) => setEditForm(prev => ({ ...prev, phone: e.target.value }))}
+                          placeholder="081234567890"
+                          leftIcon={<Phone className="w-4 h-4 text-gray-400" />}
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Alamat
+                        </label>
+                        <Input
+                          type="text"
+                          value={editForm.address}
+                          onChange={(e) => setEditForm(prev => ({ ...prev, address: e.target.value }))}
+                          placeholder="Alamat lengkap"
+                          leftIcon={<MapPin className="w-4 h-4 text-gray-400" />}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </form>
+              )}
+
+              {/* Savings Section - Always visible (read-only) */}
               <div className="border-t pt-6">
                 <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
                   <CreditCard className="w-5 h-5 text-blue-600" />
@@ -860,7 +1062,7 @@ export default function MembershipPage() {
                 </div>
 
                 {/* Total Simpanan */}
-                <div className="bg-gradient-to-r from-slate-50 to-slate-100 border-2 border-slate-300 rounded-lg p-4 mb-6">
+                <div className="bg-gradient-to-r from-slate-50 to-slate-100 border-2 border-slate-300 rounded-lg p-4">
                   <div className="flex items-center justify-between">
                     <p className="text-sm font-semibold text-slate-700">Total Simpanan</p>
                     <p className="text-2xl font-bold text-slate-900">
@@ -869,8 +1071,37 @@ export default function MembershipPage() {
                   </div>
                 </div>
 
-                {/* Savings History */}
-                {selectedMember.savings && selectedMember.savings.length > 0 && (
+                {/* Setor/Tarik Actions - Only in View Mode */}
+                {modalMode === 'view' && (
+                  <div className="flex items-center gap-3 mt-4">
+                    <Button
+                      variant="outline"
+                      className="flex-1 bg-green-50 text-green-700 hover:bg-green-100 border-green-300"
+                      onClick={() => {
+                        // TODO: Open Setor modal
+                        warning('Coming Soon', 'Fitur Setor Simpanan sedang dalam pengembangan');
+                      }}
+                    >
+                      <ArrowUp className="w-4 h-4 mr-2" />
+                      Setor Simpanan
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="flex-1 bg-amber-50 text-amber-700 hover:bg-amber-100 border-amber-300"
+                      onClick={() => {
+                        // TODO: Open Tarik modal
+                        warning('Coming Soon', 'Fitur Tarik Simpanan sedang dalam pengembangan');
+                      }}
+                    >
+                      <ArrowDown className="w-4 h-4 mr-2" />
+                      Tarik Simpanan
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+                {/* Savings History - Only in View Mode */}
+                {modalMode === 'view' && selectedMember.savings && selectedMember.savings.length > 0 && (
                   <div className="mt-6">
                     <h5 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
                       <FileSpreadsheet className="w-4 h-4 text-blue-600" />
@@ -937,25 +1168,7 @@ export default function MembershipPage() {
                 )}
               </div>
 
-              {/* Action Buttons */}
-              <div className="flex items-center justify-end gap-3 mt-6 pt-6 border-t">
-                <Button
-                  variant="outline"
-                  onClick={() => setSelectedMember(null)}
-                >
-                  Tutup
-                </Button>
-                <Button
-                  onClick={() => {
-                    handleEditMember(selectedMember);
-                    setSelectedMember(null);
-                  }}
-                  className="bg-blue-600 hover:bg-blue-700"
-                >
-                  <Edit className="w-4 h-4 mr-2" />
-                  Edit Anggota
-                </Button>
-              </div>
+              {/* No action buttons here - moved to sticky header */}
             </CardContent>
           </Card>
         </div>
