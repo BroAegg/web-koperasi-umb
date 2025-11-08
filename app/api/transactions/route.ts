@@ -137,14 +137,23 @@ export async function GET(req: NextRequest) {
       },
     });
 
+    // Calculate revenue: SALE = income (+), EXPENSE = expense (-)
     const totalRevenue = allTransactions.reduce(
-      (sum: number, t: any) => sum + Number(t.totalAmount),
+      (sum: number, t: any) => {
+        const amount = Number(t.totalAmount);
+        // SALE = income, EXPENSE (pembayaran titipan) = expense (kurangi)
+        return t.type === 'EXPENSE' ? sum - amount : sum + amount;
+      },
       0
     );
 
+    // Payment breakdown: SALE adds, EXPENSE subtracts
     const paymentBreakdown = allTransactions.reduce((acc: any, t: any) => {
       const method = t.paymentMethod;
-      acc[method] = (acc[method] || 0) + Number(t.totalAmount);
+      const amount = Number(t.totalAmount);
+      // EXPENSE = negative (uang keluar)
+      const value = t.type === 'EXPENSE' ? -amount : amount;
+      acc[method] = (acc[method] || 0) + value;
       return acc;
     }, {});
 
