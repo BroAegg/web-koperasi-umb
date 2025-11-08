@@ -54,6 +54,12 @@ export async function GET(req: NextRequest) {
       };
     }
 
+    // FILTER: Hanya transaksi POS/operasional (yang punya transaction_items)
+    // Exclude transaksi simpanan anggota (setor/tarik) yang tidak punya items
+    where.transaction_items = {
+      some: {}, // Must have at least one item
+    };
+
     // Date range filter
     if (dateFrom && dateTo) {
       where.createdAt = {
