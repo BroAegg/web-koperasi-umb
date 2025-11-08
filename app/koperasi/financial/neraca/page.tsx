@@ -257,7 +257,7 @@ export default function NeracaPage() {
                 <AlertTriangle className="h-6 w-6 text-red-600" />
                 <div>
                   <p className="font-semibold text-red-900">
-                    ⚠️ Ekuitas Negatif (Bahaya!)
+                     Ekuitas Negatif
                   </p>
                   <p className="text-sm text-red-700">
                     Pasiva lebih besar Rp {formatCurrency(Math.abs(balanceSheet.difference))} dari Aktiva
@@ -313,7 +313,7 @@ export default function NeracaPage() {
                 <div className="flex items-center justify-between py-2 border-b border-slate-100">
                   <span className="text-slate-700 flex items-center gap-2">
                     <CreditCard className="h-4 w-4 text-slate-500" />
-                    Piutang Usaha
+                    Piutang
                   </span>
                   <span className="font-medium text-slate-900">
                     {formatCurrency(balanceSheet.aktiva.lancar.piutang)}
@@ -322,7 +322,7 @@ export default function NeracaPage() {
                 <div className="flex items-center justify-between py-2 border-b border-slate-100">
                   <span className="text-slate-700 flex items-center gap-2">
                     <Package className="h-4 w-4 text-slate-500" />
-                    Persediaan Barang
+                    Valuasi Barang
                   </span>
                   <span className="font-medium text-slate-900">
                     {formatCurrency(balanceSheet.aktiva.lancar.persediaan)}
