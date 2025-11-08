@@ -1,7 +1,8 @@
 // @ts-nocheck
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getUserFromToken } from '@/lib/auth';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth-options';
 
 interface CustomerData {
   userId: string;
@@ -19,16 +20,13 @@ interface CustomerData {
 // GET /api/analytics/customers
 export async function GET(request: NextRequest) {
   try {
-    const auth = request.headers.get('authorization') || '';
-    const token = auth.replace(/^Bearer\s+/i, '');
+    const session = await getServerSession(authOptions);
     
-    if (!token) {
+    if (!session || !session.user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const user = await getUserFromToken(token);
-    
-    if (!user || !['SUPER_ADMIN', 'ADMIN', 'KASIR'].includes(user.role)) {
+    if (!['SUPER_ADMIN', 'ADMIN'].includes(session.user.role)) {
       return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
     }
 

@@ -41,8 +41,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             }
           }}
         />
-        <SpeedInsights />
-        <Analytics />
+        {/* Only load Vercel Analytics in production */}
+        {process.env.NODE_ENV === 'production' && (
+          <>
+            <SpeedInsights />
+            <Analytics />
+          </>
+        )}
       </body>
     </html>
   );

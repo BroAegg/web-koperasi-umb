@@ -53,18 +53,8 @@ export default function CustomersPage() {
   const fetchCustomers = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-      
-      if (!token || token === 'null' || token === 'undefined') {
-        console.error('[fetchCustomers] No valid token');
-        return;
-      }
 
-      const response = await fetch(`/api/analytics/customers?period=${period}&limit=${limit}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await fetch(`/api/analytics/customers?period=${period}&limit=${limit}`);
 
       const result = await response.json();
       

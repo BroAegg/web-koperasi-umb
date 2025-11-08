@@ -66,23 +66,9 @@ export function FinancialChart({ period, transactions: propTransactions, dailySu
     try {
       setLoading(true);
       
-      // Get auth token from localStorage
-      const token = localStorage.getItem('token');
-      if (!token) {
-        console.error('❌ FinancialChart: No auth token found - user not logged in');
-        setChartData([]);
-        setLoading(false);
-        return;
-      }
-
       console.log('📊 FinancialChart: Fetching chart data for period:', period);
 
-      const response = await fetch(`/api/financial/period?period=${period}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await fetch(`/api/financial/period?period=${period}`);
 
       if (!response.ok) {
         throw new Error(`API error: ${response.status} ${response.statusText}`);

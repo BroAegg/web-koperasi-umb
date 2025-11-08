@@ -1,10 +1,24 @@
 // @ts-nocheck - TypeScript cache issue: Prisma model names correct at runtime (see PRISMA-NAMING-CONVENTIONS.md)
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth-options';
 
 // GET /api/dashboard/stats - Get dashboard statistics
 export async function GET() {
   try {
+    // Check authentication
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Only allow ADMIN, SUPER_ADMIN
+    const allowedRoles = ['ADMIN', 'SUPER_ADMIN'];
+    if (!allowedRoles.includes(session.user.role)) {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    }
+
     const today = new Date();
     const startOfDay = new Date(today.setHours(0, 0, 0, 0));
     const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);

@@ -1,15 +1,22 @@
 // @ts-nocheck - TypeScript cache issue: Prisma model names correct at runtime (see PRISMA-NAMING-CONVENTIONS.md)
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { getUserFromToken } from "@/lib/auth";
+import { getServerSession } from "next-auth";
+import { authOptions } from "@/lib/auth-options";
 
 export async function GET(req: NextRequest) {
   try {
-    const auth = req.headers.get("authorization");
-    const token = auth?.replace(/^Bearer\s+/i, "");
-    const user = await getUserFromToken(token);
+    // Use NextAuth session
+    const session = await getServerSession(authOptions);
+    
+    if (!session?.user) {
+      return NextResponse.json(
+        { error: "Unauthorized - Please login" },
+        { status: 401 }
+      );
+    }
 
-    if (!user || user.role !== "SUPER_ADMIN") {
+    if (session.user.role !== "SUPER_ADMIN") {
       return NextResponse.json(
         { error: "Unauthorized - Super Admin access only" },
         { status: 403 }

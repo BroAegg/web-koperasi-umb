@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -37,6 +38,8 @@ import DatePicker from 'react-datepicker';
 import 'react-datepicker/dist/react-datepicker.css';
 
 export default function FinancialPage() {
+  const router = useRouter();
+  
   // Authorization check - Only SUPER_ADMIN and ADMIN can access
   const { user, loading: authLoading, authorized } = useAuth(['SUPER_ADMIN', 'ADMIN']);
   
@@ -85,20 +88,6 @@ export default function FinancialPage() {
     setNewTransaction(prev => ({ ...prev, amount: numericValue }));
   };
 
-  // Early return if not authorized
-  useEffect(() => {
-    if (!authLoading && !authorized) {
-      window.location.href = '/login';
-    }
-  }, [authLoading, authorized]);
-
-  useEffect(() => {
-    if (authorized) {
-      fetchTransactions();
-      fetchDailySummary();
-    }
-  }, [financialPeriod, authorized]); // Remove selectedDate, only use financialPeriod
-
   // Effect untuk menginisialisasi formatted amount ketika editing
   useEffect(() => {
     if (newTransaction.amount) {
@@ -108,23 +97,67 @@ export default function FinancialPage() {
     }
   }, [newTransaction.amount]);
 
+  // Debug: Log auth state
+  useEffect(() => {
+    console.log('[Financial Page] Auth State:', {
+      authLoading,
+      authorized,
+      user: user ? { email: user.email, role: user.role } : null
+    });
+  }, [authLoading, authorized, user]);
+
+  // Redirect if not authorized - COMPLETELY DISABLED
+  useEffect(() => {
+    if (!authLoading && !authorized) {
+      console.log('[Financial Page] ⚠️ NOT AUTHORIZED - BUT NO REDIRECT!');
+    }
+  }, [authLoading, authorized, router, user]);
+
+  useEffect(() => {
+    if (authorized) {
+      fetchTransactions();
+      fetchDailySummary();
+    }
+  }, [financialPeriod, authorized]);
+
+  // Auth checks - show loading/unauthorized states
+  if (authLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Memuat...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!authorized) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="bg-red-100 p-6 rounded-lg">
+            <h2 className="text-xl font-bold text-red-600 mb-2">Akses Ditolak</h2>
+            <p className="text-gray-700">Anda tidak memiliki akses ke halaman ini.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const fetchTransactions = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-      if (!token) {
-        error('Sesi Berakhir', 'Silakan login kembali');
-        window.location.href = '/login';
-        return;
-      }
+      // REMOVED OLD AUTH - Now using NextAuth session cookies
+      // const token = localStorage.getItem('token');
+      // if (!token) {
+      //   error('Sesi Berakhir', 'Silakan login kembali');
+      //   window.location.href = '/login';
+      //   return;
+      // }
 
       // Use period API instead of date-specific API to follow dropdown period
-      const response = await fetch(`/api/financial/period?period=${financialPeriod}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await fetch(`/api/financial/period?period=${financialPeriod}`);
       
       if (!response.ok) {
         throw new Error(`API error: ${response.status}`);
@@ -175,16 +208,10 @@ export default function FinancialPage() {
 
   const fetchDailySummary = async () => {
     try {
-      const token = localStorage.getItem('token');
-      if (!token) return;
+      // REMOVED OLD AUTH - Now using NextAuth session cookies
 
       // Use current financialPeriod instead of hardcoded 'today'
-      const response = await fetch(`/api/financial/period?period=${financialPeriod}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await fetch(`/api/financial/period?period=${financialPeriod}`);
       
       if (!response.ok) {
         throw new Error(`API error: ${response.status}`);
@@ -225,12 +252,7 @@ export default function FinancialPage() {
     setIsSubmitting(true);
     
     try {
-      const token = localStorage.getItem('token');
-      if (!token) {
-        error('Sesi Berakhir', 'Silakan login kembali');
-        window.location.href = '/login';
-        return;
-      }
+      // REMOVED OLD AUTH - Now using NextAuth session cookies
 
       const url = editingTransaction 
         ? `/api/financial/transactions/${editingTransaction}`
@@ -241,7 +263,6 @@ export default function FinancialPage() {
       const response = await fetch(url, {
         method,
         headers: {
-          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -308,19 +329,10 @@ export default function FinancialPage() {
     
     if (confirmed) {
       try {
-        const token = localStorage.getItem('token');
-        if (!token) {
-          error('Sesi Berakhir', 'Silakan login kembali');
-          window.location.href = '/login';
-          return;
-        }
+        // REMOVED OLD AUTH - Now using NextAuth session cookies
 
         const response = await fetch(`/api/financial/transactions/${transactionId}`, {
           method: 'DELETE',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
         });
         
         if (!response.ok) {

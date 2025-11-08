@@ -1,18 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getUserFromToken } from '@/lib/auth';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth-options';
 
 export async function GET(req: NextRequest) {
   try {
-    // Authentication check - Support both cookie and Authorization header
-    const cookieToken = req.cookies.get('token')?.value;
-    const authHeader = req.headers.get('authorization');
-    const headerToken = authHeader?.replace(/^Bearer\s+/i, '');
-    const token = headerToken || cookieToken;
+    // Authentication check using NextAuth
+    const session = await getServerSession(authOptions);
     
-    const user = await getUserFromToken(token);
-    
-    if (!user) {
+    if (!session || !session.user) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
@@ -20,7 +16,7 @@ export async function GET(req: NextRequest) {
     }
 
     // Authorization check - Only ADMIN and SUPER_ADMIN
-    if (!['ADMIN', 'SUPER_ADMIN'].includes(user.role)) {
+    if (!['ADMIN', 'SUPER_ADMIN'].includes(session.user.role)) {
       return NextResponse.json(
         { success: false, error: 'Forbidden - Admin access required' },
         { status: 403 }

@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { useSession } from 'next-auth/react';
 
 interface TransactionFilters {
   dateFrom?: string;
@@ -50,6 +51,7 @@ interface UseTransactionsReturn {
 }
 
 export function useTransactions(): UseTransactionsReturn {
+  const { data: session, status } = useSession();
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [summary, setSummary] = useState<TransactionSummary | null>(null);
   const [pagination, setPagination] = useState<PaginationInfo | null>(null);
@@ -57,16 +59,20 @@ export function useTransactions(): UseTransactionsReturn {
   const [error, setError] = useState<string | null>(null);
 
   const fetchTransactions = useCallback(async (filters: TransactionFilters) => {
+    // Wait for session to be ready
+    if (status === 'loading') return;
+    
+    // Skip fetch if not authenticated
+    if (!session) {
+      console.log('[useTransactions] Not authenticated, skipping fetch');
+      setError('Please login to view transactions');
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
     try {
-      // Get token from localStorage for authentication
-      const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('Authentication required. Please login again.');
-      }
-
       const params = new URLSearchParams();
       
       if (filters.dateFrom) params.append('dateFrom', filters.dateFrom);
@@ -78,10 +84,8 @@ export function useTransactions(): UseTransactionsReturn {
       params.append('page', filters.page.toString());
       params.append('limit', filters.limit.toString());
 
+      // No Authorization header needed - NextAuth cookies handle it
       const response = await fetch(`/api/transactions?${params.toString()}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
         credentials: 'include',
       });
       const data = await response.json();
@@ -104,7 +108,7 @@ export function useTransactions(): UseTransactionsReturn {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [session, status]);
 
   return {
     transactions,

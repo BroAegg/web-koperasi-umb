@@ -53,14 +53,6 @@ export default function BestSellersPage() {
   const fetchBestSellers = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token'); // FIX: Changed from 'auth_token' to 'token'
-      
-      console.log('[fetchBestSellers] Token from localStorage:', token ? 'Present' : 'Missing/null');
-      
-      if (!token || token === 'null' || token === 'undefined') {
-        console.error('[fetchBestSellers] No valid token, user needs to login');
-        return;
-      }
       
       const params = new URLSearchParams({
         period,
@@ -68,11 +60,7 @@ export default function BestSellersPage() {
         limit,
       });
 
-      const response = await fetch(`/api/analytics/best-sellers?${params}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await fetch(`/api/analytics/best-sellers?${params}`);
 
       const result = await response.json();
       

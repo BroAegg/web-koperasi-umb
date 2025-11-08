@@ -55,22 +55,13 @@ export default function AnalyticsDashboardPage() {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token'); // FIX: Changed from 'auth_token' to 'token'
 
       // Fetch all analytics data in parallel
       const [salesRes, bestSellersRes, peakHoursRes, customersRes] = await Promise.all([
-        fetch('/api/analytics/sales-trends?days=30', {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        fetch('/api/analytics/best-sellers?period=30days&limit=5', {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        fetch('/api/analytics/peak-hours?days=30', {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        fetch('/api/analytics/customers?period=30days&limit=10', {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
+        fetch('/api/analytics/sales-trends?days=30'),
+        fetch('/api/analytics/best-sellers?period=30days&limit=5'),
+        fetch('/api/analytics/peak-hours?days=30'),
+        fetch('/api/analytics/customers?period=30days&limit=10'),
       ]);
 
       const [sales, bestSellers, peakHours, customers] = await Promise.all([

@@ -5,6 +5,8 @@ import { getUserFromToken } from "@/lib/auth";
 import { withDeveloperSession } from "@/lib/prisma-middleware";
 import { withActivityLog } from "@/lib/with-activity-log";
 import { randomUUID } from "crypto";
+import { getServerSession } from "next-auth/next";
+import { authOptions } from "@/lib/auth-options";
 
 export async function POST(req: NextRequest) {
   return withActivityLog({
@@ -36,11 +38,18 @@ export async function POST(req: NextRequest) {
 async function handlePOSTransaction(req: NextRequest) {
   return withDeveloperSession(req, async () => {
     try {
+      // Try to get user from token first (for API calls with Authorization header)
       const auth = req.headers.get("authorization");
       const token = auth?.replace(/^Bearer\s+/i, "");
-      const user = await getUserFromToken(token);
+      let user = token ? await getUserFromToken(token) : null;
+      
+      // If no token, try to get from NextAuth session (for browser requests with cookies)
+      if (!user) {
+        const session = await getServerSession(authOptions);
+        user = session?.user;
+      }
 
-      if (!user || !["ADMIN", "SUPER_ADMIN", "DEVELOPER"].includes(user.role)) {
+      if (!user || !["ADMIN", "SUPER_ADMIN", "DEVELOPER", "KASIR"].includes(user.role)) {
         return NextResponse.json(
           { error: "Unauthorized - Admin access only" },
           { status: 403 }
@@ -372,11 +381,18 @@ async function handlePOSTransaction(req: NextRequest) {
 // GET endpoint for POS transaction history
 export async function GET(req: NextRequest) {
   try {
+    // Try to get user from token first
     const auth = req.headers.get("authorization");
     const token = auth?.replace(/^Bearer\s+/i, "");
-    const user = await getUserFromToken(token);
+    let user = token ? await getUserFromToken(token) : null;
+    
+    // If no token, try to get from NextAuth session
+    if (!user) {
+      const session = await getServerSession(authOptions);
+      user = session?.user;
+    }
 
-    if (!user || !["ADMIN", "SUPER_ADMIN"].includes(user.role)) {
+    if (!user || !["ADMIN", "SUPER_ADMIN", "DEVELOPER", "KASIR"].includes(user.role)) {
       return NextResponse.json(
         { error: "Unauthorized - Admin access only" },
         { status: 403 }

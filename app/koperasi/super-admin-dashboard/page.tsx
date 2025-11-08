@@ -67,12 +67,7 @@ export default function SuperAdminDashboardPage() {
 
   const fetchBalanceSheetSummary = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('/api/financial/balance-sheet', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
+      const response = await fetch('/api/financial/balance-sheet');
       if (response.ok) {
         const data = await response.json();
         setBalanceSheet({
@@ -89,13 +84,7 @@ export default function SuperAdminDashboardPage() {
 
   const fetchSuperAdminStats = async () => {
     try {
-      const token = localStorage.getItem('token');
-      const response = await fetch('/api/super-admin/dashboard', {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-      });
+      const response = await fetch('/api/super-admin/dashboard');
       const result = await response.json();
       if (result.success) {
         setStats(result.data);

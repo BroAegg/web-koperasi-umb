@@ -47,18 +47,8 @@ export default function SalesTrendsPage() {
   const fetchSalesTrends = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-      
-      if (!token || token === 'null' || token === 'undefined') {
-        console.error('[fetchSalesTrends] No valid token');
-        return;
-      }
 
-      const response = await fetch(`/api/analytics/sales-trends?days=${days}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await fetch(`/api/analytics/sales-trends?days=${days}`);
 
       const result = await response.json();
       

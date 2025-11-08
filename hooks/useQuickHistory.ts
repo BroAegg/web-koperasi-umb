@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useSession } from 'next-auth/react';
 
 interface QuickTransaction {
   id: string;
@@ -24,31 +25,33 @@ interface UseQuickHistoryReturn {
 }
 
 export function useQuickHistory(cashierId?: string): UseQuickHistoryReturn {
+  const { data: session, status } = useSession();
   const [transactions, setTransactions] = useState<QuickTransaction[]>([]);
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
 
   const fetchQuickHistory = useCallback(async () => {
+    // Wait for session to be ready
+    if (status === 'loading') return;
+    
+    // Skip fetch if not authenticated
+    if (!session) {
+      console.log('[Quick History] Not authenticated, skipping fetch');
+      return;
+    }
+
     setLoading(true);
     setError(null);
 
     try {
-      // Get token from localStorage for authentication
-      const token = localStorage.getItem('token');
-      if (!token) {
-        throw new Error('Authentication required. Please login again.');
-      }
-
       const params = new URLSearchParams();
       if (cashierId) {
         params.append('cashierId', cashierId);
       }
       params.append('limit', '10');
 
+      // No Authorization header needed - NextAuth cookies handle it
       const response = await fetch(`/api/transactions/quick-history?${params.toString()}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
         credentials: 'include',
       });
       const data = await response.json();
@@ -69,11 +72,13 @@ export function useQuickHistory(cashierId?: string): UseQuickHistoryReturn {
     } finally {
       setLoading(false);
     }
-  }, [cashierId]);
+  }, [cashierId, session, status]);
 
   useEffect(() => {
-    fetchQuickHistory();
-  }, [fetchQuickHistory]);
+    if (status === 'authenticated') {
+      fetchQuickHistory();
+    }
+  }, [status, fetchQuickHistory]);
 
   return {
     transactions,

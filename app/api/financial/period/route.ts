@@ -121,6 +121,37 @@ export async function GET(request: NextRequest) {
       },
     });
 
+    // ✅ NEW: Get unsettled consignment_sales (actual hutang konsinyasi)
+    const unsettledConsignmentSales = await prisma.consignment_sales.findMany({
+      where: {
+        isSettled: false,
+        saleDate: { gte: startDate, lte: endDate }
+      },
+      include: {
+        consignment_batches: {
+          include: {
+            consignors: {
+              select: {
+                id: true,
+                code: true,
+                name: true,
+                contact: true,
+                phone: true,
+                address: true
+              }
+            },
+            products: {
+              select: {
+                id: true,
+                name: true,
+                supplierId: true
+              }
+            }
+          }
+        }
+      }
+    });
+
     // Map supplierId -> payment info (take the latest payment if multiple)
   const paidInfoMap = new Map<string, { paymentId: string; amount: number; paidAt?: string; transactionId?: string }>();
     for (const p of paidPayments) {
@@ -192,38 +223,15 @@ export async function GET(request: NextRequest) {
           const isConsignment = item.products?.isConsignment || item.products?.ownershipType === 'TITIPAN';
 
           if (isConsignment) {
-            // Consignment product sold: Revenue only, NO expense until payment made
-            // COGS tracked for profit calculation, but NOT counted as expense
-            // Expense akan di-count nanti pas payment via /api/consignment/payments
-            consignmentGrossRevenue += itemRevenue;
-            consignmentCOGS += itemCOGS; // For profit calc only
-            // ❌ DO NOT: totalExpense += itemCOGS (expense counted on payment, not sale!)
+            // ✅ SKIP tracking consignment here - will be tracked via unsettledConsignmentSales
+            // This ensures we only count UNPAID sales (isSettled = false)
+            // Revenue and profit for consignment will be calculated from consignment_sales table
             
-            // Track consignment by supplier
-            const supplierId = item.products?.supplierId || 'unknown';
-            const supplierName = item.products?.suppliers?.businessName || 'Supplier Tidak Diketahui'; // Changed from 'name'
-            const supplierOwner = item.products?.suppliers?.ownerName || null;
-            const supplierPhone = item.products?.suppliers?.phone || null;
-            const supplierAddress = item.products?.suppliers?.address || null;
-            const itemProfit = itemRevenue - itemCOGS;
+            // Just add to total revenue for overall stats
+            totalRevenue += itemRevenue;
+            totalSoldItems += item.quantity;
             
-            const existingSupplier = consignmentSupplierMap.get(supplierId);
-            if (existingSupplier) {
-              existingSupplier.revenue += itemRevenue;
-              existingSupplier.cogs += itemCOGS;
-              existingSupplier.profit += itemProfit;
-            } else {
-              consignmentSupplierMap.set(supplierId, {
-                supplierId,
-                supplierName,
-                supplierContact: supplierOwner,
-                supplierPhone,
-                supplierAddress,
-                revenue: itemRevenue,
-                cogs: itemCOGS,
-                profit: itemProfit
-              });
-            }
+            // Don't track in consignmentSupplierMap here - handled by unsettledConsignmentSales
           } else {
             // Store-owned product: revenue only, no expense at sale
             tokoRevenue += itemRevenue;
@@ -247,6 +255,45 @@ export async function GET(request: NextRequest) {
         totalRevenue += amount;
       }
     });
+
+    // ✅ NEW: Process unsettled consignment_sales untuk get actual hutang konsinyasi
+    // This is more accurate than tracking via transactions because:
+    // 1. Only includes sales that haven't been paid yet (isSettled = false)
+    // 2. Directly from consignment_sales table (source of truth)
+    // 3. Properly links to consignors table
+    console.log(`[Financial Period] Processing ${unsettledConsignmentSales.length} unsettled consignment sales`);
+    
+    for (const sale of unsettledConsignmentSales) {
+      const consignor = sale.consignment_batches.consignors;
+      const consignorId = consignor.id;
+      const consignorName = consignor.name;
+      const totalRevenue = Number(sale.totalRevenue);
+      const feeAmount = Number(sale.feeAmount);
+      const netToConsignor = Number(sale.netToConsignor);
+      
+      // Add to consignmentSupplierMap (or update if exists)
+      const existing = consignmentSupplierMap.get(consignorId);
+      if (existing) {
+        existing.revenue += totalRevenue;
+        existing.cogs += netToConsignor; // Net amount owed to consignor
+        existing.profit += feeAmount; // Koperasi's profit (fee)
+      } else {
+        consignmentSupplierMap.set(consignorId, {
+          supplierId: consignorId,
+          supplierName: consignorName,
+          supplierContact: consignor.contact,
+          supplierPhone: consignor.phone,
+          supplierAddress: consignor.address,
+          revenue: totalRevenue,
+          cogs: netToConsignor, // What we owe to consignor
+          profit: feeAmount // Our profit from the sale
+        });
+      }
+      
+      // Add to totals
+      consignmentGrossRevenue += totalRevenue;
+      consignmentCOGS += netToConsignor;
+    }
 
     const tokoProfit = tokoRevenue - tokoCOGS;
     const consignmentProfit = consignmentGrossRevenue - consignmentCOGS; // Koperasi profit from consignment sales

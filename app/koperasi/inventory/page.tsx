@@ -33,7 +33,8 @@ import {
   Minus,
   User,
   MapPin,
-  FileSpreadsheet
+  FileSpreadsheet,
+  History
 } from 'lucide-react';
 import { exportProductsExcel } from '@/lib/export-excel';
 
@@ -81,6 +82,7 @@ export default function InventoryPage() {
   const [showFilterModal, setShowFilterModal] = useState(false);
   const [showAllMovementsModal, setShowAllMovementsModal] = useState(false);
   const [showConsignmentPaymentModal, setShowConsignmentPaymentModal] = useState(false);
+  const [showPaymentHistoryModal, setShowPaymentHistoryModal] = useState(false);
   const [paidSupplierIds, setPaidSupplierIds] = useState<string[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -92,6 +94,8 @@ export default function InventoryPage() {
   const [paymentNote, setPaymentNote] = useState('');
   const [showBulkPaymentModal, setShowBulkPaymentModal] = useState(false);
   const [selectedSuppliers, setSelectedSuppliers] = useState<string[]>([]);
+  const [returnRemaining, setReturnRemaining] = useState(false);
+  const [remainingBatches, setRemainingBatches] = useState<{totalQty: number; productCount: number}>({totalQty: 0, productCount: 0});
   
   // 🔄 Payment State Management
   const [paymentLoading, setPaymentLoading] = useState<Record<string, boolean>>({});
@@ -105,6 +109,15 @@ export default function InventoryPage() {
     amount: number;
     timestamp: number;
     method: string;
+  }>>([]);
+  const [consignmentPaymentHistory, setConsignmentPaymentHistory] = useState<Array<{
+    id: string;
+    supplierName: string;
+    amount: number;
+    period: string;
+    paymentMethod: string;
+    createdAt: string;
+    note?: string;
   }>>([]);
   const [recentPaymentAttempts, setRecentPaymentAttempts] = useState<Record<string, number>>({});
   
@@ -307,6 +320,20 @@ export default function InventoryPage() {
     setPaymentHistory(prev => [historyEntry, ...prev.slice(0, 49)]); // Keep last 50 entries
   };
 
+  // Fetch consignment payment history
+  const fetchPaymentHistory = async () => {
+    try {
+      const response = await fetch('/api/consignment/payments?limit=100');
+      const result = await response.json();
+      
+      if (result.success && result.data.payments) {
+        setConsignmentPaymentHistory(result.data.payments);
+      }
+    } catch (error) {
+      console.error('Error fetching payment history:', error);
+    }
+  };
+
   const hasRecentPayment = (supplierId: string): boolean => {
     const recentPayment = paymentHistory.find(p => 
       p.supplierId === supplierId && 
@@ -355,7 +382,7 @@ export default function InventoryPage() {
     return null;
   };
 
-  const openPaymentConfirmation = (supplier: any) => {
+  const openPaymentConfirmation = async (supplier: any) => {
     const validationError = validateSupplierForPayment(supplier);
     if (validationError) {
       error('Tidak Dapat Memproses', validationError);
@@ -365,6 +392,23 @@ export default function InventoryPage() {
     const { cogs } = getSupplierFinancials(supplier);
     setPendingPayment({ supplier, amount: cogs });
     setPaymentNote('');
+    setReturnRemaining(false);
+    
+    // Fetch remaining batches count
+    try {
+      const supplierId = getSupplierId(supplier);
+      const response = await fetch(`/api/consignment/batches/remaining?consignorId=${supplierId}`);
+      if (response.ok) {
+        const data = await response.json();
+        setRemainingBatches(data);
+      } else {
+        setRemainingBatches({totalQty: 0, productCount: 0});
+      }
+    } catch (err) {
+      console.error('Failed to fetch remaining batches:', err);
+      setRemainingBatches({totalQty: 0, productCount: 0});
+    }
+    
     setShowPaymentConfirmModal(true);
   };
 
@@ -382,19 +426,19 @@ export default function InventoryPage() {
       addOptimisticPayment(supplierId);
       setShowPaymentConfirmModal(false);
       
-      const token = localStorage.getItem('token');
+      // NextAuth cookies handle authentication automatically
       const response = await fetch('/api/consignment/payments', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
         },
         body: JSON.stringify({ 
           supplierIds: [supplierId], 
           amounts: { [supplierId]: amount },
           period: financialPeriod,
           paymentMethod: selectedPaymentMethod,
-          note: paymentNote.trim() || undefined
+          note: paymentNote.trim() || undefined,
+          returnRemaining: returnRemaining // NEW: Include return flag
         }),
       });
       
@@ -407,7 +451,11 @@ export default function InventoryPage() {
       confirmPayment(supplierId);
       stopPaymentLoading(supplierId);
       
-      success('Pembayaran Berhasil', `Pembayaran ke ${getSupplierName(supplier)} sebesar ${safeFormatCurrency(amount)} berhasil dicatat`);
+      const successMsg = returnRemaining 
+        ? `Pembayaran ke ${getSupplierName(supplier)} sebesar ${safeFormatCurrency(amount)} berhasil dicatat dan ${remainingBatches.totalQty} pcs sisa barang dikembalikan`
+        : `Pembayaran ke ${getSupplierName(supplier)} sebesar ${safeFormatCurrency(amount)} berhasil dicatat`;
+      
+      success('Pembayaran Berhasil', successMsg);
       
       // Refresh all financial data to update both modal and main inventory page
       await fetchPeriodFinancialData();
@@ -416,6 +464,7 @@ export default function InventoryPage() {
       addToPaymentHistory(supplierId, amount, selectedPaymentMethod);
       
       setPendingPayment(null);
+      setReturnRemaining(false);
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Pembayaran gagal dicatat, silakan coba lagi';
       rollbackPayment(supplierId, errorMessage);
@@ -1985,17 +2034,29 @@ export default function InventoryPage() {
             <div className="bg-gradient-to-r from-purple-600 to-purple-700 p-4 sm:p-6 text-white relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 sm:w-64 sm:h-64 bg-white/10 rounded-full -mr-16 sm:-mr-32 -mt-16 sm:-mt-32"></div>
               <div className="absolute bottom-0 left-0 w-24 h-24 sm:w-48 sm:h-48 bg-white/10 rounded-full -ml-12 sm:-ml-24 -mb-12 sm:-mb-24"></div>
-              <div className="relative flex items-center justify-between">
+              <div className="relative flex items-center justify-between gap-3">
                 <div className="min-w-0 flex-1 pr-4">
                   <h2 className="text-xl sm:text-2xl font-bold mb-1 truncate">Pembayaran Titipan</h2>
                   <p className="text-purple-100 text-xs sm:text-sm truncate">Kelola pembayaran ke supplier titipan</p>
                 </div>
-                <button
-                  onClick={() => setShowConsignmentPaymentModal(false)}
-                  className="p-2 hover:bg-white/20 rounded-full transition-colors shrink-0"
-                >
-                  <X className="w-5 h-5 sm:w-6 sm:h-6" />
-                </button>
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    onClick={() => {
+                      fetchPaymentHistory();
+                      setShowPaymentHistoryModal(true);
+                    }}
+                    className="flex items-center gap-2 px-3 py-2 bg-white/10 hover:bg-white/20 rounded-lg transition-colors text-sm font-medium"
+                  >
+                    <History className="w-4 h-4" />
+                    <span className="hidden sm:inline">History</span>
+                  </button>
+                  <button
+                    onClick={() => setShowConsignmentPaymentModal(false)}
+                    className="p-2 hover:bg-white/20 rounded-full transition-colors"
+                  >
+                    <X className="w-5 h-5 sm:w-6 sm:h-6" />
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -2320,7 +2381,7 @@ export default function InventoryPage() {
               </div>
               
               {/* Payment Note */}
-              <div className="mb-6">
+              <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Catatan (Opsional)
                 </label>
@@ -2334,6 +2395,34 @@ export default function InventoryPage() {
                 />
                 <p className="text-xs text-gray-500 mt-1">{paymentNote.length}/500 karakter</p>
               </div>
+
+              {/* Return Remaining Goods Checkbox */}
+              {remainingBatches.totalQty > 0 && (
+                <div className="mb-6 p-4 bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-200 rounded-lg">
+                  <label className="flex items-start gap-3 cursor-pointer group">
+                    <input
+                      type="checkbox"
+                      checked={returnRemaining}
+                      onChange={(e) => setReturnRemaining(e.target.checked)}
+                      className="mt-1 w-5 h-5 text-purple-600 bg-white border-gray-300 rounded focus:ring-2 focus:ring-purple-500 cursor-pointer"
+                    />
+                    <div className="flex-1">
+                      <div className="font-semibold text-gray-900 group-hover:text-purple-700 transition-colors">
+                        Kembalikan sisa barang titipan
+                      </div>
+                      <div className="text-sm text-gray-600 mt-1">
+                        <span className="font-medium text-amber-700">{remainingBatches.totalQty} pcs</span> dari{' '}
+                        <span className="font-medium text-amber-700">{remainingBatches.productCount} produk</span> belum terjual
+                      </div>
+                      {returnRemaining && (
+                        <div className="mt-2 text-xs text-amber-800 bg-amber-100 px-2 py-1 rounded inline-block">
+                          ✓ Sisa barang akan dikembalikan ke supplier setelah pembayaran
+                        </div>
+                      )}
+                    </div>
+                  </label>
+                </div>
+              )}
             </div>
             
             {/* Footer */}
@@ -2359,6 +2448,165 @@ export default function InventoryPage() {
                   </svg>
                   Konfirmasi Bayar
                 </span>
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Payment History Modal */}
+      {showPaymentHistoryModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] p-2 sm:p-4">
+          <div className="bg-white rounded-xl sm:rounded-2xl shadow-2xl w-full max-w-5xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden animate-in fade-in zoom-in duration-200">
+            {/* Header */}
+            <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-4 sm:p-6 text-white relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32"></div>
+              <div className="relative flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-3 bg-white/20 rounded-lg">
+                    <History className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h2 className="text-2xl font-bold">History Pembayaran Titipan</h2>
+                    <p className="text-indigo-100 text-sm mt-1">Riwayat semua pembayaran yang telah dilakukan</p>
+                  </div>
+                </div>
+                <button
+                  onClick={() => setShowPaymentHistoryModal(false)}
+                  className="p-2 hover:bg-white/20 rounded-full transition-colors"
+                >
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+            </div>
+
+            {/* Content */}
+            <div className="p-6 overflow-y-auto max-h-[calc(95vh-180px)]">
+              {consignmentPaymentHistory.length === 0 ? (
+                <div className="text-center py-12 text-gray-500">
+                  <Receipt className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                  <p className="text-lg font-medium mb-2">Belum Ada Riwayat Pembayaran</p>
+                  <p className="text-sm">History pembayaran titipan akan muncul di sini</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {consignmentPaymentHistory.map((payment, index) => {
+                    const paymentDate = new Date(payment.createdAt);
+                    const supplierInfo = periodFinancialData.consignmentBreakdown?.find(
+                      s => s.supplierId === payment.supplierName
+                    );
+                    
+                    return (
+                      <div 
+                        key={payment.id}
+                        className="bg-white border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow"
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          {/* Left: Supplier Info */}
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-2">
+                              <span className="text-xs font-semibold text-indigo-600 bg-indigo-50 px-2 py-1 rounded">
+                                #{index + 1}
+                              </span>
+                              <h3 className="font-bold text-gray-900 truncate">
+                                {supplierInfo?.supplierName || payment.supplierName}
+                              </h3>
+                            </div>
+                            
+                            {supplierInfo && (
+                              <div className="space-y-1 text-sm text-gray-600 mb-3">
+                                {supplierInfo.supplierContact && (
+                                  <div className="flex items-center gap-2">
+                                    <User className="w-4 h-4" />
+                                    <span>{supplierInfo.supplierContact}</span>
+                                  </div>
+                                )}
+                                {supplierInfo.supplierPhone && (
+                                  <div className="flex items-center gap-2">
+                                    <Phone className="w-4 h-4" />
+                                    <span>{supplierInfo.supplierPhone}</span>
+                                  </div>
+                                )}
+                                {supplierInfo.supplierAddress && (
+                                  <div className="flex items-center gap-2">
+                                    <MapPin className="w-4 h-4" />
+                                    <span className="truncate">{supplierInfo.supplierAddress}</span>
+                                  </div>
+                                )}
+                              </div>
+                            )}
+
+                            {/* Payment Details */}
+                            <div className="grid grid-cols-2 gap-3 text-sm">
+                              <div>
+                                <span className="text-gray-500">Tanggal:</span>
+                                <p className="font-medium text-gray-900">
+                                  {paymentDate.toLocaleDateString('id-ID', { 
+                                    day: 'numeric',
+                                    month: 'long',
+                                    year: 'numeric'
+                                  })}
+                                </p>
+                              </div>
+                              <div>
+                                <span className="text-gray-500">Waktu:</span>
+                                <p className="font-medium text-gray-900">
+                                  {paymentDate.toLocaleTimeString('id-ID', {
+                                    hour: '2-digit',
+                                    minute: '2-digit'
+                                  })}
+                                </p>
+                              </div>
+                              <div>
+                                <span className="text-gray-500">Periode:</span>
+                                <p className="font-medium text-gray-900">{payment.period}</p>
+                              </div>
+                              <div>
+                                <span className="text-gray-500">Metode:</span>
+                                <p className="font-medium text-gray-900">
+                                  {payment.paymentMethod === 'CASH' ? 'Tunai' : 
+                                   payment.paymentMethod === 'TRANSFER' ? 'Transfer' : 
+                                   'Kredit'}
+                                </p>
+                              </div>
+                            </div>
+
+                            {payment.note && (
+                              <div className="mt-3 p-2 bg-gray-50 rounded text-sm text-gray-600">
+                                <span className="font-medium">Catatan: </span>
+                                {payment.note}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Right: Amount */}
+                          <div className="text-right shrink-0">
+                            <p className="text-xs text-gray-500 mb-1">Jumlah Dibayar</p>
+                            <p className="text-2xl font-bold text-emerald-600">
+                              Rp {payment.amount.toLocaleString('id-ID')}
+                            </p>
+                            <span className="inline-block mt-2 px-3 py-1 bg-emerald-100 text-emerald-700 text-xs font-semibold rounded-full">
+                              LUNAS
+                            </span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="border-t p-4 bg-gray-50 flex items-center justify-between">
+              <p className="text-sm text-gray-600">
+                Total: <span className="font-bold text-gray-900">{consignmentPaymentHistory.length}</span> pembayaran
+              </p>
+              <button
+                onClick={() => setShowPaymentHistoryModal(false)}
+                className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium transition-colors"
+              >
+                Tutup
               </button>
             </div>
           </div>

@@ -62,18 +62,8 @@ export default function PeakHoursPage() {
   const fetchPeakHours = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem('token');
-      
-      if (!token || token === 'null' || token === 'undefined') {
-        console.error('[fetchPeakHours] No valid token');
-        return;
-      }
 
-      const response = await fetch(`/api/analytics/peak-hours?days=${days}`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const response = await fetch(`/api/analytics/peak-hours?days=${days}`);
 
       const result = await response.json();
       
