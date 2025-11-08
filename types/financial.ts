@@ -44,6 +44,7 @@ export interface DailySummary {
   totalExpense: number;
   netIncome: number;
   transactionCount: number;
+  cumulativeBalance?: number; // Saldo kumulatif dari awal waktu
   toko?: {
     revenue: number;
     cogs: number;

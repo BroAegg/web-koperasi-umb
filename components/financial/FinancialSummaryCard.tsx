@@ -230,18 +230,18 @@ export function FinancialSummaryCard({
                   
                   <div className="flex items-baseline gap-3 flex-wrap">
                     <p className="text-4xl font-bold bg-gradient-to-r from-emerald-600 via-green-600 to-emerald-500 bg-clip-text text-transparent">
-                      {formatCurrency(summary.netIncome)}
+                      {formatCurrency(summary.cumulativeBalance !== undefined ? summary.cumulativeBalance : summary.netIncome)}
                     </p>
-                    <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full ${summary.netIncome > 0 ? 'bg-emerald-100 text-emerald-700' : summary.netIncome < 0 ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'}`}>
-                      {summary.netIncome > 0 ? (
+                    <div className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full ${(summary.cumulativeBalance !== undefined ? summary.cumulativeBalance : summary.netIncome) > 0 ? 'bg-emerald-100 text-emerald-700' : (summary.cumulativeBalance !== undefined ? summary.cumulativeBalance : summary.netIncome) < 0 ? 'bg-red-100 text-red-700' : 'bg-gray-100 text-gray-700'}`}>
+                      {(summary.cumulativeBalance !== undefined ? summary.cumulativeBalance : summary.netIncome) > 0 ? (
                         <>
                           <TrendingUp className="h-4 w-4" />
-                          <span className="text-sm font-semibold">Surplus</span>
+                          <span className="text-sm font-semibold">Positif</span>
                         </>
-                      ) : summary.netIncome < 0 ? (
+                      ) : (summary.cumulativeBalance !== undefined ? summary.cumulativeBalance : summary.netIncome) < 0 ? (
                         <>
                           <TrendingDown className="h-4 w-4" />
-                          <span className="text-sm font-semibold">Defisit</span>
+                          <span className="text-sm font-semibold">Negatif</span>
                         </>
                       ) : (
                         <span className="text-sm font-semibold">Break Even</span>

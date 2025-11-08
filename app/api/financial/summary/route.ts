@@ -91,6 +91,29 @@ export async function GET(request: NextRequest) {
     const netIncome = totalIncome - totalExpense;
     const transactionCount = transactions.length;
 
+    // Calculate CUMULATIVE BALANCE (total saldo dari awal waktu sampai sekarang)
+    // INCOME dan SALE = uang masuk
+    const allTimeIncome = await prisma.transactions.aggregate({
+      where: {
+        type: { in: ['INCOME', 'SALE'] },
+        status: 'COMPLETED',
+        date: { lte: new Date() },
+      },
+      _sum: { totalAmount: true }
+    });
+
+    // EXPENSE dan PURCHASE = uang keluar
+    const allTimeExpense = await prisma.transactions.aggregate({
+      where: {
+        type: { in: ['EXPENSE', 'PURCHASE'] },
+        status: 'COMPLETED',
+        date: { lte: new Date() },
+      },
+      _sum: { totalAmount: true }
+    });
+
+    const cumulativeBalance = Number(allTimeIncome._sum.totalAmount || 0) - Number(allTimeExpense._sum.totalAmount || 0);
+
     // Get weekly summary (last 7 days)
     const weekStartDate = new Date(startDate);
     weekStartDate.setDate(weekStartDate.getDate() - 6);
@@ -223,6 +246,7 @@ export async function GET(request: NextRequest) {
 
     const summary = {
       date,
+      cumulativeBalance, // Total saldo kumulatif dari awal waktu
       daily: {
         totalIncome,
         totalExpense,
@@ -245,7 +269,10 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      data: summary.daily, // Return daily summary for the main API
+      data: {
+        ...summary.daily,
+        cumulativeBalance, // Kirim saldo kumulatif ke frontend
+      },
       summary, // Include all summaries for detailed view
     });
   } catch (error) {
