@@ -71,6 +71,22 @@ export async function POST(
       },
     });
 
+    // Create financial transaction entry (EXPENSE)
+    await prisma.transactions.create({
+      data: {
+        id: randomUUID(),
+        memberId: id,
+        type: 'EXPENSE',
+        totalAmount: amount,
+        paymentMethod: 'CASH',
+        status: 'COMPLETED',
+        note: `Tarik Simpanan Sukarela - ${member.name}${description ? ` (${description})` : ''}`,
+        date: new Date(date),
+        updatedAt: new Date(),
+        isProduction: true,
+      },
+    });
+
     return NextResponse.json({
       success: true,
       message: 'Withdrawal successful',

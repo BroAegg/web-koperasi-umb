@@ -65,6 +65,22 @@ export async function POST(
       },
     });
 
+    // Create financial transaction entry (INCOME)
+    await prisma.transactions.create({
+      data: {
+        id: randomUUID(),
+        memberId: id,
+        type: 'INCOME',
+        totalAmount: amount,
+        paymentMethod: 'CASH',
+        status: 'COMPLETED',
+        note: `Setor Simpanan ${type} - ${member.name}${description ? ` (${description})` : ''}`,
+        date: new Date(date),
+        updatedAt: new Date(),
+        isProduction: true,
+      },
+    });
+
     return NextResponse.json({
       success: true,
       message: 'Deposit successful',
