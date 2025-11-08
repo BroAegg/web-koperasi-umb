@@ -938,50 +938,6 @@ export default function MembershipPage() {
               </div>
 
               {/* Action Buttons */}
-              {/* --- Simpanan (separate session) --- */}
-              <div className="border-t pt-6 mb-4">
-                <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
-                  <CreditCard className="w-5 h-5 text-blue-600" />
-                  Simpanan
-                </h4>
-
-                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
-                  <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-lg p-4">
-                    <p className="text-xs text-blue-700 font-medium mb-1">Simpanan Pokok</p>
-                    <p className="text-2xl font-bold text-blue-900">
-                      {formatCurrency(parseInt(newMember.simpananPokok || '0'))}
-                    </p>
-                  </div>
-
-                  <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 border border-emerald-200 rounded-lg p-4">
-                    <p className="text-xs text-emerald-700 font-medium mb-1">Simpanan Wajib</p>
-                    <p className="text-2xl font-bold text-emerald-900">
-                      {formatCurrency(parseInt(newMember.simpananWajib || '0'))}
-                    </p>
-                  </div>
-
-                  <div className="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-lg p-4">
-                    <p className="text-xs text-green-700 font-medium mb-1">Simpanan Sukarela</p>
-                    <p className="text-2xl font-bold text-green-900">
-                      {formatCurrency(parseInt(newMember.simpananSukarela || '0'))}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="bg-gradient-to-r from-slate-50 to-slate-100 border-2 border-slate-300 rounded-lg p-4 mb-6">
-                  <div className="flex items-center justify-between">
-                    <p className="text-sm font-semibold text-slate-700">Total Simpanan</p>
-                    <p className="text-2xl font-bold text-slate-900">
-                      {formatCurrency(
-                        (parseInt(newMember.simpananPokok || '0') || 0) +
-                        (parseInt(newMember.simpananWajib || '0') || 0) +
-                        (parseInt(newMember.simpananSukarela || '0') || 0)
-                      )}
-                    </p>
-                  </div>
-                </div>
-              </div>
-
               <div className="flex items-center justify-end gap-3 mt-6 pt-6 border-t">
                 <Button
                   variant="outline"
