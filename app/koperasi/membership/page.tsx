@@ -77,6 +77,16 @@ export default function MembershipPage() {
   const [importResult, setImportResult] = useState<any>(null);
   const [importError, setImportError] = useState<string | null>(null);
 
+  // Setor/Tarik states
+  const [showSetorModal, setShowSetorModal] = useState(false);
+  const [showTarikModal, setShowTarikModal] = useState(false);
+  const [transactionForm, setTransactionForm] = useState({
+    type: 'SUKARELA' as 'SUKARELA' | 'WAJIB',
+    amount: '',
+    date: new Date().toISOString().split('T')[0],
+    description: '',
+  });
+
   // Global notifications
   const { success, error, warning, confirm } = useNotification();
 
@@ -1077,8 +1087,13 @@ export default function MembershipPage() {
                       variant="outline"
                       className="flex-1 bg-green-50 text-green-700 hover:bg-green-100 border-green-300"
                       onClick={() => {
-                        // TODO: Open Setor modal
-                        warning('Coming Soon', 'Fitur Setor Simpanan sedang dalam pengembangan');
+                        setTransactionForm({
+                          type: 'SUKARELA',
+                          amount: '',
+                          date: new Date().toISOString().split('T')[0],
+                          description: '',
+                        });
+                        setShowSetorModal(true);
                       }}
                     >
                       <ArrowUp className="w-4 h-4 mr-2" />
@@ -1088,8 +1103,13 @@ export default function MembershipPage() {
                       variant="outline"
                       className="flex-1 bg-amber-50 text-amber-700 hover:bg-amber-100 border-amber-300"
                       onClick={() => {
-                        // TODO: Open Tarik modal
-                        warning('Coming Soon', 'Fitur Tarik Simpanan sedang dalam pengembangan');
+                        setTransactionForm({
+                          type: 'SUKARELA',
+                          amount: '',
+                          date: new Date().toISOString().split('T')[0],
+                          description: '',
+                        });
+                        setShowTarikModal(true);
                       }}
                     >
                       <ArrowDown className="w-4 h-4 mr-2" />
@@ -1374,6 +1394,304 @@ export default function MembershipPage() {
             </form>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Setor Simpanan Modal */}
+      {showSetorModal && selectedMember && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-md">
+            <CardHeader className="border-b">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">Setor Simpanan</h3>
+                  <p className="text-sm text-gray-500 mt-1">{selectedMember.name} - {selectedMember.nomorAnggota}</p>
+                </div>
+                <button
+                  onClick={() => setShowSetorModal(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </CardHeader>
+
+            <CardContent className="p-6">
+              <form onSubmit={async (e) => {
+                e.preventDefault();
+                
+                if (!transactionForm.amount || parseFloat(transactionForm.amount) <= 0) {
+                  warning('Jumlah Tidak Valid', 'Masukkan jumlah yang valid');
+                  return;
+                }
+
+                setIsSubmitting(true);
+                
+                try {
+                  const response = await fetch(`/api/members/${selectedMember.id}/deposit`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      type: transactionForm.type,
+                      amount: parseFloat(transactionForm.amount),
+                      date: transactionForm.date,
+                      description: transactionForm.description,
+                    }),
+                  });
+
+                  const result = await response.json();
+
+                  if (result.success) {
+                    success('Setor Berhasil', `Simpanan ${transactionForm.type} sebesar ${formatCurrency(parseFloat(transactionForm.amount))} berhasil disetor`);
+                    setShowSetorModal(false);
+                    fetchMembers(); // Refresh list
+                    // Refresh selected member
+                    const updatedMember = await fetch(`/api/members`).then(r => r.json());
+                    const updated = updatedMember.members?.find((m: Member) => m.id === selectedMember.id);
+                    if (updated) setSelectedMember(updated);
+                  } else {
+                    error('Gagal Setor', result.error || 'Terjadi kesalahan');
+                  }
+                } catch (err) {
+                  console.error('Error depositing:', err);
+                  error('Kesalahan Server', 'Terjadi kesalahan pada server');
+                } finally {
+                  setIsSubmitting(false);
+                }
+              }}>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Jenis Simpanan <span className="text-red-500">*</span>
+                    </label>
+                    <select
+                      value={transactionForm.type}
+                      onChange={(e) => setTransactionForm(prev => ({ ...prev, type: e.target.value as 'SUKARELA' | 'WAJIB' }))}
+                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      required
+                    >
+                      <option value="SUKARELA">Simpanan Sukarela</option>
+                      <option value="WAJIB">Simpanan Wajib</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Jumlah <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      type="text"
+                      value={transactionForm.amount ? Number(transactionForm.amount).toLocaleString('id-ID') : ''}
+                      onChange={(e) => {
+                        const rawValue = e.target.value.replace(/\./g, '');
+                        const numValue = parseFloat(rawValue);
+                        
+                        if (rawValue === '' || !isNaN(numValue)) {
+                          setTransactionForm(prev => ({ ...prev, amount: rawValue }));
+                        }
+                      }}
+                      placeholder="Masukkan jumlah"
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Tanggal <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      type="date"
+                      value={transactionForm.date}
+                      onChange={(e) => setTransactionForm(prev => ({ ...prev, date: e.target.value }))}
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Keterangan
+                    </label>
+                    <Input
+                      type="text"
+                      value={transactionForm.description}
+                      onChange={(e) => setTransactionForm(prev => ({ ...prev, description: e.target.value }))}
+                      placeholder="Opsional"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-3 mt-6">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowSetorModal(false)}
+                    disabled={isSubmitting}
+                  >
+                    Batal
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="bg-green-600 hover:bg-green-700"
+                  >
+                    {isSubmitting ? 'Menyimpan...' : 'Setor'}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Tarik Simpanan Modal */}
+      {showTarikModal && selectedMember && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-md">
+            <CardHeader className="border-b">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">Tarik Simpanan</h3>
+                  <p className="text-sm text-gray-500 mt-1">{selectedMember.name} - {selectedMember.nomorAnggota}</p>
+                </div>
+                <button
+                  onClick={() => setShowTarikModal(false)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
+            </CardHeader>
+
+            <CardContent className="p-6">
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mb-4">
+                <p className="text-xs text-blue-700">
+                  <strong>Saldo Simpanan Sukarela:</strong> {formatCurrency(selectedMember.simpananSukarela)}
+                </p>
+              </div>
+
+              <form onSubmit={async (e) => {
+                e.preventDefault();
+                
+                const amount = parseFloat(transactionForm.amount);
+                
+                if (!transactionForm.amount || amount <= 0) {
+                  warning('Jumlah Tidak Valid', 'Masukkan jumlah yang valid');
+                  return;
+                }
+
+                if (amount > selectedMember.simpananSukarela) {
+                  warning('Saldo Tidak Cukup', `Saldo Simpanan Sukarela hanya ${formatCurrency(selectedMember.simpananSukarela)}`);
+                  return;
+                }
+
+                setIsSubmitting(true);
+                
+                try {
+                  const response = await fetch(`/api/members/${selectedMember.id}/withdraw`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      amount,
+                      date: transactionForm.date,
+                      description: transactionForm.description,
+                    }),
+                  });
+
+                  const result = await response.json();
+
+                  if (result.success) {
+                    success('Tarik Berhasil', `Penarikan sebesar ${formatCurrency(amount)} berhasil dilakukan`);
+                    setShowTarikModal(false);
+                    fetchMembers(); // Refresh list
+                    // Refresh selected member
+                    const updatedMember = await fetch(`/api/members`).then(r => r.json());
+                    const updated = updatedMember.members?.find((m: Member) => m.id === selectedMember.id);
+                    if (updated) setSelectedMember(updated);
+                  } else {
+                    error('Gagal Tarik', result.error || 'Terjadi kesalahan');
+                  }
+                } catch (err) {
+                  console.error('Error withdrawing:', err);
+                  error('Kesalahan Server', 'Terjadi kesalahan pada server');
+                } finally {
+                  setIsSubmitting(false);
+                }
+              }}>
+                <div className="space-y-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Jumlah Penarikan <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      type="text"
+                      value={transactionForm.amount ? Number(transactionForm.amount).toLocaleString('id-ID') : ''}
+                      onChange={(e) => {
+                        const rawValue = e.target.value.replace(/\./g, '');
+                        const numValue = parseFloat(rawValue);
+                        
+                        if (rawValue === '' || !isNaN(numValue)) {
+                          setTransactionForm(prev => ({ ...prev, amount: rawValue }));
+                          
+                          // Real-time validation alert
+                          if (numValue > selectedMember.simpananSukarela) {
+                            warning('Melebihi Saldo', `Saldo Simpanan Sukarela hanya ${formatCurrency(selectedMember.simpananSukarela)}`);
+                          }
+                        }
+                      }}
+                      placeholder="Masukkan jumlah"
+                      required
+                      className={transactionForm.amount && parseFloat(transactionForm.amount) > selectedMember.simpananSukarela ? 'border-red-500 focus:ring-red-500' : ''}
+                    />
+                    <p className={`text-xs mt-1 ${transactionForm.amount && parseFloat(transactionForm.amount) > selectedMember.simpananSukarela ? 'text-red-600 font-medium' : 'text-gray-500'}`}>
+                      Maksimal: {formatCurrency(selectedMember.simpananSukarela)}
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Tanggal <span className="text-red-500">*</span>
+                    </label>
+                    <Input
+                      type="date"
+                      value={transactionForm.date}
+                      onChange={(e) => setTransactionForm(prev => ({ ...prev, date: e.target.value }))}
+                      required
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Keterangan
+                    </label>
+                    <Input
+                      type="text"
+                      value={transactionForm.description}
+                      onChange={(e) => setTransactionForm(prev => ({ ...prev, description: e.target.value }))}
+                      placeholder="Opsional"
+                    />
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-end gap-3 mt-6">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => setShowTarikModal(false)}
+                    disabled={isSubmitting}
+                  >
+                    Batal
+                  </Button>
+                  <Button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="bg-amber-600 hover:bg-amber-700"
+                  >
+                    {isSubmitting ? 'Memproses...' : 'Tarik'}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
         </div>
       )}
 
