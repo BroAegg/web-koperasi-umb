@@ -55,11 +55,11 @@ export async function GET(req: NextRequest) {
     }
 
     // FILTER: Exclude transaksi simpanan anggota (setor/tarik)
-    // Ciri-ciri: note contains "Setor Simpanan" atau "Tarik Simpanan"
+    // Note: Prisma count() doesn't support mode, so we use startsWith
     where.NOT = {
       OR: [
-        { note: { contains: 'Setor Simpanan', mode: 'insensitive' as const } },
-        { note: { contains: 'Tarik Simpanan', mode: 'insensitive' as const } },
+        { note: { startsWith: 'Setor Simpanan' } },
+        { note: { startsWith: 'Tarik Simpanan' } },
       ]
     };
 
