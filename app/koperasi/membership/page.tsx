@@ -326,7 +326,6 @@ export default function MembershipPage() {
       simpananWajib: '0', // Starts at 0
       simpananSukarela: '0', // Starts at 0
     });
-    setEditingMember(null);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1098,7 +1097,6 @@ export default function MembershipPage() {
                     </Button>
                   </div>
                 )}
-              </div>
 
                 {/* Savings History - Only in View Mode */}
                 {modalMode === 'view' && selectedMember.savings && selectedMember.savings.length > 0 && (
@@ -1167,8 +1165,6 @@ export default function MembershipPage() {
                   </div>
                 )}
               </div>
-
-              {/* No action buttons here - moved to sticky header */}
             </CardContent>
           </Card>
         </div>
@@ -1183,10 +1179,10 @@ export default function MembershipPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-xl font-bold">
-                    {editingMember ? 'Update Anggota' : 'Tambah Anggota Baru'}
+                    Tambah Anggota Baru
                   </h3>
                   <p className="text-blue-100 text-sm mt-1">
-                    {editingMember ? 'Perbarui data anggota koperasi' : 'Daftarkan anggota baru untuk bergabung dengan koperasi'}
+                    Daftarkan anggota baru untuk bergabung dengan koperasi
                   </p>
                 </div>
                 <Button 
@@ -1194,7 +1190,6 @@ export default function MembershipPage() {
                   size="sm"
                   onClick={() => {
                     setShowAddModal(false);
-                    setEditingMember(null);
                     resetForm();
                   }}
                   className="bg-white/10 border-white/20 text-white hover:bg-white/20"
@@ -1363,7 +1358,6 @@ export default function MembershipPage() {
                   variant="outline"
                   onClick={() => {
                     setShowAddModal(false);
-                    setEditingMember(null);
                     resetForm();
                   }}
                   disabled={isSubmitting}
@@ -1374,11 +1368,7 @@ export default function MembershipPage() {
                   type="submit"
                   disabled={isSubmitting}
                 >
-                  {isSubmitting ? (
-                    editingMember ? 'Mengupdate...' : 'Menyimpan...'
-                  ) : (
-                    editingMember ? 'Update Anggota' : 'Simpan Anggota'
-                  )}
+                  {isSubmitting ? 'Menyimpan...' : 'Simpan Anggota'}
                 </Button>
               </div>
             </form>
