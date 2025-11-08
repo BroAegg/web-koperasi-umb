@@ -55,20 +55,10 @@ export async function GET(request: NextRequest) {
         // SALE: Always count as income (revenue from selling)
         totalIncome += amount;
         
-        // SALE: Count COGS as expense ONLY for TITIPAN products
-        // (because we pay the consignor when item is sold)
-        // TOKO products: expense already counted on PURCHASE
-        if (transaction.transaction_items && transaction.transaction_items.length > 0) {
-          transaction.transaction_items.forEach((item: any) => {
-            const isTitipan = item.products?.ownershipType === 'TITIPAN' || 
-                             item.products?.isConsignment === true;
-            if (isTitipan) {
-              // For consignment: COGS is payment to consignor (expense)
-              totalExpense += Number(item.totalCogs || 0);
-            }
-            // For TOKO: No expense on SALE (capital already paid on PURCHASE)
-          });
-        }
+        // NOTE: NO EXPENSE counted on SALE for any product type!
+        // - TOKO products: expense already counted on PURCHASE when we bought inventory
+        // - TITIPAN products: expense counted when we PAY consignor (EXPENSE/PURCHASE transaction)
+        //   Jual konsinyasi = Income aja, expense nanti pas bayar consignor!
       } else if (transaction.type === 'INCOME') {
         // Manual income entry
         totalIncome += amount;

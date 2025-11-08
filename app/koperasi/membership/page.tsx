@@ -18,6 +18,7 @@ import {
   Edit,
   Trash2,
   Download,
+  Upload,
   Mail,
   Phone,
   MapPin,
@@ -25,8 +26,22 @@ import {
   User,
   Building2,
   CreditCard,
-  Calendar
+  Calendar,
+  FileSpreadsheet,
+  CheckCircle,
+  AlertTriangle,
+  ArrowUp,
+  ArrowDown
 } from 'lucide-react';
+
+interface Saving {
+  id: string;
+  amount: number;
+  type: 'POKOK' | 'WAJIB' | 'SUKARELA' | 'WITHDRAWAL';
+  date: string;
+  createdAt: string;
+  description?: string;
+}
 
 interface Member {
   id: string;
@@ -43,21 +58,29 @@ interface Member {
   totalSimpanan: number;
   joinDate: string;
   status: 'ACTIVE' | 'INACTIVE';
+  savings?: Saving[];
 }
 
 export default function MembershipPage() {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [showAddModal, setShowAddModal] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false); // For adding new member only
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
+  const [modalMode, setModalMode] = useState<'view' | 'edit'>('view'); // Single modal dual state
   const [members, setMembers] = useState<Member[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [editingMember, setEditingMember] = useState<string | null>(null);
+  
+  // Import states
+  const [showImportModal, setShowImportModal] = useState(false);
+  const [importFile, setImportFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [importResult, setImportResult] = useState<any>(null);
+  const [importError, setImportError] = useState<string | null>(null);
 
   // Global notifications
   const { success, error, warning, confirm } = useNotification();
 
-  // Form state for new member
+  // Form state for new member (Add modal only)
   const [newMember, setNewMember] = useState({
     name: '',
     email: '',
@@ -65,9 +88,19 @@ export default function MembershipPage() {
     address: '',
     gender: 'MALE' as 'MALE' | 'FEMALE',
     unitKerja: '',
-    simpananPokok: '50000',
-    simpananWajib: '200000',
-    simpananSukarela: '0',
+    simpananPokok: '200000', // Fixed at registration - Rp 200.000
+    simpananWajib: '0', // Will accumulate Rp 50.000/month
+    simpananSukarela: '0', // Optional, managed via Setor/Tarik
+  });
+
+  // Form state for editing (used in edit mode of single modal)
+  const [editForm, setEditForm] = useState({
+    name: '',
+    email: '',
+    phone: '',
+    address: '',
+    gender: 'MALE' as 'MALE' | 'FEMALE',
+    unitKerja: '',
   });
 
   useEffect(() => {
@@ -105,23 +138,22 @@ export default function MembershipPage() {
 
   const handleViewMember = (member: Member) => {
     setSelectedMember(member);
+    setModalMode('view'); // Always start in view mode
   };
 
-  const handleEditMember = (member: Member) => {
-    // Populate form with existing member data for editing
-    setNewMember({
-      name: member.name,
-      email: member.email,
-      phone: member.phone || '',
-      address: member.address || '',
-      gender: member.gender,
-      unitKerja: member.unitKerja,
-      simpananPokok: member.simpananPokok.toString(),
-      simpananWajib: member.simpananWajib.toString(),
-      simpananSukarela: member.simpananSukarela.toString(),
-    });
-    setEditingMember(member.id);
-    setShowAddModal(true);
+  const handleEditMember = () => {
+    // Switch to edit mode and populate form
+    if (selectedMember) {
+      setEditForm({
+        name: selectedMember.name,
+        email: selectedMember.email,
+        phone: selectedMember.phone || '',
+        address: selectedMember.address || '',
+        gender: selectedMember.gender,
+        unitKerja: selectedMember.unitKerja,
+      });
+      setModalMode('edit');
+    }
   };
 
   const handleDeleteMember = async (memberId: string) => {
@@ -171,8 +203,8 @@ export default function MembershipPage() {
     }
 
     // Validate savings values
-    const simpananPokok = parseFloat(newMember.simpananPokok) || 50000;
-    const simpananWajib = parseFloat(newMember.simpananWajib) || 200000;
+    const simpananPokok = parseFloat(newMember.simpananPokok) || 200000;
+    const simpananWajib = parseFloat(newMember.simpananWajib) || 0;
     const simpananSukarela = parseFloat(newMember.simpananSukarela) || 0;
 
     if (simpananPokok < 0 || simpananWajib < 0 || simpananSukarela < 0) {
@@ -191,14 +223,8 @@ export default function MembershipPage() {
     setIsSubmitting(true);
     
     try {
-      const url = editingMember 
-        ? `/api/members/${editingMember}`
-        : '/api/members';
-      
-      const method = editingMember ? 'PUT' : 'POST';
-      
-      const response = await fetch(url, {
-        method,
+      const response = await fetch('/api/members', {
+        method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
@@ -216,24 +242,72 @@ export default function MembershipPage() {
           address: '',
           gender: 'MALE',
           unitKerja: '',
-          simpananPokok: '50000',
-          simpananWajib: '200000',
+          simpananPokok: '200000',
+          simpananWajib: '0',
           simpananSukarela: '0',
         });
         
-        setEditingMember(null);
         setShowAddModal(false);
         fetchMembers(); // Refresh list
         
-        const successMessage = editingMember 
-          ? `${newMember.name} berhasil diupdate`
-          : `${newMember.name} telah ditambahkan sebagai anggota koperasi`;
-        success(editingMember ? 'Update Berhasil' : 'Anggota Berhasil Ditambahkan', successMessage);
+        success('Anggota Berhasil Ditambahkan', `${newMember.name} telah ditambahkan sebagai anggota koperasi`);
       } else {
-        error(editingMember ? 'Gagal Update Anggota' : 'Gagal Menambahkan Anggota', result.error || 'Terjadi kesalahan saat menyimpan data anggota');
+        error('Gagal Menambahkan Anggota', result.error || 'Terjadi kesalahan saat menyimpan data anggota');
       }
     } catch (err) {
       console.error('Error saving member:', err);
+      error('Kesalahan Server', 'Terjadi kesalahan pada server, silakan coba lagi');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const handleUpdateMember = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!selectedMember) return;
+
+    if (!editForm.name || !editForm.email || !editForm.unitKerja) {
+      warning('Form Tidak Lengkap', 'Nama, email, dan unit kerja wajib diisi');
+      return;
+    }
+
+    // Validate email format
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(editForm.email)) {
+      warning('Email Tidak Valid', 'Masukkan format email yang benar (contoh: user@example.com)');
+      return;
+    }
+
+    setIsSubmitting(true);
+    
+    try {
+      const response = await fetch(`/api/members/${selectedMember.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(editForm),
+      });
+
+      const result = await response.json();
+
+      if (result.success) {
+        // Update selectedMember with new data
+        setSelectedMember({
+          ...selectedMember,
+          ...editForm,
+        });
+        
+        setModalMode('view'); // Switch back to view mode
+        fetchMembers(); // Refresh list
+        
+        success('Update Berhasil', `${editForm.name} berhasil diupdate`);
+      } else {
+        error('Gagal Update Anggota', result.error || 'Terjadi kesalahan saat menyimpan data anggota');
+      }
+    } catch (err) {
+      console.error('Error updating member:', err);
       error('Kesalahan Server', 'Terjadi kesalahan pada server, silakan coba lagi');
     } finally {
       setIsSubmitting(false);
@@ -248,11 +322,140 @@ export default function MembershipPage() {
       address: '',
       gender: 'MALE',
       unitKerja: '',
-      simpananPokok: '50000',
-      simpananWajib: '200000',
-      simpananSukarela: '0',
+      simpananPokok: '200000', // Fixed at registration
+      simpananWajib: '0', // Starts at 0
+      simpananSukarela: '0', // Starts at 0
     });
-    setEditingMember(null);
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (selectedFile) {
+      if (!selectedFile.name.endsWith('.xlsx') && !selectedFile.name.endsWith('.xls')) {
+        setImportError('Please upload an Excel file (.xlsx or .xls)');
+        return;
+      }
+      setImportFile(selectedFile);
+      setImportError(null);
+    }
+  };
+
+  const handleImport = async () => {
+    if (!importFile) {
+      setImportError('Please select a file first');
+      return;
+    }
+
+    setIsUploading(true);
+    setImportError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', importFile);
+
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/members/import', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
+        body: formData
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setImportResult(data);
+        setImportFile(null);
+        setShowImportModal(false);
+        fetchMembers(); // Refresh list
+        const txMsg = data.stats.transactionsImported 
+          ? ` dan ${data.stats.transactionsImported} transaksi` 
+          : '';
+        success('Import berhasil!', `${data.stats.imported} anggota${txMsg} berhasil diimport`);
+        // Reset file input
+        const fileInput = document.getElementById('file-input-import') as HTMLInputElement;
+        if (fileInput) fileInput.value = '';
+      } else {
+        setImportError(data.error || 'Failed to import members');
+      }
+    } catch (err: any) {
+      setImportError(err.message || 'Failed to upload file');
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleDeleteAll = async () => {
+    const confirmed = await confirm({
+      title: '⚠️ Hapus Semua Anggota?',
+      message: `Ini akan menghapus SEMUA ${members.length} anggota dan data terkait (users, savings, loans). Aksi ini tidak bisa dibatalkan! Fitur ini hanya untuk testing.`,
+      type: 'danger',
+      confirmText: 'Ya, Hapus Semua',
+      cancelText: 'Batal'
+    });
+
+    if (!confirmed) return;
+
+    try {
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/members/delete-all', {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        success('Berhasil!', `${data.deleted} anggota berhasil dihapus`);
+        setMembers([]);
+        setImportResult(null);
+      } else {
+        error('Gagal menghapus', data.error || 'Terjadi kesalahan');
+      }
+    } catch (err: any) {
+      error('Gagal menghapus', err.message || 'Terjadi kesalahan');
+    }
+  };
+
+  const handleGenerateTest = async () => {
+    const confirmed = await confirm({
+      title: '🧪 Generate Test Members?',
+      message: 'Ini akan membuat 15 anggota dummy dengan data lengkap dan riwayat transaksi simpanan yang realistis untuk testing.',
+      type: 'info',
+      confirmText: 'Ya, Generate',
+      cancelText: 'Batal'
+    });
+
+    if (!confirmed) return;
+
+    try {
+      setIsSubmitting(true);
+      const token = localStorage.getItem('token');
+      const response = await fetch('/api/members/generate-test', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        success('Berhasil!', `${data.data.membersCreated} anggota test berhasil dibuat dengan ${data.data.savingsCreated} transaksi simpanan`);
+        fetchMembers(); // Reload members
+      } else {
+        error('Gagal generate', data.error || 'Terjadi kesalahan');
+      }
+    } catch (err: any) {
+      error('Gagal generate', err.message || 'Terjadi kesalahan');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -263,11 +466,38 @@ export default function MembershipPage() {
           <h1 className="text-3xl font-bold text-gray-900">Keanggotaan</h1>
           <p className="text-gray-600 mt-1">Kelola data anggota koperasi</p>
         </div>
-        <div className="mt-4 md:mt-0 flex gap-3">
+        <div className="mt-4 md:mt-0 flex gap-3 flex-wrap">
+          <Button variant="outline" size="sm" onClick={() => setShowImportModal(true)}>
+            <Upload className="w-4 h-4 mr-2" />
+            Import Data
+          </Button>
           <Button variant="outline" size="sm">
             <Download className="w-4 h-4 mr-2" />
             Export Data
           </Button>
+          {/* Testing only - Generate Test */}
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={handleGenerateTest}
+            disabled={isSubmitting}
+            className="border-blue-300 text-blue-600 hover:bg-blue-50 hover:border-blue-400"
+          >
+            <Users className="w-4 h-4 mr-2" />
+            {isSubmitting ? 'Generating...' : 'Generate Test (15)'}
+          </Button>
+          {/* Testing only - Delete All */}
+          {members.length > 0 && (
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={handleDeleteAll}
+              className="border-red-300 text-red-600 hover:bg-red-50 hover:border-red-400"
+            >
+              <Trash2 className="w-4 h-4 mr-2" />
+              Hapus Semua ({members.length})
+            </Button>
+          )}
           <Button size="sm" onClick={() => setShowAddModal(true)}>
             <UserPlus className="w-4 h-4 mr-2" />
             Tambah Anggota
@@ -275,50 +505,188 @@ export default function MembershipPage() {
         </div>
       </div>
 
+      {/* Import Success Result */}
+      {importResult && (
+        <Card className="border-green-200 bg-green-50">
+          <CardContent className="p-6">
+            <div className="flex items-start gap-4">
+              <div className="flex-shrink-0">
+                <CheckCircle className="h-8 w-8 text-green-600" />
+              </div>
+              <div className="flex-1">
+                <div className="flex items-start justify-between mb-4">
+                  <div>
+                    <h3 className="text-lg font-semibold text-green-900 mb-1">
+                      Import Berhasil!
+                    </h3>
+                    <p className="text-sm text-green-700">{importResult.message}</p>
+                  </div>
+                  <button
+                    onClick={() => setImportResult(null)}
+                    className="text-green-600 hover:text-green-800 p-1"
+                  >
+                    <X className="h-5 w-5" />
+                  </button>
+                </div>
+
+                {/* Stats Grid */}
+                <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
+                  {/* Members Stats */}
+                  <div className="bg-white rounded-lg p-4 border border-green-200">
+                    <p className="text-xs text-gray-600 mb-1">Total Rows</p>
+                    <p className="text-2xl font-bold text-gray-900">{importResult.stats.total}</p>
+                    <p className="text-xs text-gray-500 mt-1">Anggota</p>
+                  </div>
+                  <div className="bg-white rounded-lg p-4 border border-green-200">
+                    <p className="text-xs text-gray-600 mb-1">Imported</p>
+                    <p className="text-2xl font-bold text-green-600">{importResult.stats.imported}</p>
+                    <p className="text-xs text-gray-500 mt-1">Anggota baru</p>
+                  </div>
+                  <div className="bg-white rounded-lg p-4 border border-yellow-200">
+                    <p className="text-xs text-gray-600 mb-1">Skipped</p>
+                    <p className="text-2xl font-bold text-yellow-600">{importResult.stats.skipped}</p>
+                    <p className="text-xs text-gray-500 mt-1">Duplikat</p>
+                  </div>
+
+                  {/* Transactions Stats */}
+                  {importResult.stats.transactionsTotal > 0 && (
+                    <>
+                      <div className="bg-white rounded-lg p-4 border border-blue-200">
+                        <p className="text-xs text-gray-600 mb-1">Transaksi Total</p>
+                        <p className="text-2xl font-bold text-gray-900">{importResult.stats.transactionsTotal}</p>
+                        <p className="text-xs text-gray-500 mt-1">Dari sheet Data</p>
+                      </div>
+                      <div className="bg-white rounded-lg p-4 border border-blue-200">
+                        <p className="text-xs text-gray-600 mb-1">Transaksi Imported</p>
+                        <p className="text-2xl font-bold text-blue-600">{importResult.stats.transactionsImported}</p>
+                        <p className="text-xs text-gray-500 mt-1">Setor/Tarik</p>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {/* Errors if any */}
+                {importResult.stats.errors && importResult.stats.errors.length > 0 && (
+                  <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                    <div className="flex items-start gap-2 mb-2">
+                      <AlertTriangle className="h-5 w-5 text-yellow-600 flex-shrink-0 mt-0.5" />
+                      <div className="flex-1">
+                        <p className="font-semibold text-yellow-900 mb-2">
+                          {importResult.stats.errors.length} Warning(s)
+                        </p>
+                        <div className="space-y-1 max-h-32 overflow-y-auto">
+                          {importResult.stats.errors.slice(0, 10).map((err: string, i: number) => (
+                            <p key={i} className="text-xs text-yellow-800">• {err}</p>
+                          ))}
+                          {importResult.stats.errors.length > 10 && (
+                            <p className="text-xs text-yellow-700 italic mt-2">
+                              ...dan {importResult.stats.errors.length - 10} warning lainnya
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Total Anggota</p>
-                <h3 className="text-2xl font-bold text-gray-900">{totalMembers}</h3>
-              </div>
-              <div className="p-3 rounded-lg bg-blue-50">
-                <Users className="w-6 h-6 text-blue-600" />
-              </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Total Anggota */}
+        <Card className="border-l-4 border-l-blue-500">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-medium text-gray-600 uppercase tracking-wide">Total Anggota</p>
+              <Users className="w-5 h-5 text-blue-500" />
+            </div>
+            <h3 className="text-3xl font-bold text-gray-900 mb-1">{totalMembers}</h3>
+            <div className="flex items-center gap-2 text-xs">
+              <span className="inline-flex items-center gap-1 text-emerald-600 font-medium">
+                <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                {activeMembers} Aktif
+              </span>
+              {totalMembers - activeMembers > 0 && (
+                <span className="text-gray-500">• {totalMembers - activeMembers} Tidak Aktif</span>
+              )}
             </div>
           </CardContent>
         </Card>
-        
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Anggota Aktif</p>
-                <h3 className="text-2xl font-bold text-gray-900">{activeMembers}</h3>
-              </div>
-              <div className="p-3 rounded-lg bg-emerald-50">
-                <Users className="w-6 h-6 text-emerald-600" />
-              </div>
+
+        {/* Simpanan Pokok */}
+        <Card className="border-l-4 border-l-indigo-500">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-medium text-gray-600 uppercase tracking-wide">Simpanan Pokok</p>
+              <CreditCard className="w-5 h-5 text-indigo-500" />
             </div>
+            <h3 className="text-2xl font-bold text-gray-900 mb-1">
+              {formatCurrency(members.reduce((sum, m) => sum + m.simpananPokok, 0))}
+            </h3>
+            <p className="text-xs text-gray-500">
+              Rata-rata: {formatCurrency(totalMembers > 0 ? members.reduce((sum, m) => sum + m.simpananPokok, 0) / totalMembers : 0)}
+            </p>
           </CardContent>
         </Card>
-        
-        <Card>
-          <CardContent className="p-6">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-gray-600">Total Simpanan</p>
-                <h3 className="text-2xl font-bold text-gray-900">{formatCurrency(totalSimpanan)}</h3>
-              </div>
-              <div className="p-3 rounded-lg bg-green-50">
-                <Users className="w-6 h-6 text-green-600" />
-              </div>
+
+        {/* Simpanan Wajib */}
+        <Card className="border-l-4 border-l-emerald-500">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-medium text-gray-600 uppercase tracking-wide">Simpanan Wajib</p>
+              <CreditCard className="w-5 h-5 text-emerald-500" />
             </div>
+            <h3 className="text-2xl font-bold text-gray-900 mb-1">
+              {formatCurrency(members.reduce((sum, m) => sum + m.simpananWajib, 0))}
+            </h3>
+            <p className="text-xs text-gray-500">
+              Rata-rata: {formatCurrency(totalMembers > 0 ? members.reduce((sum, m) => sum + m.simpananWajib, 0) / totalMembers : 0)}
+            </p>
+          </CardContent>
+        </Card>
+
+        {/* Simpanan Sukarela */}
+        <Card className="border-l-4 border-l-green-500">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between mb-2">
+              <p className="text-xs font-medium text-gray-600 uppercase tracking-wide">Simpanan Sukarela</p>
+              <CreditCard className="w-5 h-5 text-green-500" />
+            </div>
+            <h3 className="text-2xl font-bold text-gray-900 mb-1">
+              {formatCurrency(members.reduce((sum, m) => sum + m.simpananSukarela, 0))}
+            </h3>
+            <p className="text-xs text-gray-500">
+              Rata-rata: {formatCurrency(totalMembers > 0 ? members.reduce((sum, m) => sum + m.simpananSukarela, 0) / totalMembers : 0)}
+            </p>
           </CardContent>
         </Card>
       </div>
+
+      {/* Total Simpanan Summary */}
+      <Card className="bg-gradient-to-r from-slate-50 to-slate-100 border-2 border-slate-300">
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 rounded-lg bg-slate-600">
+                <CreditCard className="w-6 h-6 text-white" />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-slate-700">Total Simpanan Keseluruhan</p>
+                <p className="text-xs text-slate-600">Pokok + Wajib + Sukarela dari {totalMembers} anggota</p>
+              </div>
+            </div>
+            <div className="text-right">
+              <h2 className="text-3xl font-bold text-slate-900">{formatCurrency(totalSimpanan)}</h2>
+              <p className="text-xs text-slate-600 mt-1">
+                Masuk ke Neraca sebagai Liabilitas
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Search and Filter */}
       <Card>
@@ -405,15 +773,6 @@ export default function MembershipPage() {
                           <Eye className="w-4 h-4" />
                         </Button>
                         <Button 
-                          variant="outline" 
-                          size="sm"
-                          onClick={() => handleEditMember(member)}
-                          className="text-amber-600 hover:bg-amber-50"
-                          title="Edit Anggota"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button 
                           variant="danger" 
                           size="sm"
                           onClick={() => handleDeleteMember(member.id)}
@@ -431,93 +790,383 @@ export default function MembershipPage() {
         </CardContent>
       </Card>
 
-      {/* Member Detail Modal */}
+      {/* Member Detail Modal - Single Modal with View/Edit modes */}
       {selectedMember && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-xl p-6 w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-xl font-semibold text-gray-900">Detail Anggota</h3>
-              <Button variant="outline" onClick={() => setSelectedMember(null)}>
-                ✕
-              </Button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <h4 className="font-semibold text-gray-900">Informasi Pribadi</h4>
-                <div className="space-y-3">
-                  <div>
-                    <label className="text-sm text-gray-600">Nama Lengkap</label>
-                    <p className="font-medium">{selectedMember.name}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm text-gray-600">Nomor Anggota</label>
-                    <p className="font-medium">{selectedMember.nomorAnggota}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm text-gray-600">Gender</label>
-                    <p className="font-medium">{selectedMember.gender}</p>
-                  </div>
-                  <div>
-                    <label className="text-sm text-gray-600">Unit Kerja</label>
-                    <p className="font-medium">{selectedMember.unitKerja}</p>
-                  </div>
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <CardHeader className="border-b sticky top-0 bg-white z-10">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-bold text-gray-900">
+                    {modalMode === 'view' ? 'Detail Anggota' : 'Edit Anggota'}
+                  </h3>
+                  <p className="text-sm text-gray-500 mt-1">{selectedMember.nomorAnggota}</p>
                 </div>
-              </div>
-
-              <div className="space-y-4">
-                <h4 className="font-semibold text-gray-900">Kontak</h4>
-                <div className="space-y-3">
-                  <div className="flex items-center gap-2">
-                    <Mail className="w-4 h-4 text-gray-400" />
-                    <span className="text-sm">{selectedMember.email}</span>
-                  </div>
-                  {selectedMember.phone && (
-                    <div className="flex items-center gap-2">
-                      <Phone className="w-4 h-4 text-gray-400" />
-                      <span className="text-sm">{selectedMember.phone}</span>
-                    </div>
+                <div className="flex items-center gap-2">
+                  {modalMode === 'view' ? (
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleEditMember}
+                        className="text-blue-600 hover:bg-blue-50"
+                      >
+                        <Edit className="w-4 h-4 mr-2" />
+                        Edit
+                      </Button>
+                      <button
+                        onClick={() => {
+                          setSelectedMember(null);
+                          setModalMode('view');
+                        }}
+                        className="text-gray-400 hover:text-gray-600 transition-colors"
+                      >
+                        <X className="w-5 h-5" />
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setModalMode('view')}
+                        disabled={isSubmitting}
+                      >
+                        Batal
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={handleUpdateMember}
+                        disabled={isSubmitting}
+                        className="bg-blue-600 hover:bg-blue-700"
+                      >
+                        {isSubmitting ? 'Menyimpan...' : 'Simpan'}
+                      </Button>
+                    </>
                   )}
-                  {selectedMember.address && (
-                    <div className="flex items-center gap-2">
-                      <MapPin className="w-4 h-4 text-gray-400" />
-                      <span className="text-sm">{selectedMember.address}</span>
-                    </div>
-                  )}
                 </div>
               </div>
-            </div>
+            </CardHeader>
 
-            <div className="mt-6">
-              <h4 className="font-semibold text-gray-900 mb-4">Simpanan</h4>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div className="bg-blue-50 p-4 rounded-lg">
-                  <p className="text-sm text-blue-600">Simpanan Pokok</p>
-                  <p className="text-lg font-bold text-blue-700">
-                    {formatCurrency(selectedMember.simpananPokok)}
-                  </p>
+            <CardContent className="p-6">
+              {modalMode === 'view' ? (
+                /* VIEW MODE - Read-only display */
+                <>
+                  {/* Information Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6">
+                    {/* Left Column - Personal Info */}
+                    <div>
+                      <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                        <User className="w-5 h-5 text-blue-600" />
+                        Informasi Pribadi
+                      </h4>
+                      <div className="space-y-3">
+                        <div>
+                          <label className="text-xs text-gray-500 uppercase tracking-wide">Nama Lengkap</label>
+                          <p className="font-semibold text-gray-900 mt-1">{selectedMember.name}</p>
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-500 uppercase tracking-wide">Nomor Anggota</label>
+                          <p className="font-semibold text-gray-900 mt-1">{selectedMember.nomorAnggota}</p>
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-500 uppercase tracking-wide">Gender</label>
+                          <p className="font-medium text-gray-700 mt-1">
+                            {selectedMember.gender === 'MALE' ? 'Laki-laki' : 'Perempuan'}
+                          </p>
+                        </div>
+                        <div>
+                          <label className="text-xs text-gray-500 uppercase tracking-wide">Unit Kerja</label>
+                          <p className="font-medium text-gray-700 mt-1">{selectedMember.unitKerja}</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Right Column - Contact */}
+                    <div>
+                      <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                        <Mail className="w-5 h-5 text-blue-600" />
+                        Kontak
+                      </h4>
+                      <div className="space-y-3">
+                        <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                          <Mail className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-gray-900 break-all">{selectedMember.email}</p>
+                          </div>
+                        </div>
+                        {selectedMember.phone && (
+                          <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                            <Phone className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                            <div className="flex-1">
+                              <p className="text-sm text-gray-900">{selectedMember.phone}</p>
+                            </div>
+                          </div>
+                        )}
+                        {selectedMember.address && (
+                          <div className="flex items-start gap-3 p-3 bg-gray-50 rounded-lg">
+                            <MapPin className="w-4 h-4 text-gray-400 mt-0.5 flex-shrink-0" />
+                            <div className="flex-1">
+                              <p className="text-sm text-gray-900">{selectedMember.address}</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                /* EDIT MODE - Editable form fields */
+                <form onSubmit={handleUpdateMember}>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+                    {/* Left Column - Personal Info */}
+                    <div className="space-y-4">
+                      <h4 className="font-semibold text-gray-900 flex items-center gap-2">
+                        <User className="w-5 h-5 text-blue-600" />
+                        Informasi Pribadi
+                      </h4>
+                      
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Nama Lengkap <span className="text-red-500">*</span>
+                        </label>
+                        <Input
+                          type="text"
+                          value={editForm.name}
+                          onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
+                          placeholder="Masukkan nama lengkap"
+                          leftIcon={<User className="w-4 h-4 text-gray-400" />}
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Jenis Kelamin <span className="text-red-500">*</span>
+                        </label>
+                        <select
+                          value={editForm.gender}
+                          onChange={(e) => setEditForm(prev => ({ ...prev, gender: e.target.value as 'MALE' | 'FEMALE' }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          required
+                        >
+                          <option value="MALE">Laki-laki</option>
+                          <option value="FEMALE">Perempuan</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Unit Kerja <span className="text-red-500">*</span>
+                        </label>
+                        <select
+                          value={editForm.unitKerja}
+                          onChange={(e) => setEditForm(prev => ({ ...prev, unitKerja: e.target.value }))}
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          required
+                        >
+                          <option value="">Pilih Unit Kerja</option>
+                          <option value="Keuangan">Keuangan</option>
+                          <option value="HRD">HRD</option>
+                          <option value="IT">IT</option>
+                          <option value="Marketing">Marketing</option>
+                          <option value="Operasional">Operasional</option>
+                          <option value="Akademik">Akademik</option>
+                          <option value="Kemahasiswaan">Kemahasiswaan</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    {/* Right Column - Contact */}
+                    <div className="space-y-4">
+                      <h4 className="font-semibold text-gray-900 flex items-center gap-2">
+                        <Mail className="w-5 h-5 text-blue-600" />
+                        Kontak
+                      </h4>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Email <span className="text-red-500">*</span>
+                        </label>
+                        <Input
+                          type="email"
+                          value={editForm.email}
+                          onChange={(e) => setEditForm(prev => ({ ...prev, email: e.target.value }))}
+                          placeholder="contoh@email.com"
+                          leftIcon={<Mail className="w-4 h-4 text-gray-400" />}
+                          required
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Nomor Telepon
+                        </label>
+                        <Input
+                          type="tel"
+                          value={editForm.phone}
+                          onChange={(e) => setEditForm(prev => ({ ...prev, phone: e.target.value }))}
+                          placeholder="081234567890"
+                          leftIcon={<Phone className="w-4 h-4 text-gray-400" />}
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Alamat
+                        </label>
+                        <Input
+                          type="text"
+                          value={editForm.address}
+                          onChange={(e) => setEditForm(prev => ({ ...prev, address: e.target.value }))}
+                          placeholder="Alamat lengkap"
+                          leftIcon={<MapPin className="w-4 h-4 text-gray-400" />}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </form>
+              )}
+
+              {/* Savings Section - Always visible (read-only) */}
+              <div className="border-t pt-6">
+                <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <CreditCard className="w-5 h-5 text-blue-600" />
+                  Simpanan
+                </h4>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+                  {/* Simpanan Pokok */}
+                  <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-lg p-4">
+                    <p className="text-xs text-blue-700 font-medium mb-1">Simpanan Pokok</p>
+                    <p className="text-2xl font-bold text-blue-900">
+                      {formatCurrency(selectedMember.simpananPokok)}
+                    </p>
+                  </div>
+
+                  {/* Simpanan Wajib */}
+                  <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 border border-emerald-200 rounded-lg p-4">
+                    <p className="text-xs text-emerald-700 font-medium mb-1">Simpanan Wajib</p>
+                    <p className="text-2xl font-bold text-emerald-900">
+                      {formatCurrency(selectedMember.simpananWajib)}
+                    </p>
+                  </div>
+
+                  {/* Simpanan Sukarela */}
+                  <div className="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-lg p-4">
+                    <p className="text-xs text-green-700 font-medium mb-1">Simpanan Sukarela</p>
+                    <p className="text-2xl font-bold text-green-900">
+                      {formatCurrency(selectedMember.simpananSukarela)}
+                    </p>
+                  </div>
                 </div>
-                <div className="bg-emerald-50 p-4 rounded-lg">
-                  <p className="text-sm text-emerald-600">Simpanan Wajib</p>
-                  <p className="text-lg font-bold text-emerald-700">
-                    {formatCurrency(selectedMember.simpananWajib)}
-                  </p>
+
+                {/* Total Simpanan */}
+                <div className="bg-gradient-to-r from-slate-50 to-slate-100 border-2 border-slate-300 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-semibold text-slate-700">Total Simpanan</p>
+                    <p className="text-2xl font-bold text-slate-900">
+                      {formatCurrency(selectedMember.totalSimpanan)}
+                    </p>
+                  </div>
                 </div>
-                <div className="bg-green-50 p-4 rounded-lg">
-                  <p className="text-sm text-green-600">Simpanan Sukarela</p>
-                  <p className="text-lg font-bold text-green-700">
-                    {formatCurrency(selectedMember.simpananSukarela)}
-                  </p>
-                </div>
+
+                {/* Setor/Tarik Actions - Only in View Mode */}
+                {modalMode === 'view' && (
+                  <div className="flex items-center gap-3 mt-4">
+                    <Button
+                      variant="outline"
+                      className="flex-1 bg-green-50 text-green-700 hover:bg-green-100 border-green-300"
+                      onClick={() => {
+                        // TODO: Open Setor modal
+                        warning('Coming Soon', 'Fitur Setor Simpanan sedang dalam pengembangan');
+                      }}
+                    >
+                      <ArrowUp className="w-4 h-4 mr-2" />
+                      Setor Simpanan
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="flex-1 bg-amber-50 text-amber-700 hover:bg-amber-100 border-amber-300"
+                      onClick={() => {
+                        // TODO: Open Tarik modal
+                        warning('Coming Soon', 'Fitur Tarik Simpanan sedang dalam pengembangan');
+                      }}
+                    >
+                      <ArrowDown className="w-4 h-4 mr-2" />
+                      Tarik Simpanan
+                    </Button>
+                  </div>
+                )}
+
+                {/* Savings History - Only in View Mode */}
+                {modalMode === 'view' && selectedMember.savings && selectedMember.savings.length > 0 && (
+                  <div className="mt-6">
+                    <h5 className="font-semibold text-gray-900 mb-3 flex items-center gap-2">
+                      <FileSpreadsheet className="w-4 h-4 text-blue-600" />
+                      Riwayat Transaksi Simpanan
+                    </h5>
+                    <div className="bg-gray-50 rounded-lg p-4 max-h-96 overflow-y-auto">
+                      <div className="space-y-2">
+                        {selectedMember.savings
+                          .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                          .map((saving) => {
+                            const isWithdrawal = saving.type === 'WITHDRAWAL';
+                            const displayDate = new Date(saving.date).toLocaleDateString('id-ID', { 
+                              year: 'numeric', 
+                              month: 'short', 
+                              day: 'numeric' 
+                            });
+                            
+                            let typeLabel = '';
+                            let typeColor = '';
+                            if (saving.type === 'POKOK') {
+                              typeLabel = 'Pokok';
+                              typeColor = 'bg-blue-100 text-blue-700';
+                            } else if (saving.type === 'WAJIB') {
+                              typeLabel = 'Wajib';
+                              typeColor = 'bg-emerald-100 text-emerald-700';
+                            } else if (saving.type === 'SUKARELA') {
+                              typeLabel = 'Setor Sukarela';
+                              typeColor = 'bg-green-100 text-green-700';
+                            } else if (saving.type === 'WITHDRAWAL') {
+                              typeLabel = 'Tarik Sukarela';
+                              typeColor = 'bg-red-100 text-red-700';
+                            }
+
+                            return (
+                              <div 
+                                key={saving.id}
+                                className="flex items-center justify-between bg-white p-3 rounded-lg border border-gray-200 hover:border-gray-300 transition-colors"
+                              >
+                                <div className="flex items-center gap-3 flex-1">
+                                  <div className={`px-2.5 py-1 rounded-full text-xs font-semibold ${typeColor}`}>
+                                    {typeLabel}
+                                  </div>
+                                  <div className="flex-1">
+                                    <div className="flex items-center gap-2">
+                                      <Calendar className="w-3.5 h-3.5 text-gray-400" />
+                                      <span className="text-sm text-gray-600">{displayDate}</span>
+                                    </div>
+                                    {saving.description && (
+                                      <p className="text-xs text-gray-500 mt-0.5">{saving.description}</p>
+                                    )}
+                                  </div>
+                                </div>
+                                <div className={`text-right ${isWithdrawal ? 'text-red-600' : 'text-green-600'}`}>
+                                  <p className="text-lg font-bold">
+                                    {isWithdrawal ? '-' : '+'}{formatCurrency(saving.amount)}
+                                  </p>
+                                </div>
+                              </div>
+                            );
+                          })}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
-              <div className="mt-4 bg-gray-50 p-4 rounded-lg">
-                <p className="text-sm text-gray-600">Total Simpanan</p>
-                <p className="text-xl font-bold text-gray-900">
-                  {formatCurrency(selectedMember.totalSimpanan)}
-                </p>
-              </div>
-            </div>
-          </div>
+            </CardContent>
+          </Card>
         </div>
       )}
 
@@ -530,10 +1179,10 @@ export default function MembershipPage() {
               <div className="flex items-center justify-between">
                 <div>
                   <h3 className="text-xl font-bold">
-                    {editingMember ? 'Update Anggota' : 'Tambah Anggota Baru'}
+                    Tambah Anggota Baru
                   </h3>
                   <p className="text-blue-100 text-sm mt-1">
-                    {editingMember ? 'Perbarui data anggota koperasi' : 'Daftarkan anggota baru untuk bergabung dengan koperasi'}
+                    Daftarkan anggota baru untuk bergabung dengan koperasi
                   </p>
                 </div>
                 <Button 
@@ -541,7 +1190,6 @@ export default function MembershipPage() {
                   size="sm"
                   onClick={() => {
                     setShowAddModal(false);
-                    setEditingMember(null);
                     resetForm();
                   }}
                   className="bg-white/10 border-white/20 text-white hover:bg-white/20"
@@ -552,7 +1200,7 @@ export default function MembershipPage() {
             </div>
 
             {/* Modal Content */}
-            <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+            <div className="p-6 overflow-y-auto max-h-[calc(90vh-80px)]">
 
             <form onSubmit={handleAddMember}>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -653,48 +1301,53 @@ export default function MembershipPage() {
                     </select>
                   </div>
 
-                  <h4 className="font-semibold text-gray-900 mt-6">Simpanan Awal</h4>
-                  
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Simpanan Pokok
-                    </label>
-                    <Input
-                      type="number"
-                      value={newMember.simpananPokok}
-                      onChange={(e) => setNewMember(prev => ({ ...prev, simpananPokok: e.target.value }))}
-                      placeholder="50000"
-                      min="0"
-                      leftIcon={<CreditCard className="w-4 h-4 text-gray-400" />}
-                    />
+                </div>
+              </div>
+
+              {/* Simpanan Section - Separate from form */}
+              <div className="border-t pt-6 mt-6">
+                <h4 className="font-semibold text-gray-900 mb-4 flex items-center gap-2">
+                  <CreditCard className="w-5 h-5 text-blue-600" />
+                  Simpanan
+                </h4>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-4">
+                  {/* Simpanan Pokok */}
+                  <div className="bg-gradient-to-br from-blue-50 to-blue-100 border border-blue-200 rounded-lg p-4">
+                    <p className="text-xs text-blue-700 font-medium mb-1">Simpanan Pokok</p>
+                    <p className="text-2xl font-bold text-blue-900">
+                      {formatCurrency(parseInt(newMember.simpananPokok || '0'))}
+                    </p>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Simpanan Wajib
-                    </label>
-                    <Input
-                      type="number"
-                      value={newMember.simpananWajib}
-                      onChange={(e) => setNewMember(prev => ({ ...prev, simpananWajib: e.target.value }))}
-                      placeholder="200000"
-                      min="0"
-                      leftIcon={<CreditCard className="w-4 h-4 text-gray-400" />}
-                    />
+                  {/* Simpanan Wajib */}
+                  <div className="bg-gradient-to-br from-emerald-50 to-emerald-100 border border-emerald-200 rounded-lg p-4">
+                    <p className="text-xs text-emerald-700 font-medium mb-1">Simpanan Wajib</p>
+                    <p className="text-2xl font-bold text-emerald-900">
+                      {formatCurrency(parseInt(newMember.simpananWajib || '0'))}
+                    </p>
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
-                      Simpanan Sukarela
-                    </label>
-                    <Input
-                      type="number"
-                      value={newMember.simpananSukarela}
-                      onChange={(e) => setNewMember(prev => ({ ...prev, simpananSukarela: e.target.value }))}
-                      placeholder="0"
-                      min="0"
-                      leftIcon={<CreditCard className="w-4 h-4 text-gray-400" />}
-                    />
+                  {/* Simpanan Sukarela */}
+                  <div className="bg-gradient-to-br from-green-50 to-green-100 border border-green-200 rounded-lg p-4">
+                    <p className="text-xs text-green-700 font-medium mb-1">Simpanan Sukarela</p>
+                    <p className="text-2xl font-bold text-green-900">
+                      {formatCurrency(parseInt(newMember.simpananSukarela || '0'))}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Total Simpanan */}
+                <div className="bg-gradient-to-r from-slate-50 to-slate-100 border-2 border-slate-300 rounded-lg p-4">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm font-semibold text-slate-700">Total Simpanan</p>
+                    <p className="text-2xl font-bold text-slate-900">
+                      {formatCurrency(
+                        (parseInt(newMember.simpananPokok || '0') || 0) +
+                        (parseInt(newMember.simpananWajib || '0') || 0) +
+                        (parseInt(newMember.simpananSukarela || '0') || 0)
+                      )}
+                    </p>
                   </div>
                 </div>
               </div>
@@ -705,7 +1358,6 @@ export default function MembershipPage() {
                   variant="outline"
                   onClick={() => {
                     setShowAddModal(false);
-                    setEditingMember(null);
                     resetForm();
                   }}
                   disabled={isSubmitting}
@@ -716,16 +1368,141 @@ export default function MembershipPage() {
                   type="submit"
                   disabled={isSubmitting}
                 >
-                  {isSubmitting ? (
-                    editingMember ? 'Mengupdate...' : 'Menyimpan...'
-                  ) : (
-                    editingMember ? 'Update Anggota' : 'Simpan Anggota'
-                  )}
+                  {isSubmitting ? 'Menyimpan...' : 'Simpan Anggota'}
                 </Button>
               </div>
             </form>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Import Modal */}
+      {showImportModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <Card className="w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <CardHeader>
+              <div className="flex items-center justify-between">
+                <h3 className="text-xl font-bold text-gray-900 flex items-center gap-2">
+                  <FileSpreadsheet className="h-6 w-6 text-blue-600" />
+                  Import Data Anggota
+                </h3>
+                <button
+                  onClick={() => {
+                    setShowImportModal(false);
+                    setImportFile(null);
+                    setImportError(null);
+                  }}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  <X className="h-5 w-5" />
+                </button>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              {/* Instructions */}
+              <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="font-medium text-blue-900 mb-3">Format File Excel:</p>
+                
+                <div className="space-y-3">
+                  {/* Sheet ANGGOTA */}
+                  <div className="bg-white/60 rounded p-3 border border-blue-100">
+                    <p className="font-semibold text-blue-900 text-sm mb-2 flex items-center gap-2">
+                      <span className="bg-blue-600 text-white text-xs px-2 py-0.5 rounded">Sheet 1</span>
+                      ANGGOTA
+                    </p>
+                    <ul className="text-xs text-blue-800 space-y-1 ml-4">
+                      <li>• <strong>NO</strong> - Nomor urut</li>
+                      <li>• <strong>NAMA ANGGOTA</strong> - Nama lengkap</li>
+                      <li>• <strong>PENDAFTARAN ANGGOTA</strong> - Tanggal bergabung</li>
+                      <li>• <strong>SIMPANAN POKOK</strong> - Nominal simpanan pokok</li>
+                      <li>• <strong>TOTAL SIMPANAN WAJIB</strong> - Akumulasi simpanan wajib</li>
+                    </ul>
+                  </div>
+
+                  {/* Sheet Data */}
+                  <div className="bg-white/60 rounded p-3 border border-blue-100">
+                    <p className="font-semibold text-blue-900 text-sm mb-2 flex items-center gap-2">
+                      <span className="bg-blue-600 text-white text-xs px-2 py-0.5 rounded">Sheet 2</span>
+                      Data (History Transaksi)
+                    </p>
+                    <ul className="text-xs text-blue-800 space-y-1 ml-4">
+                      <li>• <strong>NO, NAMA, TAHUN, BULAN, NOMINAL, TIPE</strong></li>
+                      <li>• TIPE: <span className="font-semibold">SETOR</span> (setoran) atau <span className="font-semibold">TARIK</span> (penarikan)</li>
+                      <li>• Akan diimport sebagai history simpanan sukarela</li>
+                    </ul>
+                  </div>
+                </div>
+
+                <p className="text-xs text-blue-700 italic mt-3">
+                  💡 Tips: Anggota yang sudah ada akan di-skip otomatis. Transaksi akan di-match berdasarkan nama anggota.
+                </p>
+              </div>
+
+              {/* File Input */}
+              <div className="flex flex-col items-center justify-center border-2 border-dashed border-gray-300 rounded-lg p-8 hover:border-blue-500 transition-colors">
+                <Upload className="h-12 w-12 text-gray-400 mb-4" />
+                <label htmlFor="file-input-import" className="cursor-pointer">
+                  <span className="text-blue-600 hover:text-blue-700 font-medium">
+                    Click to select file
+                  </span>
+                  <input
+                    id="file-input-import"
+                    type="file"
+                    accept=".xlsx,.xls"
+                    onChange={handleFileChange}
+                    className="hidden"
+                  />
+                </label>
+                {importFile && (
+                  <p className="mt-2 text-sm text-gray-600">
+                    Selected: <strong>{importFile.name}</strong>
+                  </p>
+                )}
+              </div>
+
+              {/* Error */}
+              {importError && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2">
+                  <AlertTriangle className="h-5 w-5 text-red-600 flex-shrink-0" />
+                  <p className="text-sm text-red-700">{importError}</p>
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="flex gap-3">
+                <Button
+                  onClick={() => {
+                    setShowImportModal(false);
+                    setImportFile(null);
+                    setImportError(null);
+                  }}
+                  variant="outline"
+                  className="flex-1"
+                  disabled={isUploading}
+                >
+                  Batal
+                </Button>
+                <Button
+                  onClick={handleImport}
+                  disabled={!importFile || isUploading}
+                  className="flex-1"
+                >
+                  {isUploading ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2" />
+                      Importing...
+                    </>
+                  ) : (
+                    <>
+                      <Upload className="h-4 w-4 mr-2" />
+                      Import
+                    </>
+                  )}
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </div>
       )}
     </div>

@@ -49,11 +49,17 @@ interface BalanceSheetData {
     total: number;
   };
   pasiva: {
-    liabilitas: {
+    liabilitasLancar: {
       hutangKonsinyasi: number;
+      simpananSukarela: number;
       hutangDagang: number;
       hutangGaji: number;
       hutangLainnya: number;
+      subtotal: number;
+    };
+    liabilitasJangkaPanjang: {
+      simpananPokok: number;
+      simpananWajib: number;
       subtotal: number;
     };
     ekuitas: {
@@ -207,7 +213,17 @@ export default function NeracaPage() {
       </Card>
 
       {/* Balance Check Indicator */}
-      <Card className={`shadow-md border-2 ${balanceSheet.isBalanced ? 'border-green-500 bg-green-50' : 'border-red-500 bg-red-50'}`}>
+      {/* Show different colors based on financial health:
+          - Green: Aktiva = Pasiva (Perfect balance)
+          - Blue: Aktiva > Pasiva (Positive equity - HEALTHY!)
+          - Red: Aktiva < Pasiva (Negative equity - DANGER!) */}
+      <Card className={`shadow-md border-2 ${
+        balanceSheet.isBalanced 
+          ? 'border-green-500 bg-green-50' 
+          : balanceSheet.difference > 0 
+            ? 'border-blue-500 bg-blue-50' 
+            : 'border-red-500 bg-red-50'
+      }`}>
         <CardContent className="py-4">
           <div className="flex items-center gap-3">
             {balanceSheet.isBalanced ? (
@@ -215,10 +231,24 @@ export default function NeracaPage() {
                 <CheckCircle className="h-6 w-6 text-green-600" />
                 <div>
                   <p className="font-semibold text-green-900">
-                    Neraca Balance
+                    Neraca Balance Sempurna
                   </p>
                   <p className="text-sm text-green-700">
-                    Total Aktiva = Total Pasiva
+                    Total Aktiva = Total Pasiva + Ekuitas
+                  </p>
+                </div>
+              </>
+            ) : balanceSheet.difference > 0 ? (
+              <>
+                <CheckCircle className="h-6 w-6 text-blue-600" />
+                <div>
+                  <p className="font-semibold text-blue-900">
+                    Ekuitas Positif (Sehat)
+                  </p>
+                  <p className="text-sm text-blue-700">
+                    Aktiva lebih besar Rp {formatCurrency(balanceSheet.difference)} dari Pasiva
+                    <br />
+                    <span className="text-xs italic">Ini bagus! Koperasi punya kekayaan bersih positif.</span>
                   </p>
                 </div>
               </>
@@ -227,10 +257,12 @@ export default function NeracaPage() {
                 <AlertTriangle className="h-6 w-6 text-red-600" />
                 <div>
                   <p className="font-semibold text-red-900">
-                    Neraca Tidak Balance
+                     Ekuitas Negatif
                   </p>
                   <p className="text-sm text-red-700">
-                    Selisih: {formatCurrency(Math.abs(balanceSheet.difference))}
+                    Pasiva lebih besar Rp {formatCurrency(Math.abs(balanceSheet.difference))} dari Aktiva
+                    <br />
+                    <span className="text-xs italic">Hutang melebihi aset - risiko insolvency!</span>
                   </p>
                 </div>
               </>
@@ -281,7 +313,7 @@ export default function NeracaPage() {
                 <div className="flex items-center justify-between py-2 border-b border-slate-100">
                   <span className="text-slate-700 flex items-center gap-2">
                     <CreditCard className="h-4 w-4 text-slate-500" />
-                    Piutang Usaha
+                    Piutang
                   </span>
                   <span className="font-medium text-slate-900">
                     {formatCurrency(balanceSheet.aktiva.lancar.piutang)}
@@ -290,7 +322,7 @@ export default function NeracaPage() {
                 <div className="flex items-center justify-between py-2 border-b border-slate-100">
                   <span className="text-slate-700 flex items-center gap-2">
                     <Package className="h-4 w-4 text-slate-500" />
-                    Persediaan Barang
+                    Valuasi Barang
                   </span>
                   <span className="font-medium text-slate-900">
                     {formatCurrency(balanceSheet.aktiva.lancar.persediaan)}
@@ -366,11 +398,11 @@ export default function NeracaPage() {
             </div>
           </CardHeader>
           <CardContent className="pt-6 space-y-6">
-            {/* Liabilitas */}
+            {/* Liabilitas Lancar */}
             <div>
               <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
                 <CreditCard className="h-5 w-5 text-slate-600" />
-                Liabilitas (Liabilities)
+                Liabilitas Lancar (Current Liabilities)
               </h3>
               <div className="space-y-3 ml-7">
                 <div className="flex items-center justify-between py-2 border-b border-slate-100">
@@ -379,7 +411,16 @@ export default function NeracaPage() {
                     Hutang Konsinyasi
                   </span>
                   <span className="font-medium text-slate-900">
-                    {formatCurrency(balanceSheet.pasiva.liabilitas.hutangKonsinyasi)}
+                    {formatCurrency(balanceSheet.pasiva.liabilitasLancar.hutangKonsinyasi)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between py-2 border-b border-slate-100">
+                  <span className="text-slate-700 flex items-center gap-2">
+                    <Users className="h-4 w-4 text-green-500" />
+                    Simpanan Sukarela
+                  </span>
+                  <span className="font-medium text-slate-900">
+                    {formatCurrency(balanceSheet.pasiva.liabilitasLancar.simpananSukarela)}
                   </span>
                 </div>
                 <div className="flex items-center justify-between py-2 border-b border-slate-100">
@@ -388,7 +429,7 @@ export default function NeracaPage() {
                     Hutang Dagang
                   </span>
                   <span className="font-medium text-slate-900">
-                    {formatCurrency(balanceSheet.pasiva.liabilitas.hutangDagang)}
+                    {formatCurrency(balanceSheet.pasiva.liabilitasLancar.hutangDagang)}
                   </span>
                 </div>
                 <div className="flex items-center justify-between py-2 border-b border-slate-100">
@@ -397,7 +438,7 @@ export default function NeracaPage() {
                     Hutang Gaji
                   </span>
                   <span className="font-medium text-slate-900">
-                    {formatCurrency(balanceSheet.pasiva.liabilitas.hutangGaji)}
+                    {formatCurrency(balanceSheet.pasiva.liabilitasLancar.hutangGaji)}
                   </span>
                 </div>
                 <div className="flex items-center justify-between py-2 border-b border-slate-100">
@@ -406,12 +447,44 @@ export default function NeracaPage() {
                     Hutang Lainnya
                   </span>
                   <span className="font-medium text-slate-900">
-                    {formatCurrency(balanceSheet.pasiva.liabilitas.hutangLainnya)}
+                    {formatCurrency(balanceSheet.pasiva.liabilitasLancar.hutangLainnya)}
                   </span>
                 </div>
-                <div className="flex items-center justify-between pt-3 font-semibold text-red-900 bg-red-50 px-3 py-2 rounded-lg">
-                  <span>Subtotal Liabilitas</span>
-                  <span>{formatCurrency(balanceSheet.pasiva.liabilitas.subtotal)}</span>
+                <div className="flex items-center justify-between pt-3 font-semibold text-orange-900 bg-orange-50 px-3 py-2 rounded-lg">
+                  <span>Subtotal Liabilitas Lancar</span>
+                  <span>{formatCurrency(balanceSheet.pasiva.liabilitasLancar.subtotal)}</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Liabilitas Jangka Panjang */}
+            <div>
+              <h3 className="font-semibold text-slate-900 mb-4 flex items-center gap-2">
+                <CreditCard className="h-5 w-5 text-slate-600" />
+                Liabilitas Jangka Panjang (Long-term Liabilities)
+              </h3>
+              <div className="space-y-3 ml-7">
+                <div className="flex items-center justify-between py-2 border-b border-slate-100">
+                  <span className="text-slate-700 flex items-center gap-2">
+                    <Users className="h-4 w-4 text-blue-500" />
+                    Simpanan Pokok
+                  </span>
+                  <span className="font-medium text-slate-900">
+                    {formatCurrency(balanceSheet.pasiva.liabilitasJangkaPanjang.simpananPokok)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between py-2 border-b border-slate-100">
+                  <span className="text-slate-700 flex items-center gap-2">
+                    <Users className="h-4 w-4 text-emerald-500" />
+                    Simpanan Wajib
+                  </span>
+                  <span className="font-medium text-slate-900">
+                    {formatCurrency(balanceSheet.pasiva.liabilitasJangkaPanjang.simpananWajib)}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between pt-3 font-semibold text-purple-900 bg-purple-50 px-3 py-2 rounded-lg">
+                  <span>Subtotal Liabilitas Jangka Panjang</span>
+                  <span>{formatCurrency(balanceSheet.pasiva.liabilitasJangkaPanjang.subtotal)}</span>
                 </div>
               </div>
             </div>
@@ -482,12 +555,12 @@ export default function NeracaPage() {
             <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
               <p className="text-sm text-slate-600 mb-1">Current Ratio</p>
               <p className="text-2xl font-bold text-blue-900">
-                {balanceSheet.pasiva.liabilitas.subtotal > 0
-                  ? (balanceSheet.aktiva.lancar.subtotal / balanceSheet.pasiva.liabilitas.subtotal).toFixed(2) + 'x'
+                {balanceSheet.pasiva.liabilitasLancar.subtotal > 0
+                  ? (balanceSheet.aktiva.lancar.subtotal / balanceSheet.pasiva.liabilitasLancar.subtotal).toFixed(2) + 'x'
                   : 'N/Ax'}
               </p>
-              <p className="text-xs text-slate-500 mt-1">Aktiva Lancar / Liabilitas</p>
-              {balanceSheet.pasiva.liabilitas.subtotal === 0 && (
+              <p className="text-xs text-slate-500 mt-1">Aktiva Lancar / Liabilitas Lancar</p>
+              {balanceSheet.pasiva.liabilitasLancar.subtotal === 0 && (
                 <p className="text-xs text-blue-600 mt-2 italic">Tidak ada liabilitas jangka pendek</p>
               )}
             </div>
@@ -497,11 +570,11 @@ export default function NeracaPage() {
               <p className="text-sm text-slate-600 mb-1">Debt to Equity Ratio</p>
               <p className="text-2xl font-bold text-green-900">
                 {balanceSheet.pasiva.ekuitas.subtotal > 0
-                  ? (balanceSheet.pasiva.liabilitas.subtotal / balanceSheet.pasiva.ekuitas.subtotal).toFixed(2) + 'x'
+                  ? ((balanceSheet.pasiva.liabilitasLancar.subtotal + balanceSheet.pasiva.liabilitasJangkaPanjang.subtotal) / balanceSheet.pasiva.ekuitas.subtotal).toFixed(2) + 'x'
                   : '0.00x'}
               </p>
-              <p className="text-xs text-slate-500 mt-1">Liabilitas / Ekuitas</p>
-              {balanceSheet.pasiva.liabilitas.subtotal === 0 && (
+              <p className="text-xs text-slate-500 mt-1">Total Liabilitas / Ekuitas</p>
+              {(balanceSheet.pasiva.liabilitasLancar.subtotal + balanceSheet.pasiva.liabilitasJangkaPanjang.subtotal) === 0 && (
                 <p className="text-xs text-green-600 mt-2 italic">✓ Tidak ada hutang</p>
               )}
             </div>
@@ -525,21 +598,21 @@ export default function NeracaPage() {
           <div className="mt-4 p-3 bg-slate-50 rounded-lg border border-slate-200">
             <p className="text-xs font-medium text-slate-700 mb-2">📊 Analisis Rasio:</p>
             <ul className="text-xs text-slate-600 space-y-1">
-              {balanceSheet.pasiva.liabilitas.subtotal === 0 ? (
+              {balanceSheet.pasiva.liabilitasLancar.subtotal === 0 ? (
                 <li>• <strong>Current Ratio N/A</strong>: Koperasi tidak memiliki liabilitas jangka pendek (kondisi sangat baik)</li>
-              ) : balanceSheet.aktiva.lancar.subtotal / balanceSheet.pasiva.liabilitas.subtotal >= 2 ? (
-                <li>• <strong>Current Ratio Sangat Baik</strong>: Aktiva lancar {(balanceSheet.aktiva.lancar.subtotal / balanceSheet.pasiva.liabilitas.subtotal).toFixed(2)}x lebih besar dari liabilitas</li>
-              ) : balanceSheet.aktiva.lancar.subtotal / balanceSheet.pasiva.liabilitas.subtotal >= 1 ? (
+              ) : balanceSheet.aktiva.lancar.subtotal / balanceSheet.pasiva.liabilitasLancar.subtotal >= 2 ? (
+                <li>• <strong>Current Ratio Sangat Baik</strong>: Aktiva lancar {(balanceSheet.aktiva.lancar.subtotal / balanceSheet.pasiva.liabilitasLancar.subtotal).toFixed(2)}x lebih besar dari liabilitas lancar</li>
+              ) : balanceSheet.aktiva.lancar.subtotal / balanceSheet.pasiva.liabilitasLancar.subtotal >= 1 ? (
                 <li>• <strong>Current Ratio Baik</strong>: Aktiva lancar cukup untuk menutup liabilitas jangka pendek</li>
               ) : (
                 <li>• <strong>Current Ratio Rendah</strong>: Perlu perhatian - liabilitas lebih besar dari aktiva lancar</li>
               )}
               
-              {balanceSheet.pasiva.liabilitas.subtotal === 0 ? (
+              {(balanceSheet.pasiva.liabilitasLancar.subtotal + balanceSheet.pasiva.liabilitasJangkaPanjang.subtotal) === 0 ? (
                 <li>• <strong>Debt to Equity 0.00x</strong>: Koperasi dibiayai 100% dari ekuitas tanpa hutang (sangat konservatif)</li>
-              ) : balanceSheet.pasiva.liabilitas.subtotal / balanceSheet.pasiva.ekuitas.subtotal <= 0.5 ? (
+              ) : (balanceSheet.pasiva.liabilitasLancar.subtotal + balanceSheet.pasiva.liabilitasJangkaPanjang.subtotal) / balanceSheet.pasiva.ekuitas.subtotal <= 0.5 ? (
                 <li>• <strong>Debt to Equity Rendah</strong>: Struktur modal sangat konservatif dengan hutang minimal</li>
-              ) : balanceSheet.pasiva.liabilitas.subtotal / balanceSheet.pasiva.ekuitas.subtotal <= 1 ? (
+              ) : (balanceSheet.pasiva.liabilitasLancar.subtotal + balanceSheet.pasiva.liabilitasJangkaPanjang.subtotal) / balanceSheet.pasiva.ekuitas.subtotal <= 1 ? (
                 <li>• <strong>Debt to Equity Sehat</strong>: Rasio hutang terhadap ekuitas masih dalam batas aman</li>
               ) : (
                 <li>• <strong>Debt to Equity Tinggi</strong>: Hutang lebih besar dari ekuitas - perlu evaluasi</li>

@@ -250,25 +250,36 @@ export async function POST(req: NextRequest) {
         },
       });
 
-      // IMPORTANT: Mark consignment_sales as settled for this period
-      // This ensures:
-      // 1. Hutang Konsinyasi (liability) decreases in balance sheet
-      // 2. Inventory payment card reflects settled payments
-      const settledSales = await prisma.consignment_sales.updateMany({
+      // ✅ UPDATE existing consignment_sales to mark as settled (reduce hutang konsinyasi)
+      // Find all unpaid sales for this supplier in the period
+      const salesToSettle = await prisma.consignment_sales.findMany({
         where: {
-          isSettled: false,
-          saleDate: {
-            gte: periodStart,
-            lte: periodEnd
-          }
+          consignment_batches: {
+            consignorId: supplierId
+          },
+          saleDate: { gte: periodStart, lte: periodEnd },
+          isSettled: false // Only unsettled sales
         },
-        data: {
-          isSettled: true
-        }
+        select: { id: true, netToConsignor: true }
       });
 
+      // Mark these sales as settled (reducing hutang konsinyasi in balance sheet)
+      if (salesToSettle.length > 0) {
+        await prisma.consignment_sales.updateMany({
+          where: {
+            id: { in: salesToSettle.map(s => s.id) }
+          },
+          data: {
+            isSettled: true
+          }
+        });
+        
+        console.log(`[Payment] Settled ${salesToSettle.length} consignment_sales for supplier ${supplierId}`);
+      } else {
+        console.warn(`[Payment] No unsettled consignment_sales found for supplier ${supplierId} in period`);
+      }
+
       // Create activity log
-        // Create activity log
         await prisma.activity_logs.create({
           data: {
             id: `alog-${timestamp}-${randomSuffix}`,

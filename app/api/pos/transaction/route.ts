@@ -169,6 +169,74 @@ async function handlePOSTransaction(req: NextRequest) {
 
         transactionItems.push(transactionItem);
 
+        // ✅ AUTO-CREATE consignment_sales for TITIPAN products (creates hutang konsinyasi)
+        if (product.ownershipType === 'TITIPAN' || product.isConsignment) {
+          // Get active consignment batch for this product (FIFO - oldest first)
+          const activeBatch = await tx.consignment_batches.findFirst({
+            where: {
+              productId: item.productId,
+              status: 'ACTIVE',
+              qtyRemaining: { gt: 0 }
+            },
+            orderBy: { receivedAt: 'asc' } // FIFO - First In First Out
+          });
+
+          if (activeBatch) {
+            // Calculate consignment sale details
+            const totalRevenue = Number(item.subtotal); // Total selling price
+            const feeType = activeBatch.feeType;
+            
+            let feeAmount = 0;
+            if (feeType === 'PERCENTAGE') {
+              // Fee is percentage of selling price
+              feeAmount = (totalRevenue * Number(activeBatch.feePercent || 0)) / 100;
+            } else if (feeType === 'FLAT') {
+              // Fee is flat amount per unit
+              feeAmount = Number(activeBatch.feeFlat || 0) * item.quantity;
+            }
+
+            const netToConsignor = totalRevenue - feeAmount;
+
+            // Create consignment_sales record (creates hutang konsinyasi in balance sheet)
+            await tx.consignment_sales.create({
+              data: {
+                id: randomUUID(),
+                batchId: activeBatch.id,
+                transactionItemId: transactionItem.id,
+                qtySold: item.quantity,
+                unitPrice: item.unitPrice,
+                totalRevenue: totalRevenue,
+                feeType: feeType,
+                feeAmount: feeAmount,
+                netToConsignor: netToConsignor,
+                isSettled: false, // ✅ KEY: FALSE = creates hutang konsinyasi (liability)
+                saleDate: new Date(),
+              },
+            });
+
+            // Update batch quantities
+            await tx.consignment_batches.update({
+              where: { id: activeBatch.id },
+              data: {
+                qtySold: { increment: item.quantity },
+                qtyRemaining: { decrement: item.quantity },
+                updatedAt: new Date(),
+              },
+            });
+
+            console.log('[POS] Created consignment_sales (hutang konsinyasi):', {
+              productId: item.productId,
+              batchId: activeBatch.id,
+              qtySold: item.quantity,
+              netToConsignor,
+              feeAmount,
+              isSettled: false // Creates liability
+            });
+          } else {
+            console.warn('[POS] No active consignment batch found for TITIPAN product:', item.productId);
+          }
+        }
+
         // Update product stock
         await tx.products.update({
           where: { id: item.productId },
