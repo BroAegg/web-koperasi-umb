@@ -137,23 +137,23 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    // Calculate revenue: SALE = income (+), EXPENSE = expense (-)
+    // Calculate revenue: ONLY count SALE transactions as revenue
+    // EXPENSE (pembayaran titipan) is NOT revenue, just ignore it
     const totalRevenue = allTransactions.reduce(
       (sum: number, t: any) => {
         const amount = Number(t.totalAmount);
-        // SALE = income, EXPENSE (pembayaran titipan) = expense (kurangi)
-        return t.type === 'EXPENSE' ? sum - amount : sum + amount;
+        // Only SALE counts as revenue, EXPENSE is excluded
+        return t.type === 'SALE' ? sum + amount : sum;
       },
       0
     );
 
-    // Payment breakdown: SALE adds, EXPENSE subtracts
+    // Payment breakdown: Count all payment methods (both SALE and EXPENSE)
+    // Show as positive amounts (how much was paid via each method)
     const paymentBreakdown = allTransactions.reduce((acc: any, t: any) => {
       const method = t.paymentMethod;
       const amount = Number(t.totalAmount);
-      // EXPENSE = negative (uang keluar)
-      const value = t.type === 'EXPENSE' ? -amount : amount;
-      acc[method] = (acc[method] || 0) + value;
+      acc[method] = (acc[method] || 0) + amount;
       return acc;
     }, {});
 
