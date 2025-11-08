@@ -138,19 +138,29 @@ export async function GET(req: NextRequest) {
       },
     });
 
-    // Calculate revenue: ONLY count SALE transactions as revenue
-    // EXPENSE (pembayaran titipan) is NOT revenue, just ignore it
-    const totalRevenue = allTransactions.reduce(
-      (sum: number, t: any) => {
-        const amount = Number(t.totalAmount);
-        // Only SALE counts as revenue, EXPENSE is excluded
-        return t.type === 'SALE' ? sum + amount : sum;
-      },
+    // KPI Calculations (Operasional)
+    
+    // 1. Gross Sales = total nilai penjualan POS (sebelum retur/discount)
+    const grossSales = allTransactions.reduce(
+      (sum: number, t: any) => t.type === 'SALE' ? sum + Number(t.totalAmount) : sum,
       0
     );
 
-    // Payment breakdown: Count all payment methods (both SALE and EXPENSE)
-    // Show as positive amounts (how much was paid via each method)
+    // 2. Cash In (Operasional) = semua pemasukan kas dari aktivitas operasional
+    // Untuk sekarang: hanya SALE yang masuk sebagai cash in
+    const cashInOperational = grossSales;
+
+    // 3. Cash Out (Operasional) = semua pengeluaran kas operasional
+    // EXPENSE (pembayaran titipan supplier, dll)
+    const cashOutOperational = allTransactions.reduce(
+      (sum: number, t: any) => t.type === 'EXPENSE' ? sum + Number(t.totalAmount) : sum,
+      0
+    );
+
+    // 4. Net Cash Flow (Operasional) = Cash In − Cash Out
+    const netCashFlow = cashInOperational - cashOutOperational;
+
+    // Payment breakdown: per metode pembayaran
     const paymentBreakdown = allTransactions.reduce((acc: any, t: any) => {
       const method = t.paymentMethod;
       const amount = Number(t.totalAmount);
@@ -158,7 +168,15 @@ export async function GET(req: NextRequest) {
       return acc;
     }, {});
 
-    const averageTransaction = totalCount > 0 ? totalRevenue / totalCount : 0;
+    // Transaction source breakdown: per jenis transaksi
+    const sourceBreakdown = allTransactions.reduce((acc: any, t: any) => {
+      const type = t.type;
+      const amount = Number(t.totalAmount);
+      acc[type] = (acc[type] || 0) + amount;
+      return acc;
+    }, {});
+
+    const averageTransaction = totalCount > 0 ? grossSales / totalCount : 0;
 
     // Format response
     const formattedTransactions = transactions.map((transaction: any) => {
@@ -197,9 +215,17 @@ export async function GET(req: NextRequest) {
       data: {
         transactions: formattedTransactions,
         summary: {
-          totalRevenue,
-          totalTransactions: totalCount,
+          // KPI Metrics
+          grossSales,
+          cashInOperational,
+          cashOutOperational,
+          netCashFlow,
+          // Breakdowns
           paymentBreakdown,
+          sourceBreakdown,
+          // Legacy (untuk backward compatibility)
+          totalRevenue: grossSales,
+          totalTransactions: totalCount,
           averageTransaction,
         },
         pagination: {
