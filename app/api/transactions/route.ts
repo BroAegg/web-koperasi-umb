@@ -54,10 +54,13 @@ export async function GET(req: NextRequest) {
       };
     }
 
-    // FILTER: Hanya transaksi POS/operasional (yang punya transaction_items)
-    // Exclude transaksi simpanan anggota (setor/tarik) yang tidak punya items
-    where.transaction_items = {
-      some: {}, // Must have at least one item
+    // FILTER: Exclude transaksi simpanan anggota (setor/tarik)
+    // Ciri-ciri: note contains "Setor Simpanan" atau "Tarik Simpanan"
+    where.NOT = {
+      OR: [
+        { note: { contains: 'Setor Simpanan', mode: 'insensitive' as const } },
+        { note: { contains: 'Tarik Simpanan', mode: 'insensitive' as const } },
+      ]
     };
 
     // Date range filter
