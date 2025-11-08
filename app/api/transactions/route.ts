@@ -132,6 +132,7 @@ export async function GET(req: NextRequest) {
     const allTransactions = await prisma.transactions.findMany({
       where,
       select: {
+        type: true, // PENTING: perlu field type untuk filter SALE vs EXPENSE
         totalAmount: true,
         paymentMethod: true,
       },
