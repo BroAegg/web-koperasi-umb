@@ -313,7 +313,7 @@ export function FinancialSummaryCard({
             <div className="h-px flex-1 bg-gradient-to-r from-gray-300 to-transparent"></div>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             {/* Mutasi Masuk - Enhanced with Top Sources */}
             <div className="group relative bg-gradient-to-br from-white to-emerald-50/30 border-2 border-emerald-200/50 rounded-xl p-5 hover:shadow-xl hover:border-emerald-300 hover:-translate-y-1 transition-all duration-300">
               {/* Gradient overlay on hover */}
@@ -381,39 +381,6 @@ export function FinancialSummaryCard({
                     ))}
                   </div>
                 )}
-              </div>
-            </div>
-            
-            {/* Selisih - Enhanced */}
-            <div className="group relative bg-gradient-to-br from-white to-blue-50/30 border-2 border-blue-200/50 rounded-xl p-5 hover:shadow-xl hover:border-blue-300 hover:-translate-y-1 transition-all duration-300 cursor-pointer">
-              {/* Gradient overlay on hover */}
-              <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-xl"></div>
-              
-              <div className="relative z-10">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs font-semibold text-gray-700 uppercase tracking-wide">Selisih</span>
-                  <div className={`p-2 rounded-lg transition-colors ${
-                    (summary.totalIncome - summary.totalExpense) >= 0 
-                      ? 'bg-blue-100 group-hover:bg-blue-200'
-                      : 'bg-red-100 group-hover:bg-red-200'
-                  }`}>
-                    <DollarSign className={`h-4 w-4 ${
-                      (summary.totalIncome - summary.totalExpense) >= 0 ? 'text-blue-600' : 'text-red-600'
-                    }`} />
-                  </div>
-                </div>
-                <p className={`text-3xl font-black mb-2 ${
-                  (summary.totalIncome - summary.totalExpense) >= 0 ? 'text-blue-600' : 'text-red-600'
-                }`}>
-                  {(summary.totalIncome - summary.totalExpense) >= 0 ? '+' : ''}
-                  {formatCurrency(summary.totalIncome - summary.totalExpense)}
-                </p>
-                <div className="flex items-center gap-1.5">
-                  <div className={`h-1.5 w-1.5 rounded-full ${
-                    (summary.totalIncome - summary.totalExpense) >= 0 ? 'bg-blue-500' : 'bg-red-500'
-                  }`}></div>
-                  <span className="text-xs text-gray-600">Net Cash Flow</span>
-                </div>
               </div>
             </div>
           </div>
