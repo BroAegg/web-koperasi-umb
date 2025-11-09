@@ -63,14 +63,6 @@ export async function POST(
       },
     });
 
-    // Update member balance (deduct from Simpanan Sukarela)
-    const updatedMember = await prisma.members.update({
-      where: { id },
-      data: {
-        simpananSukarela: member.simpananSukarela - amount,
-      },
-    });
-
     // Create financial transaction entry (EXPENSE) - Keluar dari /financial page
     await prisma.transactions.create({
       data: {
@@ -80,10 +72,57 @@ export async function POST(
         totalAmount: amount,
         paymentMethod: 'CASH',
         status: 'COMPLETED',
-        note: `Tarik Simpanan Sukarela - ${member.name}${description ? ` (${description})` : ''}`,
+        note: `Penarikan Simpanan Sukarela - ${member.name}${description ? ` (${description})` : ''}`,
         date: new Date(date),
         updatedAt: new Date(),
         isProduction: true,
+      },
+    });
+
+    // Recalculate member balance from all transactions (more reliable than decrementing)
+    const allSavingsTransactions = await prisma.transactions.findMany({
+      where: {
+        OR: [
+          {
+            type: 'INCOME',
+            note: { startsWith: 'Setor Simpanan' },
+          },
+          {
+            type: 'EXPENSE',
+            note: { startsWith: 'Penarikan Simpanan' },
+          },
+        ],
+        status: 'COMPLETED',
+      },
+    });
+
+    // Filter transactions for this specific member
+    const memberTransactions = allSavingsTransactions.filter((t: any) => 
+      t.note?.includes(member.name)
+    );
+
+    let calculatedWajib = 0;
+    let calculatedSukarela = 0;
+
+    memberTransactions.forEach((t: any) => {
+      const transactionAmount = Number(t.totalAmount);
+      if (t.type === 'INCOME') {
+        if (t.note?.includes('WAJIB')) {
+          calculatedWajib += transactionAmount;
+        } else if (t.note?.includes('SUKARELA')) {
+          calculatedSukarela += transactionAmount;
+        }
+      } else if (t.type === 'EXPENSE' && t.note?.includes('Penarikan Simpanan')) {
+        calculatedSukarela -= transactionAmount;
+      }
+    });
+
+    // Update member balance with calculated values
+    const updatedMember = await prisma.members.update({
+      where: { id },
+      data: {
+        simpananWajib: calculatedWajib,
+        simpananSukarela: calculatedSukarela,
       },
     });
 
