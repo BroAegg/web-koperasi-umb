@@ -82,9 +82,9 @@ export default function FinancialPage() {
   useEffect(() => {
     if (authorized) {
       fetchTransactions();
-      fetchDailySummary();
+      fetchFinancialSummary();
     }
-  }, [financialPeriod, authorized]); // Remove selectedDate, only use financialPeriod
+  }, [financialPeriod, selectedDate, authorized]); // Trigger on period or date change
 
   // Effect untuk menginisialisasi formatted amount ketika editing
   useEffect(() => {
@@ -160,13 +160,13 @@ export default function FinancialPage() {
     }
   };
 
-  const fetchDailySummary = async () => {
+  const fetchFinancialSummary = async () => {
     try {
       const token = localStorage.getItem('token');
       if (!token) return;
 
-      // Call /api/financial/summary to get cumulativeBalance
-      const summaryResponse = await fetch(`/api/financial/summary?date=${selectedDate}`, {
+      // Use period API to get summary data that respects the selected period
+      const summaryResponse = await fetch(`/api/financial/period?period=${financialPeriod}`, {
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
@@ -180,24 +180,35 @@ export default function FinancialPage() {
       const summaryResult = await summaryResponse.json();
       
       if (summaryResult.success) {
-        // Use summary API response which includes cumulativeBalance, breakdown, and top sources
+        // Also fetch cumulative balance from summary API (all-time balance)
+        const balanceResponse = await fetch(`/api/financial/summary?date=${selectedDate}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+        
+        const balanceResult = await balanceResponse.json();
+        
+        // Use period API data for income/expense (respects period selection)
+        // But use summary API for cumulativeBalance (all-time)
         setDailySummary({
           date: selectedDate,
-          totalIncome: summaryResult.data.totalIncome || 0,
-          totalExpense: summaryResult.data.totalExpense || 0,
-          netIncome: summaryResult.data.netIncome || 0,
-          transactionCount: summaryResult.data.transactionCount || 0,
-          cumulativeBalance: summaryResult.data.cumulativeBalance || 0,
-          breakdown: summaryResult.data.breakdown || { kasToko: 0, simpanan: 0, pinjaman: 0, titipan: 0 },
-          topCashIn: summaryResult.data.topCashIn || [],
-          topCashOut: summaryResult.data.topCashOut || [],
-          updatedAt: summaryResult.data.updatedAt,
+          totalIncome: summaryResult.data.totalRevenue || 0, // From period API
+          totalExpense: summaryResult.data.totalExpense || 0, // From period API
+          netIncome: (summaryResult.data.totalRevenue || 0) - (summaryResult.data.totalExpense || 0),
+          transactionCount: summaryResult.data.transactions?.length || 0,
+          cumulativeBalance: balanceResult.data?.cumulativeBalance || 0, // All-time balance
+          breakdown: balanceResult.data?.breakdown || { kasToko: 0, simpanan: 0, pinjaman: 0, titipan: 0 },
+          topCashIn: balanceResult.data?.topCashIn || [],
+          topCashOut: balanceResult.data?.topCashOut || [],
+          updatedAt: balanceResult.data?.updatedAt || new Date().toISOString(),
           toko: { revenue: 0, cogs: 0, profit: 0 },
           consignment: { grossRevenue: 0, cogs: 0, profit: 0, feeTotal: 0 },
         });
       }
     } catch (err) {
-      console.error('Error fetching daily summary:', err);
+      console.error('Error fetching financial summary:', err);
     }
   };
 
@@ -260,7 +271,7 @@ export default function FinancialPage() {
         
         // Refresh data
         fetchTransactions();
-        fetchDailySummary();
+        fetchFinancialSummary();
         
         const successMessage = editingTransaction 
           ? 'Transaksi berhasil diupdate'
@@ -324,7 +335,7 @@ export default function FinancialPage() {
         if (result.success) {
           success('Transaksi Dihapus', 'Transaksi berhasil dihapus');
           fetchTransactions();
-          fetchDailySummary();
+          fetchFinancialSummary();
         } else {
           error('Gagal Menghapus', result.error || 'Terjadi kesalahan saat menghapus transaksi');
         }
