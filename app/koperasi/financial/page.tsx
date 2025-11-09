@@ -25,8 +25,7 @@ import {
   DollarSign,
   Plus,
   Download,
-  TrendingUp,
-  Calendar
+  TrendingUp
 } from 'lucide-react';
 import { ShoppingCart, Receipt, TrendingDown } from 'lucide-react';
 
@@ -392,89 +391,6 @@ export default function FinancialPage() {
           </Button>
         </div>
       </div>
-
-      {/* Global Period Filter - Pill Buttons */}
-      <Card className="shadow-sm border-2 border-blue-100 bg-gradient-to-r from-blue-50/50 to-indigo-50/50">
-        <CardContent className="p-4">
-          <div className="flex items-center justify-between flex-wrap gap-4">
-            <div className="flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-blue-600" />
-              <span className="text-sm font-semibold text-gray-700">Filter Periode:</span>
-            </div>
-            
-            <div className="flex items-center gap-2 flex-wrap">
-              {/* Hari Ini */}
-              <button
-                onClick={() => {
-                  setFinancialPeriod('today');
-                  setIsCustomDate(false);
-                  setSelectedDate(new Date().toISOString().split('T')[0]);
-                }}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
-                  financialPeriod === 'today' && !isCustomDate
-                    ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/30 scale-105'
-                    : 'bg-white text-gray-700 border-2 border-gray-200 hover:border-blue-300 hover:bg-blue-50'
-                }`}
-              >
-                Hari Ini
-              </button>
-
-              {/* Minggu Ini (7 days) */}
-              <button
-                onClick={() => {
-                  setFinancialPeriod('7days');
-                  setIsCustomDate(false);
-                }}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
-                  financialPeriod === '7days'
-                    ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/30 scale-105'
-                    : 'bg-white text-gray-700 border-2 border-gray-200 hover:border-blue-300 hover:bg-blue-50'
-                }`}
-              >
-                Minggu Ini
-              </button>
-
-              {/* Bulan Ini (1 month) */}
-              <button
-                onClick={() => {
-                  setFinancialPeriod('1month');
-                  setIsCustomDate(false);
-                }}
-                className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
-                  financialPeriod === '1month'
-                    ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/30 scale-105'
-                    : 'bg-white text-gray-700 border-2 border-gray-200 hover:border-blue-300 hover:bg-blue-50'
-                }`}
-              >
-                Bulan Ini
-              </button>
-
-              {/* Kustom (Date Picker) */}
-              <div className="relative">
-                <input
-                  type="date"
-                  value={selectedDate}
-                  onChange={(e) => {
-                    setSelectedDate(e.target.value);
-                    setIsCustomDate(true);
-                  }}
-                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
-                />
-                <button
-                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 flex items-center gap-2 ${
-                    isCustomDate
-                      ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-lg shadow-purple-500/30 scale-105'
-                      : 'bg-white text-gray-700 border-2 border-gray-200 hover:border-purple-300 hover:bg-purple-50'
-                  }`}
-                >
-                  <Calendar className="w-4 h-4" />
-                  {isCustomDate ? new Date(selectedDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }) : 'Kustom'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Financial Summary Card - Full Width */}
       {dailySummary && (
