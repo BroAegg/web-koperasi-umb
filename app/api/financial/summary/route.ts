@@ -244,14 +244,91 @@ export async function GET(request: NextRequest) {
       }
     });
 
+    // Calculate balance breakdown by source
+    // @ts-ignore
+    const operationalTransactions = await prisma.transactions.findMany({
+      where: {
+        type: { in: ['SALE', 'PURCHASE', 'EXPENSE'] },
+        status: 'COMPLETED',
+        date: { lte: new Date() },
+      },
+    });
+
+    // @ts-ignore
+    const savingsTransactions = await prisma.transactions.findMany({
+      where: {
+        type: 'INCOME',
+        note: { startsWith: 'Setor/Tarik Simpanan' },
+        status: 'COMPLETED',
+        date: { lte: new Date() },
+      },
+    });
+
+    let kasToko = 0;
+    operationalTransactions.forEach((t: any) => {
+      if (t.type === 'SALE') kasToko += Number(t.totalAmount);
+      else if (t.type === 'PURCHASE' || t.type === 'EXPENSE') kasToko -= Number(t.totalAmount);
+    });
+
+    let simpanan = 0;
+    savingsTransactions.forEach((t: any) => {
+      simpanan += Number(t.totalAmount);
+    });
+
+    // For now, pinjaman and titipan are 0 (to be implemented in future phases)
+    const pinjaman = 0;
+    const titipan = 0;
+
+    // Calculate top cash in sources (group by transaction type/note)
+    const cashInSources: Record<string, number> = {};
+    transactions.forEach((t: any) => {
+      if (t.type === 'SALE' || t.type === 'INCOME') {
+        const source = t.note && t.note.startsWith('Setor/Tarik Simpanan') 
+          ? 'Simpanan Anggota' 
+          : t.type === 'SALE' 
+            ? 'Penjualan POS' 
+            : 'Pemasukan Lain';
+        
+        cashInSources[source] = (cashInSources[source] || 0) + Number(t.totalAmount);
+      }
+    });
+
+    // Calculate top cash out sources
+    const cashOutSources: Record<string, number> = {};
+    transactions.forEach((t: any) => {
+      if (t.type === 'PURCHASE' || t.type === 'EXPENSE') {
+        const source = t.type === 'PURCHASE' ? 'Pembelian Inventory' : 'Pengeluaran Operasional';
+        cashOutSources[source] = (cashOutSources[source] || 0) + Number(t.totalAmount);
+      }
+    });
+
+    // Get top 3 sources for each
+    const topCashIn = Object.entries(cashInSources)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 3)
+      .map(([source, amount]) => ({ source, amount }));
+
+    const topCashOut = Object.entries(cashOutSources)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 3)
+      .map(([source, amount]) => ({ source, amount }));
+
     const summary = {
       date,
       cumulativeBalance, // Total saldo kumulatif dari awal waktu
+      breakdown: {
+        kasToko,
+        simpanan,
+        pinjaman,
+        titipan,
+      },
       daily: {
         totalIncome,
         totalExpense,
         netIncome,
         transactionCount,
+        topCashIn,
+        topCashOut,
       },
       weekly: {
         totalIncome: weeklyIncome,
@@ -265,6 +342,7 @@ export async function GET(request: NextRequest) {
         netIncome: monthlyIncome - monthlyExpense,
         transactionCount: monthlyTransactions.length,
       },
+      updatedAt: new Date().toISOString(),
     };
 
     return NextResponse.json({
@@ -272,6 +350,10 @@ export async function GET(request: NextRequest) {
       data: {
         ...summary.daily,
         cumulativeBalance, // Kirim saldo kumulatif ke frontend
+        breakdown: summary.breakdown,
+        topCashIn,
+        topCashOut,
+        updatedAt: summary.updatedAt,
       },
       summary, // Include all summaries for detailed view
     });

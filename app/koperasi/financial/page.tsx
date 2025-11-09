@@ -180,16 +180,20 @@ export default function FinancialPage() {
       const summaryResult = await summaryResponse.json();
       
       if (summaryResult.success) {
-        // Use summary API response which includes cumulativeBalance
+        // Use summary API response which includes cumulativeBalance, breakdown, and top sources
         setDailySummary({
           date: selectedDate,
           totalIncome: summaryResult.data.totalIncome || 0,
           totalExpense: summaryResult.data.totalExpense || 0,
           netIncome: summaryResult.data.netIncome || 0,
           transactionCount: summaryResult.data.transactionCount || 0,
-          cumulativeBalance: summaryResult.data.cumulativeBalance || 0, // ✅ FIXED: Include cumulative balance
+          cumulativeBalance: summaryResult.data.cumulativeBalance || 0,
+          breakdown: summaryResult.data.breakdown || { kasToko: 0, simpanan: 0, pinjaman: 0, titipan: 0 },
+          topCashIn: summaryResult.data.topCashIn || [],
+          topCashOut: summaryResult.data.topCashOut || [],
+          updatedAt: summaryResult.data.updatedAt,
           toko: { revenue: 0, cogs: 0, profit: 0 },
-          consignment: { grossRevenue: 0, cogs: 0, profit: 0 },
+          consignment: { grossRevenue: 0, cogs: 0, profit: 0, feeTotal: 0 },
         });
       }
     } catch (err) {

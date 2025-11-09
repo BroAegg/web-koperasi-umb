@@ -249,28 +249,56 @@ export function FinancialSummaryCard({
                     </div>
                   </div>
                   
-                  <p className="text-xs text-gray-600 mt-2">Data periode: {getPeriodDisplayLabel()}</p>
+                  <div className="flex items-center gap-2 mt-2">
+                    <p className="text-xs text-gray-600">Data periode: {getPeriodDisplayLabel()}</p>
+                    {summary.updatedAt && (
+                      <>
+                        <span className="text-gray-400">•</span>
+                        <p className="text-xs text-gray-500">
+                          Update: {new Date(summary.updatedAt).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                        </p>
+                      </>
+                    )}
+                  </div>
                 </div>
               </div>
               
-              {/* Right Section: Breakdown Cards (Toko & Titipan) */}
-              <div className="flex flex-col sm:flex-row gap-3 md:min-w-[400px]">
-                {/* Toko */}
-                <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-emerald-200/50 flex-1">
-                  <div className="flex items-center gap-2 mb-2">
+              {/* Right Section: Breakdown Cards (4 sources) */}
+              <div className="grid grid-cols-2 gap-3 md:min-w-[450px]">
+                {/* Kas Toko */}
+                <div className="bg-white/60 backdrop-blur-sm rounded-xl p-3.5 border border-emerald-200/50">
+                  <div className="flex items-center gap-2 mb-1.5">
                     <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
-                    <span className="text-sm font-medium text-gray-700">Toko</span>
+                    <span className="text-xs font-medium text-gray-700">Kas Toko</span>
                   </div>
-                  <span className="text-xl font-bold text-gray-900">{formatCurrency(summary.toko?.profit || 0)}</span>
+                  <span className="text-lg font-bold text-gray-900">{formatCurrency(summary.breakdown?.kasToko || 0)}</span>
+                </div>
+                
+                {/* Simpanan */}
+                <div className="bg-white/60 backdrop-blur-sm rounded-xl p-3.5 border border-emerald-200/50">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                    <span className="text-xs font-medium text-gray-700">Simpanan</span>
+                  </div>
+                  <span className="text-lg font-bold text-gray-900">{formatCurrency(summary.breakdown?.simpanan || 0)}</span>
+                </div>
+                
+                {/* Pinjaman */}
+                <div className="bg-white/60 backdrop-blur-sm rounded-xl p-3.5 border border-emerald-200/50">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                    <span className="text-xs font-medium text-gray-700">Pinjaman</span>
+                  </div>
+                  <span className="text-lg font-bold text-gray-900">{formatCurrency(summary.breakdown?.pinjaman || 0)}</span>
                 </div>
                 
                 {/* Titipan */}
-                <div className="bg-white/60 backdrop-blur-sm rounded-xl p-4 border border-emerald-200/50 flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
-                    <span className="text-sm font-medium text-gray-700">Titipan</span>
+                <div className="bg-white/60 backdrop-blur-sm rounded-xl p-3.5 border border-emerald-200/50">
+                  <div className="flex items-center gap-2 mb-1.5">
+                    <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                    <span className="text-xs font-medium text-gray-700">Titipan</span>
                   </div>
-                  <span className="text-xl font-bold text-gray-900">{formatCurrency(summary.consignment?.profit || 0)}</span>
+                  <span className="text-lg font-bold text-gray-900">{formatCurrency(summary.breakdown?.titipan || 0)}</span>
                 </div>
               </div>
               
@@ -286,8 +314,8 @@ export function FinancialSummaryCard({
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {/* Mutasi Masuk - Enhanced */}
-            <div className="group relative bg-gradient-to-br from-white to-emerald-50/30 border-2 border-emerald-200/50 rounded-xl p-5 hover:shadow-xl hover:border-emerald-300 hover:-translate-y-1 transition-all duration-300 cursor-pointer">
+            {/* Mutasi Masuk - Enhanced with Top Sources */}
+            <div className="group relative bg-gradient-to-br from-white to-emerald-50/30 border-2 border-emerald-200/50 rounded-xl p-5 hover:shadow-xl hover:border-emerald-300 hover:-translate-y-1 transition-all duration-300">
               {/* Gradient overlay on hover */}
               <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-xl"></div>
               
@@ -301,15 +329,28 @@ export function FinancialSummaryCard({
                 <p className="text-3xl font-black text-emerald-600 mb-2">
                   {formatCurrency(summary.totalIncome)}
                 </p>
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 mb-3">
                   <div className="h-1.5 w-1.5 bg-emerald-500 rounded-full"></div>
                   <span className="text-xs text-gray-600">Cash In periode ini</span>
                 </div>
+                
+                {/* Top Sources */}
+                {summary.topCashIn && summary.topCashIn.length > 0 && (
+                  <div className="mt-3 pt-3 border-t border-emerald-200/50 space-y-1.5">
+                    <p className="text-xs font-semibold text-gray-600 mb-2">Top Sumber:</p>
+                    {summary.topCashIn.slice(0, 3).map((source, idx) => (
+                      <div key={idx} className="flex items-center justify-between text-xs">
+                        <span className="text-gray-600 truncate pr-2">{source.source}</span>
+                        <span className="font-semibold text-emerald-700">{formatCurrency(source.amount)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
             
-            {/* Mutasi Keluar - Enhanced */}
-            <div className="group relative bg-gradient-to-br from-white to-red-50/30 border-2 border-red-200/50 rounded-xl p-5 hover:shadow-xl hover:border-red-300 hover:-translate-y-1 transition-all duration-300 cursor-pointer">
+            {/* Mutasi Keluar - Enhanced with Top Sources */}
+            <div className="group relative bg-gradient-to-br from-white to-red-50/30 border-2 border-red-200/50 rounded-xl p-5 hover:shadow-xl hover:border-red-300 hover:-translate-y-1 transition-all duration-300">
               {/* Gradient overlay on hover */}
               <div className="absolute inset-0 bg-gradient-to-br from-red-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity rounded-xl"></div>
               
@@ -323,10 +364,23 @@ export function FinancialSummaryCard({
                 <p className="text-3xl font-black text-red-600 mb-2">
                   {formatCurrency(summary.totalExpense)}
                 </p>
-                <div className="flex items-center gap-1.5">
+                <div className="flex items-center gap-1.5 mb-3">
                   <div className="h-1.5 w-1.5 bg-red-500 rounded-full"></div>
                   <span className="text-xs text-gray-600">Cash Out periode ini</span>
                 </div>
+                
+                {/* Top Sources */}
+                {summary.topCashOut && summary.topCashOut.length > 0 && (
+                  <div className="mt-3 pt-3 border-t border-red-200/50 space-y-1.5">
+                    <p className="text-xs font-semibold text-gray-600 mb-2">Top Sumber:</p>
+                    {summary.topCashOut.slice(0, 3).map((source, idx) => (
+                      <div key={idx} className="flex items-center justify-between text-xs">
+                        <span className="text-gray-600 truncate pr-2">{source.source}</span>
+                        <span className="font-semibold text-red-700">{formatCurrency(source.amount)}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
             
