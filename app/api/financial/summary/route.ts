@@ -254,11 +254,19 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // @ts-ignore
+    // @ts-ignore - Get both INCOME (setor) and EXPENSE (tarik) for savings
     const savingsTransactions = await prisma.transactions.findMany({
       where: {
-        type: 'INCOME',
-        note: { startsWith: 'Setor/Tarik Simpanan' },
+        OR: [
+          {
+            type: 'INCOME',
+            note: { startsWith: 'Setor Simpanan' },
+          },
+          {
+            type: 'EXPENSE',
+            note: { startsWith: 'Penarikan Simpanan' },
+          },
+        ],
         status: 'COMPLETED',
         date: { lte: new Date() },
       },
@@ -272,7 +280,13 @@ export async function GET(request: NextRequest) {
 
     let simpanan = 0;
     savingsTransactions.forEach((t: any) => {
-      simpanan += Number(t.totalAmount);
+      if (t.type === 'INCOME') {
+        // SETOR = tambah saldo
+        simpanan += Number(t.totalAmount);
+      } else if (t.type === 'EXPENSE') {
+        // TARIK = kurangi saldo
+        simpanan -= Number(t.totalAmount);
+      }
     });
 
     // For now, pinjaman and titipan are 0 (to be implemented in future phases)
@@ -283,7 +297,7 @@ export async function GET(request: NextRequest) {
     const cashInSources: Record<string, number> = {};
     transactions.forEach((t: any) => {
       if (t.type === 'SALE' || t.type === 'INCOME') {
-        const source = t.note && t.note.startsWith('Setor/Tarik Simpanan') 
+        const source = t.note && t.note.startsWith('Setor Simpanan') 
           ? 'Simpanan Anggota' 
           : t.type === 'SALE' 
             ? 'Penjualan POS' 
@@ -297,7 +311,14 @@ export async function GET(request: NextRequest) {
     const cashOutSources: Record<string, number> = {};
     transactions.forEach((t: any) => {
       if (t.type === 'PURCHASE' || t.type === 'EXPENSE') {
-        const source = t.type === 'PURCHASE' ? 'Pembelian Inventory' : 'Pengeluaran Operasional';
+        let source = 'Pengeluaran Operasional';
+        
+        if (t.type === 'PURCHASE') {
+          source = 'Pembelian Inventory';
+        } else if (t.note && t.note.startsWith('Penarikan Simpanan')) {
+          source = 'Penarikan Simpanan Anggota';
+        }
+        
         cashOutSources[source] = (cashOutSources[source] || 0) + Number(t.totalAmount);
       }
     });
