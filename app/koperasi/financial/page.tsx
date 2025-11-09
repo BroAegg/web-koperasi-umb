@@ -409,16 +409,63 @@ export default function FinancialPage() {
         />
       )}
 
-      {/* Financial Chart - HERO SECTION (Enlarged & Prominent) */}
+      {/* Transaksi Terkini - Repositioned for better visibility */}
+      <Card className="shadow-lg">
+        <CardHeader className="border-b bg-gradient-to-r from-blue-50 to-indigo-50">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-500 rounded-lg">
+                <Receipt className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Transaksi Terkini</h3>
+                <p className="text-sm text-gray-600">5 transaksi terakhir periode ini</p>
+              </div>
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => {
+                // Scroll to full table below
+                document.getElementById('full-transaction-table')?.scrollIntoView({ behavior: 'smooth' });
+              }}
+            >
+              Lihat Semua
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          <TransactionTable
+            transactions={filteredTransactions.slice(0, 5)}
+            loading={loading}
+            onView={handleViewTransaction}
+            onEdit={handleEditTransaction}
+            onDelete={handleDeleteTransaction}
+            onShowAddModal={() => setShowAddModal(true)}
+            compact={true}
+          />
+        </CardContent>
+      </Card>
+
+      {/* Financial Chart - Net Cash Flow by Day */}
       <FinancialChart 
         period={financialPeriod}
         transactions={transactions}
         dailySummary={dailySummary}
       />
 
-      {/* Transactions Table */}
-      <Card>
-        <CardHeader>
+      {/* Full Transactions Table */}
+      <Card id="full-transaction-table" className="scroll-mt-6">
+        <CardHeader className="border-b">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 bg-gray-500 rounded-lg">
+              <Receipt className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-gray-900">Semua Transaksi</h3>
+              <p className="text-sm text-gray-600">Riwayat lengkap transaksi keuangan</p>
+            </div>
+          </div>
           <TransactionFilters
             searchTerm={searchTerm}
             onSearchChange={setSearchTerm}

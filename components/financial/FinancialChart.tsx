@@ -19,6 +19,7 @@ interface ChartDataPoint {
   label: string;
   income: number;
   expense: number;
+  netCashFlow: number; // Net = Income - Expense
 }
 
 // Helper function to create smooth SVG path with curves
@@ -197,10 +198,13 @@ export function FinancialChart({ period, transactions: propTransactions, dailySu
       const result: ChartDataPoint[] = [];
       for (let hour = 7; hour <= 17; hour++) {
         const key = `${hour.toString().padStart(2, '0')}:00`;
+        const income = dataMap[key]?.income || 0;
+        const expense = dataMap[key]?.expense || 0;
         result.push({
           label: key,
-          income: dataMap[key]?.income || 0,
-          expense: dataMap[key]?.expense || 0,
+          income,
+          expense,
+          netCashFlow: income - expense,
         });
       }
       console.log('📊 FinancialChart: Hourly data (7AM-5PM):', result);
@@ -211,7 +215,8 @@ export function FinancialChart({ period, transactions: propTransactions, dailySu
       .map(([label, data]) => ({
         label,
         income: data.income,
-        expense: data.expense
+        expense: data.expense,
+        netCashFlow: data.income - data.expense,
       }));
     
     console.log('📊 FinancialChart: Aggregation result:', result);
@@ -283,21 +288,29 @@ export function FinancialChart({ period, transactions: propTransactions, dailySu
     );
   }
 
-  const maxValue = Math.max(...chartData.map(d => Math.max(d.income, d.expense)), 1);
+  // Calculate max absolute value for net cash flow (to handle both positive and negative)
+  const maxAbsValue = Math.max(
+    ...chartData.map(d => Math.abs(d.netCashFlow)),
+    1
+  );
 
-  // Generate smooth path points
-  const incomePoints = chartData.map((point, index) => ({
+  // Calculate baseline (zero line) - center it in the chart
+  const baselineY = 250; // Middle of 500px height chart
+  const scaleY = 200 / maxAbsValue; // Scale to fit in ±200px from baseline
+
+  // Generate smooth path points for net cash flow
+  const netCashFlowPoints = chartData.map((point, index) => ({
     x: 80 + (index * (680 / Math.max(chartData.length - 1, 1))),
-    y: 430 - ((point.income / maxValue) * 370),
+    y: baselineY - (point.netCashFlow * scaleY), // Negative flow goes up, positive goes down
   }));
 
-  const expensePoints = chartData.map((point, index) => ({
-    x: 80 + (index * (680 / Math.max(chartData.length - 1, 1))),
-    y: 430 - ((point.expense / maxValue) * 370),
-  }));
-
-  const incomePath = createSmoothPath(incomePoints, 0.4);
-  const expensePath = createSmoothPath(expensePoints, 0.4);
+  const netCashFlowPath = createSmoothPath(netCashFlowPoints, 0.4);
+  
+  // Create area path (from baseline to line)
+  const areaPath = netCashFlowPath + 
+    ` L ${netCashFlowPoints[netCashFlowPoints.length - 1].x},${baselineY}` +
+    ` L ${netCashFlowPoints[0].x},${baselineY}` +
+    ' Z';
 
   return (
     <Card className="shadow-xl border-0 overflow-hidden">
@@ -309,39 +322,43 @@ export function FinancialChart({ period, transactions: propTransactions, dailySu
               <TrendingUp className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h3 className="text-2xl font-bold text-gray-900">Grafik Keuangan</h3>
+              <h3 className="text-2xl font-bold text-gray-900">Net Cash Flow</h3>
               <p className="text-sm text-gray-600 font-medium">{getPeriodLabel()}</p>
             </div>
           </div>
           
           {/* Enhanced Metrics Cards */}
           <div className="flex items-center gap-3 flex-wrap">
-            {/* Net Profit Card */}
+            {/* Net Cash Flow Card */}
             <div className={`px-4 py-3 rounded-xl shadow-md border-2 ${netProfit >= 0 ? 'bg-gradient-to-br from-green-50 to-emerald-50 border-green-200' : 'bg-gradient-to-br from-red-50 to-pink-50 border-red-200'}`}>
               <div className="flex items-center gap-2">
                 <div className={`p-2 rounded-lg ${netProfit >= 0 ? 'bg-green-100' : 'bg-red-100'}`}>
-                  <DollarSign className={`w-5 h-5 ${netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`} />
+                  {netProfit >= 0 ? (
+                    <TrendingUp className="w-5 h-5 text-green-600" />
+                  ) : (
+                    <TrendingDown className="w-5 h-5 text-red-600" />
+                  )}
                 </div>
                 <div>
-                  <p className="text-xs text-gray-600 font-medium">Laba Bersih</p>
+                  <p className="text-xs text-gray-600 font-medium">Net Cash Flow</p>
                   <p className={`text-lg font-bold ${netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                    {formatCurrency(netProfit)}
+                    {netProfit >= 0 ? '+' : ''}{formatCurrency(netProfit)}
                   </p>
-                  <p className="text-xs text-gray-500">Margin: {profitMargin}%</p>
+                  <p className="text-xs text-gray-500">Periode ini</p>
                 </div>
               </div>
             </div>
 
-            {/* Sales Card */}
+            {/* Total Transactions Card */}
             <div className="px-4 py-3 bg-gradient-to-br from-blue-50 to-indigo-50 rounded-xl shadow-md border-2 border-blue-200">
               <div className="flex items-center gap-2">
                 <div className="p-2 bg-blue-100 rounded-lg">
                   <ShoppingCart className="w-5 h-5 text-blue-600" />
                 </div>
                 <div>
-                  <p className="text-xs text-gray-600 font-medium">Penjualan</p>
-                  <p className="text-lg font-bold text-blue-600">{salesCount} Transaksi</p>
-                  <p className="text-xs text-gray-500">{formatCurrency(totalSalesAmount)}</p>
+                  <p className="text-xs text-gray-600 font-medium">Total Transaksi</p>
+                  <p className="text-lg font-bold text-blue-600">{chartData.length} Periode</p>
+                  <p className="text-xs text-gray-500">{salesCount} penjualan</p>
                 </div>
               </div>
             </div>
@@ -351,15 +368,21 @@ export function FinancialChart({ period, transactions: propTransactions, dailySu
         {/* Legend */}
         <div className="flex items-center gap-6 mt-4 pt-4 border-t border-gray-200">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-1 bg-gradient-to-r from-emerald-400 to-emerald-600 rounded-full"></div>
+            <div className="w-3 h-3 rounded-full bg-green-500"></div>
             <span className="text-sm text-gray-700 font-medium">
-              Pemasukan: <span className="font-bold text-emerald-600">{formatCurrency(totalIncome)}</span>
+              Surplus (Positif)
             </span>
           </div>
           <div className="flex items-center gap-2">
-            <div className="w-8 h-1 bg-gradient-to-r from-red-400 to-red-600 rounded-full"></div>
+            <div className="w-3 h-3 rounded-full bg-red-500"></div>
             <span className="text-sm text-gray-700 font-medium">
-              Pengeluaran: <span className="font-bold text-red-600">{formatCurrency(totalExpense)}</span>
+              Defisit (Negatif)
+            </span>
+          </div>
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-0.5 bg-gray-400"></div>
+            <span className="text-sm text-gray-700 font-medium">
+              Baseline (Zero)
             </span>
           </div>
         </div>
@@ -371,24 +394,19 @@ export function FinancialChart({ period, transactions: propTransactions, dailySu
           <svg className="w-full h-full drop-shadow-sm" viewBox="0 0 800 500" preserveAspectRatio="xMidYMid meet">
             {/* Gradients Definition */}
             <defs>
-              <linearGradient id="incomeGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="#10b981" stopOpacity="0.3" />
+              {/* Positive cash flow gradient (green) */}
+              <linearGradient id="positiveFlowGradient" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stopColor="#10b981" stopOpacity="0.4" />
                 <stop offset="100%" stopColor="#10b981" stopOpacity="0.05" />
               </linearGradient>
-              <linearGradient id="expenseGradient" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stopColor="#ef4444" stopOpacity="0.3" />
+              {/* Negative cash flow gradient (red) */}
+              <linearGradient id="negativeFlowGradient" x1="0%" y1="100%" x2="0%" y2="0%">
+                <stop offset="0%" stopColor="#ef4444" stopOpacity="0.4" />
                 <stop offset="100%" stopColor="#ef4444" stopOpacity="0.05" />
               </linearGradient>
               
-              {/* Glow filters */}
-              <filter id="glow-income">
-                <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
-                <feMerge>
-                  <feMergeNode in="coloredBlur"/>
-                  <feMergeNode in="SourceGraphic"/>
-                </feMerge>
-              </filter>
-              <filter id="glow-expense">
+              {/* Glow filter for line */}
+              <filter id="glow-netflow">
                 <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
                 <feMerge>
                   <feMergeNode in="coloredBlur"/>
@@ -397,24 +415,25 @@ export function FinancialChart({ period, transactions: propTransactions, dailySu
               </filter>
             </defs>
 
-            {/* Grid Lines */}
+            {/* Grid Lines - centered around baseline */}
             <g className="grid-lines" opacity="0.6">
-              {[0, 1, 2, 3, 4, 5].map(i => {
-                const y = 50 + (i * 75);
+              {[-2, -1, 0, 1, 2].map(i => {
+                const y = baselineY - (i * 80); // Grid every 80px
+                const value = i * (maxAbsValue / 2);
                 return (
                   <g key={i}>
                     <line 
                       x1="80" y1={y} x2="780" y2={y} 
-                      stroke="#e5e7eb" 
-                      strokeWidth="1" 
-                      strokeDasharray="6,4" 
+                      stroke={i === 0 ? "#9ca3af" : "#e5e7eb"} 
+                      strokeWidth={i === 0 ? "2" : "1"} 
+                      strokeDasharray={i === 0 ? "0" : "6,4"} 
                     />
                     <text 
                       x="70" y={y + 5} 
                       textAnchor="end" 
-                      className="text-xs fill-gray-500 font-medium"
+                      className={`text-xs font-medium ${i === 0 ? 'fill-gray-700' : 'fill-gray-500'}`}
                     >
-                      {formatCurrency(maxValue * (1 - i * 0.2))}
+                      {formatCurrency(value)}
                     </text>
                   </g>
                 );
@@ -439,59 +458,64 @@ export function FinancialChart({ period, transactions: propTransactions, dailySu
               })}
             </g>
 
-            {/* Area fills with gradient */}
+            {/* Net Cash Flow Area - Dynamic gradient based on positive/negative */}
             {chartData.length > 1 && (
               <>
-                <path
-                  d={`${incomePath} L ${incomePoints[incomePoints.length - 1].x},430 L ${incomePoints[0].x},430 Z`}
-                  fill="url(#incomeGradient)"
-                  opacity="0.6"
-                />
-                <path
-                  d={`${expensePath} L ${expensePoints[expensePoints.length - 1].x},430 L ${expensePoints[0].x},430 Z`}
-                  fill="url(#expenseGradient)"
-                  opacity="0.6"
-                />
+                {/* Split area into positive and negative parts */}
+                {chartData.map((point, index) => {
+                  if (index === chartData.length - 1) return null;
+                  
+                  const x1 = netCashFlowPoints[index].x;
+                  const y1 = netCashFlowPoints[index].y;
+                  const x2 = netCashFlowPoints[index + 1].x;
+                  const y2 = netCashFlowPoints[index + 1].y;
+                  
+                  // Determine if this segment is positive or negative
+                  const isPositive = point.netCashFlow >= 0 && chartData[index + 1].netCashFlow >= 0;
+                  const isNegative = point.netCashFlow <= 0 && chartData[index + 1].netCashFlow <= 0;
+                  
+                  if (isPositive || isNegative) {
+                    const areaSegment = `M ${x1},${y1} L ${x2},${y2} L ${x2},${baselineY} L ${x1},${baselineY} Z`;
+                    return (
+                      <path
+                        key={`area-${index}`}
+                        d={areaSegment}
+                        fill={isPositive ? 'url(#positiveFlowGradient)' : 'url(#negativeFlowGradient)'}
+                        opacity="0.7"
+                      />
+                    );
+                  }
+                  return null;
+                })}
               </>
             )}
 
-            {/* Income Line - Smooth Curve */}
+            {/* Net Cash Flow Line - Smooth Curve with dynamic color */}
             <path
-              d={incomePath}
+              d={netCashFlowPath}
               fill="none" 
-              stroke="#10b981" 
-              strokeWidth="3.5" 
+              stroke="#3b82f6" 
+              strokeWidth="4" 
               strokeLinecap="round" 
               strokeLinejoin="round"
-              filter="url(#glow-income)"
+              filter="url(#glow-netflow)"
               className="transition-all duration-300"
             />
 
-            {/* Expense Line - Smooth Curve */}
-            <path
-              d={expensePath}
-              fill="none" 
-              stroke="#ef4444" 
-              strokeWidth="3.5" 
-              strokeLinecap="round" 
-              strokeLinejoin="round"
-              filter="url(#glow-expense)"
-              className="transition-all duration-300"
-            />
-
-            {/* Data Points - Income */}
+            {/* Data Points - Net Cash Flow */}
             {chartData.map((point, index) => {
-              const x = 80 + (index * (680 / Math.max(chartData.length - 1, 1)));
-              const y = 430 - ((point.income / maxValue) * 370);
-              const isHovered = hoveredPoint?.index === index && hoveredPoint?.type === 'income';
+              const x = netCashFlowPoints[index].x;
+              const y = netCashFlowPoints[index].y;
+              const isHovered = hoveredPoint?.index === index;
+              const isPositive = point.netCashFlow >= 0;
               
               return (
-                <g key={`income-${index}`}>
+                <g key={`netflow-${index}`}>
                   <circle 
                     cx={x} 
                     cy={y} 
-                    r={isHovered ? 8 : 6}
-                    fill="#10b981" 
+                    r={isHovered ? 9 : 6}
+                    fill={isPositive ? "#10b981" : "#ef4444"} 
                     stroke="white" 
                     strokeWidth="3"
                     className="transition-all duration-200 cursor-pointer drop-shadow-lg"
@@ -501,65 +525,39 @@ export function FinancialChart({ period, transactions: propTransactions, dailySu
                   {isHovered && (
                     <g>
                       <rect
-                        x={x - 60}
-                        y={y - 55}
-                        width="120"
-                        height="45"
+                        x={x - 75}
+                        y={y < baselineY ? y - 75 : y + 15}
+                        width="150"
+                        height="60"
                         fill="white"
-                        stroke="#10b981"
+                        stroke={isPositive ? "#10b981" : "#ef4444"}
                         strokeWidth="2"
                         rx="8"
                         className="drop-shadow-xl"
                       />
-                      <text x={x} y={y - 35} textAnchor="middle" className="text-xs fill-gray-600 font-medium">
+                      <text 
+                        x={x} 
+                        y={y < baselineY ? y - 55 : y + 35} 
+                        textAnchor="middle" 
+                        className="text-xs fill-gray-600 font-medium"
+                      >
                         {point.label}
                       </text>
-                      <text x={x} y={y - 20} textAnchor="middle" className="text-sm fill-emerald-600 font-bold">
-                        {formatCurrency(point.income)}
+                      <text 
+                        x={x} 
+                        y={y < baselineY ? y - 38 : y + 52} 
+                        textAnchor="middle" 
+                        className={`text-sm font-bold ${isPositive ? 'fill-green-600' : 'fill-red-600'}`}
+                      >
+                        {isPositive ? '+' : ''}{formatCurrency(point.netCashFlow)}
                       </text>
-                    </g>
-                  )}
-                </g>
-              );
-            })}
-
-            {/* Data Points - Expense */}
-            {chartData.map((point, index) => {
-              const x = 80 + (index * (680 / Math.max(chartData.length - 1, 1)));
-              const y = 430 - ((point.expense / maxValue) * 370);
-              const isHovered = hoveredPoint?.index === index && hoveredPoint?.type === 'expense';
-              
-              return (
-                <g key={`expense-${index}`}>
-                  <circle 
-                    cx={x} 
-                    cy={y} 
-                    r={isHovered ? 8 : 6}
-                    fill="#ef4444" 
-                    stroke="white" 
-                    strokeWidth="3"
-                    className="transition-all duration-200 cursor-pointer drop-shadow-lg"
-                    onMouseEnter={() => setHoveredPoint({ index, type: 'expense' })}
-                    onMouseLeave={() => setHoveredPoint(null)}
-                  />
-                  {isHovered && (
-                    <g>
-                      <rect
-                        x={x - 60}
-                        y={y - 55}
-                        width="120"
-                        height="45"
-                        fill="white"
-                        stroke="#ef4444"
-                        strokeWidth="2"
-                        rx="8"
-                        className="drop-shadow-xl"
-                      />
-                      <text x={x} y={y - 35} textAnchor="middle" className="text-xs fill-gray-600 font-medium">
-                        {point.label}
-                      </text>
-                      <text x={x} y={y - 20} textAnchor="middle" className="text-sm fill-red-600 font-bold">
-                        {formatCurrency(point.expense)}
+                      <text 
+                        x={x} 
+                        y={y < baselineY ? y - 22 : y + 68} 
+                        textAnchor="middle" 
+                        className="text-xs fill-gray-500"
+                      >
+                        {isPositive ? 'Surplus' : 'Defisit'}
                       </text>
                     </g>
                   )}
