@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useTransactions } from '@/hooks/useTransactions';
 import { Card, CardHeader, CardContent, Button, Input } from '@/components/ui';
-import { Search, Filter, Download, Printer, Eye, Trash2 } from 'lucide-react';
+import { Search, Filter, Download, Printer, Eye, Trash2, ArrowUpDown } from 'lucide-react';
 import { formatCurrency } from '@/lib/utils';
 import ReceiptModal from '@/components/transactions/ReceiptModal';
 import { useAuth } from '@/lib/use-auth';
@@ -249,48 +249,154 @@ export default function TransactionsPage() {
           </CardContent>
         </Card>
 
-        {/* Summary Cards */}
+        {/* Header KPI (4 kartu) */}
         {summary && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
-            <Card>
-              <CardContent className="p-4">
-                <div className="text-sm text-gray-600">Total Pendapatan</div>
-                <div className="text-2xl font-bold text-gray-900 mt-1">
-                  {formatCurrency(summary.totalRevenue)}
-                </div>
-                <div className="text-xs text-gray-500 mt-1">
-                  {summary.totalTransactions} transaksi
-                </div>
-              </CardContent>
-            </Card>
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-6">
+              {/* Gross Sales */}
+              <Card className="hover:shadow-md transition-shadow">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-sm font-medium text-gray-600">Gross Sales</div>
+                      <div className="text-2xl font-bold text-blue-600 mt-1">
+                        {formatCurrency(summary.grossSales || 0)}
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        Total nilai penjualan POS
+                      </div>
+                    </div>
+                    <div className="p-2 bg-blue-100 rounded-lg">
+                      <svg className="w-5 h-5 text-blue-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path d="M3 4a1 1 0 011-1h12a1 1 0 011 1v2a1 1 0 01-1 1H4a1 1 0 01-1-1V4zM3 10a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H4a1 1 0 01-1-1v-6zM14 9a1 1 0 00-1 1v6a1 1 0 001 1h2a1 1 0 001-1v-6a1 1 0 00-1-1h-2z"/>
+                      </svg>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
 
-            <Card>
-              <CardContent className="p-4">
-                <div className="text-sm text-gray-600">Pembayaran Cash</div>
-                <div className="text-2xl font-bold text-green-600 mt-1">
-                  {formatCurrency(summary.paymentBreakdown.CASH || 0)}
-                </div>
-              </CardContent>
-            </Card>
+              {/* Cash In (Operasional) */}
+              <Card className="hover:shadow-md transition-shadow">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-sm font-medium text-gray-600">Cash In (Operasional)</div>
+                      <div className="text-2xl font-bold text-green-600 mt-1">
+                        {formatCurrency(summary.cashInOperational || 0)}
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        Pemasukan kas operasional
+                      </div>
+                    </div>
+                    <div className="p-2 bg-green-100 rounded-lg">
+                      <svg className="w-5 h-5 text-green-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-8.707l-3-3a1 1 0 00-1.414 1.414L10.586 9H7a1 1 0 100 2h3.586l-1.293 1.293a1 1 0 101.414 1.414l3-3a1 1 0 000-1.414z" clipRule="evenodd"/>
+                      </svg>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
 
-            <Card>
-              <CardContent className="p-4">
-                <div className="text-sm text-gray-600">Pembayaran Transfer</div>
-                <div className="text-2xl font-bold text-blue-600 mt-1">
-                  {formatCurrency(summary.paymentBreakdown.TRANSFER || 0)}
-                </div>
-              </CardContent>
-            </Card>
+              {/* Cash Out (Operasional) */}
+              <Card className="hover:shadow-md transition-shadow">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-sm font-medium text-gray-600">Cash Out (Operasional)</div>
+                      <div className="text-2xl font-bold text-red-600 mt-1">
+                        {formatCurrency(summary.cashOutOperational || 0)}
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        Pengeluaran kas operasional
+                      </div>
+                    </div>
+                    <div className="p-2 bg-red-100 rounded-lg">
+                      <svg className="w-5 h-5 text-red-600" fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm-3.707-8.707l3-3a1 1 0 011.414 1.414L9.414 11H13a1 1 0 110 2H9.414l1.293 1.293a1 1 0 01-1.414 1.414l-3-3a1 1 0 010-1.414z" clipRule="evenodd"/>
+                      </svg>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
 
-            <Card>
-              <CardContent className="p-4">
-                <div className="text-sm text-gray-600">Rata-rata Transaksi</div>
-                <div className="text-2xl font-bold text-gray-900 mt-1">
-                  {formatCurrency(summary.averageTransaction)}
-                </div>
-              </CardContent>
-            </Card>
-          </div>
+              {/* Net Cash Flow (Operasional) */}
+              <Card className="hover:shadow-md transition-shadow">
+                <CardContent className="p-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-sm font-medium text-gray-600">Net Cash Flow (Operasional)</div>
+                      <div className={`text-2xl font-bold mt-1 ${(summary.netCashFlow || 0) >= 0 ? 'text-emerald-600' : 'text-red-600'}`}>
+                        {formatCurrency(summary.netCashFlow || 0)}
+                      </div>
+                      <div className="text-xs text-gray-500 mt-1">
+                        Cash In − Cash Out
+                      </div>
+                    </div>
+                    <div className={`p-2 rounded-lg ${(summary.netCashFlow || 0) >= 0 ? 'bg-emerald-100' : 'bg-red-100'}`}>
+                      <svg className={`w-5 h-5 ${(summary.netCashFlow || 0) >= 0 ? 'text-emerald-600' : 'text-red-600'}`} fill="currentColor" viewBox="0 0 20 20">
+                        <path fillRule="evenodd" d="M4 2a2 2 0 00-2 2v11a2 2 0 002 2V4a2 2 0 012-2h11a2 2 0 00-2-2H4z" clipRule="evenodd"/>
+                        <path fillRule="evenodd" d="M15 4H9a2 2 0 00-2 2v9a2 2 0 002 2h6a2 2 0 002-2V6a2 2 0 00-2-2zm-4.5 7a1.5 1.5 0 113 0 1.5 1.5 0 01-3 0z" clipRule="evenodd"/>
+                      </svg>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {/* Pills Metode Pembayaran & Sumber Transaksi */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 mb-6">
+              {/* Payment Methods Pills */}
+              <Card>
+                <CardContent className="p-4">
+                  <div className="text-sm font-semibold text-gray-700 mb-3">Metode Pembayaran</div>
+                  <div className="flex flex-wrap gap-2">
+                    {Object.entries(summary.paymentBreakdown || {}).map(([method, amount]) => (
+                      <button
+                        key={method}
+                        onClick={() => {
+                          // Toggle filter
+                          const isSelected = selectedPaymentMethods.includes(method);
+                          if (isSelected) {
+                            setSelectedPaymentMethods(prev => prev.filter(m => m !== method));
+                          } else {
+                            setSelectedPaymentMethods(prev => [...prev, method]);
+                          }
+                          setCurrentPage(1); // Reset pagination
+                        }}
+                        className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                          selectedPaymentMethods.includes(method)
+                            ? 'bg-teal-500 text-white'
+                            : 'bg-teal-100 text-teal-700 hover:bg-teal-200'
+                        }`}
+                      >
+                        {method} {formatCurrency(Number(amount))}
+                      </button>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Transaction Sources Pills */}
+              <Card>
+                <CardContent className="p-4">
+                  <div className="text-sm font-semibold text-gray-700 mb-3">Sumber Transaksi</div>
+                  <div className="flex flex-wrap gap-2">
+                    {Object.entries(summary.sourceBreakdown || {}).map(([type, amount]) => {
+                      const typeInfo = getTransactionTypeLabel(type);
+                      return (
+                        <div
+                          key={type}
+                          className={`px-3 py-1.5 rounded-full text-sm font-medium ${typeInfo.color}`}
+                        >
+                          {typeInfo.label} {formatCurrency(Number(amount))}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+          </>
         )}
 
         {/* Transactions Table */}
