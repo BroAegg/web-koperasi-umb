@@ -25,7 +25,8 @@ import {
   DollarSign,
   Plus,
   Download,
-  TrendingUp
+  TrendingUp,
+  Calendar
 } from 'lucide-react';
 import { ShoppingCart, Receipt, TrendingDown } from 'lucide-react';
 
@@ -381,20 +382,99 @@ export default function FinancialPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Pencatatan Keuangan</h1>
-          <p className="text-gray-600 mt-1">Kelola transaksi dan laporan keuangan harian</p>
+          <h1 className="text-3xl font-bold text-gray-900">Pusat Keuangan Koperasi</h1>
+          <p className="text-gray-600 mt-1">Dashboard keuangan menyeluruh dari semua sumber dana</p>
         </div>
         <div className="mt-4 md:mt-0 flex gap-3">
           <Button variant="outline" size="sm">
             <Download className="w-4 h-4 mr-2" />
-            Export
-          </Button>
-          <Button size="sm" onClick={() => setShowAddModal(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Catat Pemasukan/Pengeluaran
+            Export Laporan
           </Button>
         </div>
       </div>
+
+      {/* Global Period Filter - Pill Buttons */}
+      <Card className="shadow-sm border-2 border-blue-100 bg-gradient-to-r from-blue-50/50 to-indigo-50/50">
+        <CardContent className="p-4">
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div className="flex items-center gap-2">
+              <Calendar className="w-5 h-5 text-blue-600" />
+              <span className="text-sm font-semibold text-gray-700">Filter Periode:</span>
+            </div>
+            
+            <div className="flex items-center gap-2 flex-wrap">
+              {/* Hari Ini */}
+              <button
+                onClick={() => {
+                  setFinancialPeriod('today');
+                  setIsCustomDate(false);
+                  setSelectedDate(new Date().toISOString().split('T')[0]);
+                }}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
+                  financialPeriod === 'today' && !isCustomDate
+                    ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/30 scale-105'
+                    : 'bg-white text-gray-700 border-2 border-gray-200 hover:border-blue-300 hover:bg-blue-50'
+                }`}
+              >
+                Hari Ini
+              </button>
+
+              {/* Minggu Ini (7 days) */}
+              <button
+                onClick={() => {
+                  setFinancialPeriod('7days');
+                  setIsCustomDate(false);
+                }}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
+                  financialPeriod === '7days'
+                    ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/30 scale-105'
+                    : 'bg-white text-gray-700 border-2 border-gray-200 hover:border-blue-300 hover:bg-blue-50'
+                }`}
+              >
+                Minggu Ini
+              </button>
+
+              {/* Bulan Ini (1 month) */}
+              <button
+                onClick={() => {
+                  setFinancialPeriod('1month');
+                  setIsCustomDate(false);
+                }}
+                className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 ${
+                  financialPeriod === '1month'
+                    ? 'bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/30 scale-105'
+                    : 'bg-white text-gray-700 border-2 border-gray-200 hover:border-blue-300 hover:bg-blue-50'
+                }`}
+              >
+                Bulan Ini
+              </button>
+
+              {/* Kustom (Date Picker) */}
+              <div className="relative">
+                <input
+                  type="date"
+                  value={selectedDate}
+                  onChange={(e) => {
+                    setSelectedDate(e.target.value);
+                    setIsCustomDate(true);
+                  }}
+                  className="absolute inset-0 opacity-0 cursor-pointer w-full h-full"
+                />
+                <button
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition-all duration-200 flex items-center gap-2 ${
+                    isCustomDate
+                      ? 'bg-gradient-to-r from-purple-500 to-purple-600 text-white shadow-lg shadow-purple-500/30 scale-105'
+                      : 'bg-white text-gray-700 border-2 border-gray-200 hover:border-purple-300 hover:bg-purple-50'
+                  }`}
+                >
+                  <Calendar className="w-4 h-4" />
+                  {isCustomDate ? new Date(selectedDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' }) : 'Kustom'}
+                </button>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Financial Summary Card - Full Width */}
       {dailySummary && (
@@ -442,7 +522,6 @@ export default function FinancialPage() {
             onEdit={handleEditTransaction}
             onDelete={handleDeleteTransaction}
             onShowAddModal={() => setShowAddModal(true)}
-            compact={true}
           />
         </CardContent>
       </Card>
@@ -504,6 +583,37 @@ export default function FinancialPage() {
           setSelectedTransaction(null);
         }}
       />
+
+      {/* Floating Action Button - Bottom Right */}
+      <button
+        onClick={() => setShowAddModal(true)}
+        className="fixed bottom-8 right-8 z-50 group"
+        aria-label="Catat Transaksi"
+      >
+        {/* FAB with gradient and shadow */}
+        <div className="relative">
+          {/* Pulsing ring animation */}
+          <div className="absolute inset-0 bg-emerald-500 rounded-full animate-ping opacity-20"></div>
+          
+          {/* Main FAB button */}
+          <div className="relative flex items-center gap-3 bg-gradient-to-br from-emerald-500 to-green-600 text-white rounded-full shadow-2xl hover:shadow-emerald-500/50 transition-all duration-300 hover:scale-110 active:scale-95">
+            {/* Icon circle */}
+            <div className="p-5">
+              <Plus className="w-7 h-7" strokeWidth={3} />
+            </div>
+            
+            {/* Expandable label */}
+            <div className="overflow-hidden max-w-0 group-hover:max-w-xs transition-all duration-300 ease-out">
+              <span className="font-bold text-base whitespace-nowrap pr-5">
+                Catat Pemasukan/Pengeluaran
+              </span>
+            </div>
+          </div>
+          
+          {/* Glow effect */}
+          <div className="absolute inset-0 bg-emerald-400 rounded-full blur-xl opacity-30 group-hover:opacity-50 transition-opacity"></div>
+        </div>
+      </button>
 
     </div>
   );
