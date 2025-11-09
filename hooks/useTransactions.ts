@@ -32,6 +32,12 @@ interface TransactionSummary {
   totalTransactions: number;
   paymentBreakdown: Record<string, number>;
   averageTransaction: number;
+  // New KPI fields
+  grossSales: number;
+  cashInOperational: number;
+  cashOutOperational: number;
+  netCashFlow: number;
+  sourceBreakdown: Record<string, number>;
 }
 
 interface PaginationInfo {
