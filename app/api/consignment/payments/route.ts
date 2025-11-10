@@ -4,6 +4,7 @@ import { getUserFromToken } from '@/lib/auth';
 import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth-options';
 import { nanoid } from 'nanoid';
+import { randomUUID } from 'crypto';
 
 // Helper function to calculate period dates
 function getPeriodDates(period: string): { periodStart: Date; periodEnd: Date } {
@@ -235,6 +236,74 @@ export async function POST(req: NextRequest) {
         });
         console.log(`[Payment] Transaction created: ${transactionId}`);
 
+        // 📦 RETURN REMAINING GOODS FIRST (if requested) - before creating payment record
+        let returnedBatches: any[] = [];
+        if (returnRemaining) {
+          console.log(`[Payment] 📦 Processing return of remaining goods for consignor ${supplierId}...`);
+          
+          // Find all batches with remaining quantity
+          const batchesToReturn = await prisma.consignment_batches.findMany({
+            where: {
+              consignorId: supplierId,
+              qtyRemaining: { gt: 0 },
+              status: 'ACTIVE'
+            },
+            include: {
+              products: {
+                select: { id: true, name: true, stock: true }
+              }
+            }
+          });
+
+          console.log(`[Payment] Found ${batchesToReturn.length} batches with remaining goods`);
+
+          // Process each batch
+          for (const batch of batchesToReturn) {
+            const qtyToReturn = batch.qtyRemaining;
+            
+            // Update batch: move qtyRemaining to qtyReturned
+            await prisma.consignment_batches.update({
+              where: { id: batch.id },
+              data: {
+                qtyReturned: batch.qtyReturned + qtyToReturn,
+                qtyRemaining: 0,
+                status: 'RETURNED' // Mark as returned
+              }
+            });
+
+            // Reset product stock to 0 (goods returned to supplier)
+            await prisma.products.update({
+              where: { id: batch.productId },
+              data: {
+                stock: 0 // Reset to 0, ready for next day restock
+              }
+            });
+
+            // Create stock movement record for the return
+            await prisma.stock_movements.create({
+              data: {
+                id: randomUUID(),
+                productId: batch.productId,
+                movementType: 'RETURN_OUT', // Use existing enum value for consignment returns
+                quantity: -qtyToReturn, // Negative for return/outgoing
+                note: `Pengembalian barang titipan ke konsinyasi - Batch ${batch.code}`
+              }
+            });
+
+            returnedBatches.push({
+              batchId: batch.id,
+              batchCode: batch.code,
+              productId: batch.productId,
+              productName: batch.products.name,
+              qty: qtyToReturn
+            });
+
+            console.log(`[Payment] ✅ Returned ${qtyToReturn} pcs of ${batch.products.name} (batch: ${batch.code})`);
+          }
+
+          console.log(`[Payment] ✅ Total returned: ${returnedBatches.length} batches, ${returnedBatches.reduce((sum, r) => sum + r.qty, 0)} pcs`);
+        }
+
         // Create consignment payment record
         console.log(`[Payment] Creating payment record...`);
         await prisma.consignment_payments.create({
@@ -253,6 +322,10 @@ export async function POST(req: NextRequest) {
             metadata: {
               paidBy: user.name,
               paidAt: new Date().toISOString(),
+              hasReturn: returnRemaining,
+              returnedBatches: returnRemaining ? returnedBatches : undefined,
+              totalReturnedQty: returnRemaining ? returnedBatches.reduce((sum: number, r: any) => sum + r.qty, 0) : 0,
+              totalReturnedProducts: returnRemaining ? returnedBatches.length : 0
             },
             createdAt: new Date(),
             updatedAt: new Date(),
@@ -293,84 +366,31 @@ export async function POST(req: NextRequest) {
         console.warn(`[Payment] ⚠️ No unsettled sales found for supplier ${supplierId} - Payment will be recorded as advance/prepayment`);
       }
 
-      // 📦 RETURN REMAINING GOODS (if requested)
-      let returnedBatches: any[] = [];
-      if (returnRemaining) {
-        console.log(`[Payment] 📦 Processing return of remaining goods for consignor ${supplierId}...`);
+      // Log return activity (if any returns were processed)
+      if (returnRemaining && returnedBatches.length > 0) {
+        const returnLogId = `ALOG-${nanoid(10)}`;
+        const returnSummary = returnedBatches.map(r => `${r.qty} pcs ${r.productName}`).join(', ');
         
-        // Find all batches with remaining quantity
-        const batchesToReturn = await prisma.consignment_batches.findMany({
-          where: {
-            consignorId: supplierId,
-            qtyRemaining: { gt: 0 },
-            status: 'ACTIVE'
-          },
-          include: {
-            products: {
-              select: { id: true, name: true, stock: true }
-            }
-          }
-        });
-
-        console.log(`[Payment] Found ${batchesToReturn.length} batches with remaining goods`);
-
-        // Process each batch
-        for (const batch of batchesToReturn) {
-          const qtyToReturn = batch.qtyRemaining;
-          
-          // Update batch: move qtyRemaining to qtyReturned
-          await prisma.consignment_batches.update({
-            where: { id: batch.id },
-            data: {
-              qtyReturned: batch.qtyReturned + qtyToReturn,
-              qtyRemaining: 0,
-              status: 'RETURNED' // Mark as returned
-            }
-          });
-
-          // Update product stock (reduce because goods are returned)
-          await prisma.products.update({
-            where: { id: batch.productId },
-            data: {
-              stock: Math.max(0, batch.products.stock - qtyToReturn) // Prevent negative
-            }
-          });
-
-          returnedBatches.push({
-            batchId: batch.id,
-            productName: batch.products.name,
-            qty: qtyToReturn
-          });
-
-          console.log(`[Payment] ✅ Returned ${qtyToReturn} pcs of ${batch.products.name} (batch: ${batch.code})`);
-        }
-
-        // Log return activity
-        if (returnedBatches.length > 0) {
-          const returnLogId = `ALOG-${nanoid(10)}`;
-          const returnSummary = returnedBatches.map(r => `${r.qty} pcs ${r.productName}`).join(', ');
-          
-          await prisma.activity_logs.create({
-            data: {
-              id: returnLogId,
-              userId: (user as any).id,
-              userRole: (user as any).role as any,
-              action: 'CONSIGNMENT_RETURN',
-              module: 'INVENTORY',
-              description: `Return Barang Titipan ke ${consignor.name}: ${returnSummary}`,
-              metadata: { 
-                supplierId, 
-                consignorName: consignor.name,
-                returnedBatches,
-                totalQty: returnedBatches.reduce((sum, r) => sum + r.qty, 0),
-                paymentId 
-              },
-              isProduction: user.developerSession?.isProduction ?? true,
+        await prisma.activity_logs.create({
+          data: {
+            id: returnLogId,
+            userId: (user as any).id,
+            userRole: (user as any).role as any,
+            action: 'CONSIGNMENT_RETURN',
+            module: 'INVENTORY',
+            description: `Return Barang Titipan ke ${consignor.name}: ${returnSummary}`,
+            metadata: { 
+              supplierId, 
+              consignorName: consignor.name,
+              returnedBatches,
+              totalQty: returnedBatches.reduce((sum, r) => sum + r.qty, 0),
+              paymentId 
             },
-          });
-          
-          console.log(`[Payment] ✅ Logged return activity: ${returnedBatches.length} batches returned`);
-        }
+            isProduction: user.developerSession?.isProduction ?? true,
+          },
+        });
+        
+        console.log(`[Payment] ✅ Logged return activity: ${returnedBatches.length} batches returned`);
       }
 
       // Create activity log for payment

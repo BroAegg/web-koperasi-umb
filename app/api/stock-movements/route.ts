@@ -227,6 +227,101 @@ async function handleCreateStockMovement(request: NextRequest) {
         },
       });
 
+      // 📦 HANDLE CONSIGNMENT_BATCH for TITIPAN products
+      if (product.ownershipType === 'TITIPAN' && movementType === 'CONSIGNMENT_IN' && product.supplierId) {
+        console.log(`[Stock Movement] Creating/Updating consignment_batch for TITIPAN product: ${product.name}`);
+        
+        // Ensure consignor exists (auto-migrate from suppliers if needed)
+        let consignorId = product.supplierId;
+        let consignor = await tx.consignors.findUnique({
+          where: { id: consignorId }
+        });
+
+        if (!consignor) {
+          console.log(`[Stock Movement] Consignor not found, checking suppliers table...`);
+          
+          const supplier = await tx.suppliers.findUnique({
+            where: { id: consignorId },
+            select: { id: true, businessName: true, ownerName: true, phone: true, address: true }
+          });
+
+          if (supplier) {
+            console.log(`[Stock Movement] Creating consignor from supplier: ${supplier.businessName}`);
+            
+            consignor = await tx.consignors.create({
+              data: {
+                id: supplier.id,
+                code: `CSG-${Date.now()}`,
+                name: supplier.businessName,
+                contact: supplier.ownerName,
+                phone: supplier.phone,
+                address: supplier.address,
+                feeType: 'PERCENTAGE',
+                defaultFeePercent: 10,
+                isActive: true,
+                updatedAt: new Date(),
+              }
+            });
+            
+            console.log(`[Stock Movement] ✅ Created consignor: ${consignor.name}`);
+          } else {
+            console.error(`[Stock Movement] ❌ Supplier ${consignorId} not found!`);
+            // Don't skip - just log warning and continue without creating batch
+            consignor = null;
+          }
+        }
+        
+        // Only create/update batch if consignor exists
+        if (consignor) {
+          // Check if there's an active batch for this product
+          const existingBatch = await tx.consignment_batches.findFirst({
+          where: {
+            productId: productId,
+            status: 'ACTIVE',
+            consignorId: consignor.id
+          }
+        });
+
+        if (existingBatch) {
+          // Update existing batch
+          await tx.consignment_batches.update({
+            where: { id: existingBatch.id },
+            data: {
+              qtyIn: existingBatch.qtyIn + parseInt(quantity),
+              qtyRemaining: existingBatch.qtyRemaining + parseInt(quantity),
+              updatedAt: new Date(),
+            },
+          });
+          console.log(`[Stock Movement] ✅ Updated existing batch: ${existingBatch.code} (+${quantity} pcs)`);
+        } else {
+          // Create new batch
+          const batchCode = `CB-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+          const defaultFeePercent = 10;
+          
+          await tx.consignment_batches.create({
+            data: {
+              id: randomUUID(),
+              code: batchCode,
+              consignorId: consignor.id, // Use consignor.id
+              productId: productId,
+              qtyIn: parseInt(quantity),
+              qtySold: 0,
+              qtyReturned: 0,
+              qtyExpired: 0,
+              qtyRemaining: parseInt(quantity),
+              feeType: 'PERCENTAGE',
+              feePercent: defaultFeePercent,
+              receivedAt: new Date(),
+              status: 'ACTIVE',
+              note: note || 'Auto-created from stock movement',
+              updatedAt: new Date(),
+            },
+          });
+          console.log(`[Stock Movement] ✅ Created new consignment_batch: ${batchCode} (${quantity} pcs)`);
+        }
+        } // Close if (consignor)
+      } // Close if (product.ownershipType === 'TITIPAN')
+
       // If it's a sale (OUT movement), create a Transaction record
       let transaction = null;
       if (type.toUpperCase() === 'OUT') {

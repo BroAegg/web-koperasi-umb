@@ -118,6 +118,7 @@ export default function InventoryPage() {
     paymentMethod: string;
     createdAt: string;
     note?: string;
+    metadata?: any; // Add metadata field for return info
   }>>([]);
   const [recentPaymentAttempts, setRecentPaymentAttempts] = useState<Record<string, number>>({});
   
@@ -504,6 +505,20 @@ export default function InventoryPage() {
   useEffect(() => {
     fetchPeriodFinancialData();
   }, [financialPeriod, selectedDate]);
+
+  // Lock body scroll when payment confirmation modal is open
+  useEffect(() => {
+    if (showPaymentConfirmModal) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = 'unset';
+    }
+    
+    // Cleanup on unmount
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, [showPaymentConfirmModal]);
 
   // Price formatting helper
   const formatPriceInput = (value: string) => {
@@ -2343,8 +2358,8 @@ export default function InventoryPage() {
 
       {/* Payment Confirmation Modal */}
       {showPaymentConfirmModal && pendingPayment && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md animate-in fade-in zoom-in duration-200">
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 p-4 overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md animate-in fade-in zoom-in duration-200 my-8">
             {/* Header */}
             <div className="bg-gradient-to-r from-purple-600 to-purple-700 p-6 text-white rounded-t-2xl">
               <h3 className="text-xl font-bold">Konfirmasi Pembayaran</h3>
@@ -2432,6 +2447,7 @@ export default function InventoryPage() {
                   setShowPaymentConfirmModal(false);
                   setPendingPayment(null);
                   setPaymentNote('');
+                  setReturnRemaining(false);
                 }}
                 className="flex-1 bg-gray-300 hover:bg-gray-400 text-gray-700 font-semibold py-3 px-4 rounded-lg transition-all hover:scale-105"
               >
@@ -2490,7 +2506,16 @@ export default function InventoryPage() {
                 </div>
               ) : (
                 <div className="space-y-4">
-                  {consignmentPaymentHistory.map((payment, index) => {
+                  {consignmentPaymentHistory.map((payment: {
+                    id: string;
+                    supplierName: string;
+                    amount: number;
+                    period: string;
+                    paymentMethod: string;
+                    createdAt: string;
+                    note?: string;
+                    metadata?: any;
+                  }, index: number) => {
                     const paymentDate = new Date(payment.createdAt);
                     const supplierInfo = periodFinancialData.consignmentBreakdown?.find(
                       s => s.supplierId === payment.supplierName
@@ -2575,6 +2600,35 @@ export default function InventoryPage() {
                               <div className="mt-3 p-2 bg-gray-50 rounded text-sm text-gray-600">
                                 <span className="font-medium">Catatan: </span>
                                 {payment.note}
+                              </div>
+                            )}
+
+                            {/* Return Info */}
+                            {payment.metadata && typeof payment.metadata === 'object' && (payment.metadata as any).hasReturn && (
+                              <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                                <div className="flex items-center gap-2 mb-2">
+                                  <svg className="w-5 h-5 text-amber-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+                                  </svg>
+                                  <span className="font-semibold text-amber-800">Barang Dikembalikan</span>
+                                </div>
+                                <div className="text-sm text-amber-700">
+                                  <p>
+                                    <span className="font-bold">{(payment.metadata as any).totalReturnedQty}</span> pcs dari{' '}
+                                    <span className="font-bold">{(payment.metadata as any).totalReturnedProducts}</span> produk
+                                  </p>
+                                  {(payment.metadata as any).returnedBatches && (payment.metadata as any).returnedBatches.length > 0 && (
+                                    <div className="mt-2 space-y-1">
+                                      <p className="text-xs font-medium text-amber-800">Detail:</p>
+                                      {(payment.metadata as any).returnedBatches.map((batch: any, idx: number) => (
+                                        <div key={idx} className="text-xs bg-amber-100 px-2 py-1 rounded flex justify-between">
+                                          <span className="truncate">{batch.productName}</span>
+                                          <span className="font-medium ml-2">{batch.qty} pcs</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                  )}
+                                </div>
                               </div>
                             )}
                           </div>

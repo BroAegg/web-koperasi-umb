@@ -562,6 +562,7 @@ enum MemberStatus {
 enum MovementType {
   PURCHASE_IN
   CONSIGNMENT_IN
+  CONSIGNMENT_RETURN
   SALE_OUT
   RETURN_IN
   RETURN_OUT

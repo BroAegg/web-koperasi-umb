@@ -223,6 +223,91 @@ async function handleCreateProduct(request: NextRequest) {
           note: 'Initial stock',
         },
       });
+
+      // 📦 CREATE CONSIGNMENT_BATCH for TITIPAN products
+      if (ownershipType === 'TITIPAN' && supplierId) {
+        console.log(`[Create Product] Creating consignment_batch for TITIPAN product: ${name}`);
+        
+        // Check if consignor exists, if not create one from supplier data
+        // @ts-ignore
+        let consignor = await prisma.consignors.findUnique({
+          where: { id: supplierId }
+        });
+
+        if (!consignor) {
+          console.log(`[Create Product] Consignor not found, checking suppliers table...`);
+          
+          // @ts-ignore
+          const supplier = await prisma.suppliers.findUnique({
+            where: { id: supplierId },
+            select: { id: true, businessName: true, ownerName: true, phone: true, address: true }
+          });
+
+          if (supplier) {
+            console.log(`[Create Product] Creating consignor from supplier: ${supplier.businessName}`);
+            
+            // Create consignor from supplier data
+            // @ts-ignore
+            consignor = await prisma.consignors.create({
+              data: {
+                id: supplier.id,
+                code: `CSG-${Date.now()}`,
+                name: supplier.businessName,
+                contact: supplier.ownerName,
+                phone: supplier.phone,
+                address: supplier.address,
+                feeType: 'PERCENTAGE',
+                defaultFeePercent: new Decimal(10),
+                isActive: true,
+                updatedAt: new Date(),
+              }
+            });
+            
+            console.log(`[Create Product] ✅ Created consignor: ${consignor.name}`);
+          } else {
+            console.error(`[Create Product] ❌ Supplier ${supplierId} not found in either table!`);
+            // Don't create batch if no supplier/consignor found
+            return NextResponse.json({
+              success: true,
+              data: {
+                ...product,
+                buyPrice: product.buyPrice ? Number(product.buyPrice) : null,
+                avgCost: product.avgCost ? Number(product.avgCost) : null,
+                sellPrice: Number(product.sellPrice),
+              },
+            }, { status: 201 });
+          }
+        }
+        
+        // Generate unique batch code
+        const batchCode = `CB-${Date.now()}-${Math.random().toString(36).substr(2, 6).toUpperCase()}`;
+        
+        // Default fee: 10% (can be customized per supplier)
+        const defaultFeePercent = 10;
+        
+        // @ts-ignore
+        await prisma.consignment_batches.create({
+          data: {
+            id: randomUUID(),
+            code: batchCode,
+            consignorId: consignor.id, // Use consignor.id instead of supplierId
+            productId: product.id,
+            qtyIn: parseInt(stock.toString()),
+            qtySold: 0,
+            qtyReturned: 0,
+            qtyExpired: 0,
+            qtyRemaining: parseInt(stock.toString()),
+            feeType: 'PERCENTAGE',
+            feePercent: new Decimal(defaultFeePercent),
+            receivedAt: new Date(),
+            status: 'ACTIVE',
+            note: 'Auto-created from product creation',
+            updatedAt: new Date(),
+          },
+        });
+        
+        console.log(`[Create Product] ✅ Created consignment_batch: ${batchCode} (${stock} pcs)`);
+      }
     }
 
     return NextResponse.json({
