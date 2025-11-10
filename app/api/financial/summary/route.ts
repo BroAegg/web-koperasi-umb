@@ -433,6 +433,7 @@ export async function GET(request: NextRequest) {
         ...summary.daily,
         cumulativeBalance, // Kirim saldo kumulatif ke frontend
         breakdown: summary.breakdown,
+        breakdownDetails: summary.breakdownDetails, // Kirim detailed breakdown
         topCashIn,
         topCashOut,
         updatedAt: summary.updatedAt,
