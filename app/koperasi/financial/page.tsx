@@ -200,6 +200,7 @@ export default function FinancialPage() {
           transactionCount: summaryResult.data.transactions?.length || 0,
           cumulativeBalance: balanceResult.data?.cumulativeBalance || 0, // All-time balance
           breakdown: balanceResult.data?.breakdown || { kasToko: 0, simpanan: 0, pinjaman: 0, titipan: 0 },
+          breakdownDetails: balanceResult.data?.breakdownDetails, // Detailed breakdown for tooltips
           topCashIn: balanceResult.data?.topCashIn || [],
           topCashOut: balanceResult.data?.topCashOut || [],
           updatedAt: balanceResult.data?.updatedAt || new Date().toISOString(),
