@@ -317,9 +317,7 @@ export function FinancialSummaryCard({
                     <span className="text-xs font-medium text-gray-700">Titipan</span>
                     <Info className="w-3 h-3 text-gray-400 hover:text-purple-500 cursor-help" />
                   </div>
-                  <span className={`text-lg font-bold ${(summary.breakdown?.titipan || 0) > 0 ? 'text-purple-600' : 'text-gray-900'}`}>
-                    {formatCurrency(summary.breakdown?.titipan || 0)}
-                  </span>
+                  <span className="text-lg font-bold text-gray-900">{formatCurrency(summary.breakdown?.titipan || 0)}</span>
                   {/* Tooltip */}
                   <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-[100] shadow-xl">
                     Utang ke supplier konsinyasi
