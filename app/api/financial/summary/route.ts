@@ -271,8 +271,14 @@ export async function GET(request: NextRequest) {
       },
     });
 
+    let simpananPokok = 0;
+    let simpananWajib = 0;
+    let simpananSukarela = 0;
     let simpanan = 0;
     allMembers.forEach((member: any) => {
+      simpananPokok += Number(member.simpananPokok || 0);
+      simpananWajib += Number(member.simpananWajib || 0);
+      simpananSukarela += Number(member.simpananSukarela || 0);
       simpanan += Number(member.simpananPokok || 0);
       simpanan += Number(member.simpananWajib || 0);
       simpanan += Number(member.simpananSukarela || 0);
@@ -378,6 +384,25 @@ export async function GET(request: NextRequest) {
         simpanan,
         pinjaman,
         titipan,
+      },
+      breakdownDetails: {
+        kasToko: {
+          toko: kasToko,
+          total: kasToko,
+        },
+        simpanan: {
+          pokok: simpananPokok,
+          wajib: simpananWajib,
+          sukarela: simpananSukarela,
+          total: simpanan,
+        },
+        pinjaman: {
+          // Placeholder for future implementation
+          total: pinjaman,
+        },
+        titipan: {
+          total: titipan,
+        },
       },
       daily: {
         totalIncome,

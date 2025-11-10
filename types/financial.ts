@@ -45,6 +45,25 @@ export interface BalanceBreakdown {
   titipan: number;
 }
 
+export interface BreakdownDetails {
+  kasToko: {
+    toko: number;
+    total: number;
+  };
+  simpanan: {
+    pokok: number;
+    wajib: number;
+    sukarela: number;
+    total: number;
+  };
+  pinjaman: {
+    total: number;
+  };
+  titipan: {
+    total: number;
+  };
+}
+
 export interface CashFlowSource {
   source: string;
   amount: number;
@@ -58,6 +77,7 @@ export interface DailySummary {
   transactionCount: number;
   cumulativeBalance?: number; // Saldo kumulatif dari awal waktu
   breakdown?: BalanceBreakdown; // Breakdown by source
+  breakdownDetails?: BreakdownDetails; // Detailed breakdown with sub-categories
   topCashIn?: CashFlowSource[]; // Top 3 cash in sources
   topCashOut?: CashFlowSource[]; // Top 3 cash out sources
   updatedAt?: string; // Last update timestamp
