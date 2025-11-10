@@ -289,9 +289,54 @@ export async function GET(request: NextRequest) {
       }
     });
 
-    // For now, pinjaman and titipan are 0 (to be implemented in future phases)
+    // Calculate Titipan (consignment liability)
+    // Titipan = Dana dari penjualan barang konsinyasi yang belum dibayar ke supplier
+    // @ts-ignore
+    const consignmentSales = await prisma.transaction_items.findMany({
+      where: {
+        transactions: {
+          type: 'SALE',
+          status: 'COMPLETED',
+          date: { lte: new Date() },
+        },
+        products: {
+          OR: [
+            { ownershipType: 'TITIPAN' },
+            { isConsignment: true },
+          ],
+        },
+      },
+      include: {
+        transactions: true,
+        products: true,
+      },
+    });
+
+    // @ts-ignore
+    const consignmentPayments = await prisma.transactions.findMany({
+      where: {
+        type: 'EXPENSE',
+        note: { contains: 'Pembayaran Titipan' },
+        status: 'COMPLETED',
+        date: { lte: new Date() },
+      },
+    });
+
+    // Titipan = Total COGS barang konsinyasi yang terjual - Total pembayaran ke supplier
+    let titipanFromSales = 0;
+    consignmentSales.forEach((item: any) => {
+      titipanFromSales += Number(item.totalCogs || 0);
+    });
+
+    let titipanPayments = 0;
+    consignmentPayments.forEach((payment: any) => {
+      titipanPayments += Number(payment.totalAmount);
+    });
+
+    const titipan = titipanFromSales - titipanPayments; // Saldo utang ke supplier
+
+    // For now, pinjaman is 0 (to be implemented in future phases)
     const pinjaman = 0;
-    const titipan = 0;
 
     // Calculate top cash in sources (group by transaction type/note)
     const cashInSources: Record<string, number> = {};
@@ -317,6 +362,8 @@ export async function GET(request: NextRequest) {
           source = 'Pembelian Inventory';
         } else if (t.note && t.note.startsWith('Penarikan Simpanan')) {
           source = 'Penarikan Simpanan Anggota';
+        } else if (t.note && t.note.includes('Pembayaran Titipan')) {
+          source = 'Pembayaran Titipan Supplier';
         }
         
         cashOutSources[source] = (cashOutSources[source] || 0) + Number(t.totalAmount);
