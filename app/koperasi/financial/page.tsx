@@ -1,7 +1,6 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
 import { Card, CardHeader, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -26,20 +25,11 @@ import {
   DollarSign,
   Plus,
   Download,
-  TrendingUp,
-  FileText,
-  FileSpreadsheet,
-  Calendar
+  TrendingUp
 } from 'lucide-react';
 import { ShoppingCart, Receipt, TrendingDown } from 'lucide-react';
-import { exportEnhancedFinancialPDF, exportEnhancedFinancialExcel } from '@/lib/financial-export';
-import { calculateProfitData, enrichTransactionsWithProfit } from '@/lib/profit-calculator';
-import DatePicker from 'react-datepicker';
-import 'react-datepicker/dist/react-datepicker.css';
 
 export default function FinancialPage() {
-  const router = useRouter();
-  
   // Authorization check - Only SUPER_ADMIN and ADMIN can access
   const { user, loading: authLoading, authorized } = useAuth(['SUPER_ADMIN', 'ADMIN']);
   
@@ -56,12 +46,6 @@ export default function FinancialPage() {
   const [editingTransaction, setEditingTransaction] = useState<string | null>(null);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [dailySummary, setDailySummary] = useState<DailySummary | null>(null);
-  
-  // Date range for custom reports
-  const [startDate, setStartDate] = useState<Date>(new Date());
-  const [endDate, setEndDate] = useState<Date>(new Date());
-  const [showDatePicker, setShowDatePicker] = useState(false);
-  const [isExporting, setIsExporting] = useState(false);
   
   const { success, error, warning, confirm, info } = useNotification();
 
@@ -88,6 +72,20 @@ export default function FinancialPage() {
     setNewTransaction(prev => ({ ...prev, amount: numericValue }));
   };
 
+  // Early return if not authorized
+  useEffect(() => {
+    if (!authLoading && !authorized) {
+      window.location.href = '/login';
+    }
+  }, [authLoading, authorized]);
+
+  useEffect(() => {
+    if (authorized) {
+      fetchTransactions();
+      fetchFinancialSummary();
+    }
+  }, [financialPeriod, selectedDate, authorized]); // Trigger on period or date change
+
   // Effect untuk menginisialisasi formatted amount ketika editing
   useEffect(() => {
     if (newTransaction.amount) {
@@ -97,67 +95,23 @@ export default function FinancialPage() {
     }
   }, [newTransaction.amount]);
 
-  // Debug: Log auth state
-  useEffect(() => {
-    console.log('[Financial Page] Auth State:', {
-      authLoading,
-      authorized,
-      user: user ? { email: user.email, role: user.role } : null
-    });
-  }, [authLoading, authorized, user]);
-
-  // Redirect if not authorized - COMPLETELY DISABLED
-  useEffect(() => {
-    if (!authLoading && !authorized) {
-      console.log('[Financial Page] ⚠️ NOT AUTHORIZED - BUT NO REDIRECT!');
-    }
-  }, [authLoading, authorized, router, user]);
-
-  useEffect(() => {
-    if (authorized) {
-      fetchTransactions();
-      fetchDailySummary();
-    }
-  }, [financialPeriod, authorized]);
-
-  // Auth checks - show loading/unauthorized states
-  if (authLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Memuat...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!authorized) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-center">
-          <div className="bg-red-100 p-6 rounded-lg">
-            <h2 className="text-xl font-bold text-red-600 mb-2">Akses Ditolak</h2>
-            <p className="text-gray-700">Anda tidak memiliki akses ke halaman ini.</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   const fetchTransactions = async () => {
     try {
       setLoading(true);
-      // REMOVED OLD AUTH - Now using NextAuth session cookies
-      // const token = localStorage.getItem('token');
-      // if (!token) {
-      //   error('Sesi Berakhir', 'Silakan login kembali');
-      //   window.location.href = '/login';
-      //   return;
-      // }
+      const token = localStorage.getItem('token');
+      if (!token) {
+        error('Sesi Berakhir', 'Silakan login kembali');
+        window.location.href = '/login';
+        return;
+      }
 
       // Use period API instead of date-specific API to follow dropdown period
-      const response = await fetch(`/api/financial/period?period=${financialPeriod}`);
+      const response = await fetch(`/api/financial/period?period=${financialPeriod}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
       
       if (!response.ok) {
         throw new Error(`API error: ${response.status}`);
@@ -206,33 +160,56 @@ export default function FinancialPage() {
     }
   };
 
-  const fetchDailySummary = async () => {
+  const fetchFinancialSummary = async () => {
     try {
-      // REMOVED OLD AUTH - Now using NextAuth session cookies
+      const token = localStorage.getItem('token');
+      if (!token) return;
 
-      // Use current financialPeriod instead of hardcoded 'today'
-      const response = await fetch(`/api/financial/period?period=${financialPeriod}`);
+      // Use period API to get summary data that respects the selected period
+      const summaryResponse = await fetch(`/api/financial/period?period=${financialPeriod}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
       
-      if (!response.ok) {
-        throw new Error(`API error: ${response.status}`);
+      if (!summaryResponse.ok) {
+        throw new Error(`API error: ${summaryResponse.status}`);
       }
 
-      const result = await response.json();
+      const summaryResult = await summaryResponse.json();
       
-      if (result.success) {
-        // Map period API response to dailySummary format
+      if (summaryResult.success) {
+        // Also fetch cumulative balance from summary API (all-time balance)
+        const balanceResponse = await fetch(`/api/financial/summary?date=${selectedDate}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+        });
+        
+        const balanceResult = await balanceResponse.json();
+        
+        // Use period API data for income/expense (respects period selection)
+        // But use summary API for cumulativeBalance (all-time)
         setDailySummary({
           date: selectedDate,
-          totalIncome: result.data.totalRevenue,
-          totalExpense: result.data.totalExpense, // ✅ FIXED: Use actual expense (not COGS)
-          netIncome: result.data.totalProfit,
-          transactionCount: result.data.totalSoldItems,
-          toko: result.data.toko || { revenue: 0, cogs: 0, profit: 0 },
-          consignment: result.data.consignment || { grossRevenue: 0, cogs: 0, profit: 0 },
+          totalIncome: summaryResult.data.totalRevenue || 0, // From period API
+          totalExpense: summaryResult.data.totalExpense || 0, // From period API
+          netIncome: (summaryResult.data.totalRevenue || 0) - (summaryResult.data.totalExpense || 0),
+          transactionCount: summaryResult.data.transactions?.length || 0,
+          cumulativeBalance: balanceResult.data?.cumulativeBalance || 0, // All-time balance
+          breakdown: balanceResult.data?.breakdown || { kasToko: 0, simpanan: 0, pinjaman: 0, titipan: 0 },
+          breakdownDetails: balanceResult.data?.breakdownDetails, // Detailed breakdown for tooltips
+          topCashIn: balanceResult.data?.topCashIn || [],
+          topCashOut: balanceResult.data?.topCashOut || [],
+          updatedAt: balanceResult.data?.updatedAt || new Date().toISOString(),
+          toko: { revenue: 0, cogs: 0, profit: 0 },
+          consignment: { grossRevenue: 0, cogs: 0, profit: 0, feeTotal: 0 },
         });
       }
     } catch (err) {
-      console.error('Error fetching daily summary:', err);
+      console.error('Error fetching financial summary:', err);
     }
   };
 
@@ -252,7 +229,12 @@ export default function FinancialPage() {
     setIsSubmitting(true);
     
     try {
-      // REMOVED OLD AUTH - Now using NextAuth session cookies
+      const token = localStorage.getItem('token');
+      if (!token) {
+        error('Sesi Berakhir', 'Silakan login kembali');
+        window.location.href = '/login';
+        return;
+      }
 
       const url = editingTransaction 
         ? `/api/financial/transactions/${editingTransaction}`
@@ -263,6 +245,7 @@ export default function FinancialPage() {
       const response = await fetch(url, {
         method,
         headers: {
+          'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
@@ -289,7 +272,7 @@ export default function FinancialPage() {
         
         // Refresh data
         fetchTransactions();
-        fetchDailySummary();
+        fetchFinancialSummary();
         
         const successMessage = editingTransaction 
           ? 'Transaksi berhasil diupdate'
@@ -329,10 +312,19 @@ export default function FinancialPage() {
     
     if (confirmed) {
       try {
-        // REMOVED OLD AUTH - Now using NextAuth session cookies
+        const token = localStorage.getItem('token');
+        if (!token) {
+          error('Sesi Berakhir', 'Silakan login kembali');
+          window.location.href = '/login';
+          return;
+        }
 
         const response = await fetch(`/api/financial/transactions/${transactionId}`, {
           method: 'DELETE',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
         });
         
         if (!response.ok) {
@@ -344,7 +336,7 @@ export default function FinancialPage() {
         if (result.success) {
           success('Transaksi Dihapus', 'Transaksi berhasil dihapus');
           fetchTransactions();
-          fetchDailySummary();
+          fetchFinancialSummary();
         } else {
           error('Gagal Menghapus', result.error || 'Terjadi kesalahan saat menghapus transaksi');
         }
@@ -386,113 +378,6 @@ export default function FinancialPage() {
     return matchesSearch && matchesType;
   });
 
-  // Export handlers
-  const handleExportPDF = async () => {
-    if (!dailySummary) {
-      error('Data Kosong', 'Tidak ada data untuk diexport');
-      return;
-    }
-
-    setIsExporting(true);
-    try {
-      // Enrich transactions with profit data
-      const enrichedTransactions = enrichTransactionsWithProfit(filteredTransactions);
-      
-      // Calculate profit summary
-      const profitData = calculateProfitData(filteredTransactions);
-      
-      // Prepare export data
-      const exportData = {
-        title: 'Laporan Keuangan Lengkap',
-        period: showDatePicker
-          ? `${startDate.toLocaleDateString('id-ID')} - ${endDate.toLocaleDateString('id-ID')}`
-          : financialPeriod === 'today' ? 'Hari Ini' : 
-            financialPeriod === '7days' ? '7 Hari Terakhir' : 
-            financialPeriod === '1month' ? '1 Bulan Terakhir' : '3 Bulan Terakhir',
-        dateRange: showDatePicker ? {
-          from: startDate.toISOString().split('T')[0],
-          to: endDate.toISOString().split('T')[0],
-        } : undefined,
-        summary: {
-          totalRevenue: dailySummary.totalIncome,
-          totalExpense: dailySummary.totalExpense,
-          grossProfit: profitData.grossProfit,
-          netProfit: profitData.netProfit,
-          transactionCount: dailySummary.transactionCount,
-        },
-        transactions: enrichedTransactions.map(t => ({
-          date: new Date(t.date).toLocaleDateString('id-ID'),
-          type: t.type === 'INCOME' ? 'Pemasukan' : 'Pengeluaran',
-          description: t.description,
-          category: t.category,
-          amount: t.amount,
-          paymentMethod: t.paymentMethod,
-          profit: t.profit,
-          margin: t.margin,
-        })),
-      };
-
-      exportEnhancedFinancialPDF(exportData);
-      success('Export PDF Berhasil', 'Laporan keuangan berhasil diexport');
-    } catch (err) {
-      console.error('PDF export error:', err);
-      error('Export Gagal', 'Terjadi kesalahan saat export PDF');
-    } finally {
-      setIsExporting(false);
-    }
-  };
-
-  const handleExportExcel = async () => {
-    if (!dailySummary) {
-      error('Data Kosong', 'Tidak ada data untuk diexport');
-      return;
-    }
-
-    setIsExporting(true);
-    try {
-      const enrichedTransactions = enrichTransactionsWithProfit(filteredTransactions);
-      const profitData = calculateProfitData(filteredTransactions);
-      
-      const exportData = {
-        title: 'Laporan Keuangan Lengkap',
-        period: showDatePicker
-          ? `${startDate.toLocaleDateString('id-ID')} - ${endDate.toLocaleDateString('id-ID')}`
-          : financialPeriod === 'today' ? 'Hari Ini' : 
-            financialPeriod === '7days' ? '7 Hari Terakhir' : 
-            financialPeriod === '1month' ? '1 Bulan Terakhir' : '3 Bulan Terakhir',
-        dateRange: showDatePicker ? {
-          from: startDate.toISOString().split('T')[0],
-          to: endDate.toISOString().split('T')[0],
-        } : undefined,
-        summary: {
-          totalRevenue: dailySummary.totalIncome,
-          totalExpense: dailySummary.totalExpense,
-          grossProfit: profitData.grossProfit,
-          netProfit: profitData.netProfit,
-          transactionCount: dailySummary.transactionCount,
-        },
-        transactions: enrichedTransactions.map(t => ({
-          date: new Date(t.date).toLocaleDateString('id-ID'),
-          type: t.type === 'INCOME' ? 'Pemasukan' : 'Pengeluaran',
-          description: t.description,
-          category: t.category,
-          amount: t.amount,
-          paymentMethod: t.paymentMethod,
-          profit: t.profit,
-          margin: t.margin,
-        })),
-      };
-
-      exportEnhancedFinancialExcel(exportData);
-      success('Export Excel Berhasil', 'Laporan keuangan berhasil diexport');
-    } catch (err) {
-      console.error('Excel export error:', err);
-      error('Export Gagal', 'Terjadi kesalahan saat export Excel');
-    } finally {
-      setIsExporting(false);
-    }
-  };
-
   // Show loading while checking authorization
   if (authLoading) {
     return <Loading />;
@@ -506,107 +391,18 @@ export default function FinancialPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Pencatatan Keuangan</h1>
-          <p className="text-gray-600 mt-1">Kelola transaksi dan laporan keuangan harian</p>
+          <h1 className="text-3xl font-bold text-gray-900">Pusat Keuangan Koperasi</h1>
+          <p className="text-gray-600 mt-1">Dashboard keuangan menyeluruh dari semua sumber dana</p>
         </div>
-        <div className="flex flex-wrap gap-2">
-          {/* Date Range Picker */}
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={() => setShowDatePicker(!showDatePicker)}
-          >
-            <Calendar className="w-4 h-4 mr-2" />
-            Custom Range
-          </Button>
-          
-          {/* Export Buttons */}
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={handleExportPDF}
-            disabled={isExporting || !dailySummary}
-          >
-            <FileText className="w-4 h-4 mr-2" />
-            {isExporting ? 'Exporting...' : 'Export PDF'}
-          </Button>
-          <Button 
-            variant="outline" 
-            size="sm"
-            onClick={handleExportExcel}
-            disabled={isExporting || !dailySummary}
-          >
-            <FileSpreadsheet className="w-4 h-4 mr-2" />
-            {isExporting ? 'Exporting...' : 'Export Excel'}
-          </Button>
-          
-          <Button size="sm" onClick={() => setShowAddModal(true)}>
-            <Plus className="w-4 h-4 mr-2" />
-            Catat Pemasukan/Pengeluaran
+        <div className="mt-4 md:mt-0 flex gap-3">
+          <Button variant="outline" size="sm">
+            <Download className="w-4 h-4 mr-2" />
+            Export Laporan
           </Button>
         </div>
       </div>
-
-      {/* Date Range Picker */}
-      {showDatePicker && (
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex flex-col md:flex-row gap-4 items-center">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Tanggal Mulai
-                </label>
-                <DatePicker
-                  selected={startDate}
-                  onChange={(date) => date && setStartDate(date)}
-                  selectsStart
-                  startDate={startDate}
-                  endDate={endDate}
-                  dateFormat="dd/MM/yyyy"
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Tanggal Akhir
-                </label>
-                <DatePicker
-                  selected={endDate}
-                  onChange={(date) => date && setEndDate(date)}
-                  selectsEnd
-                  startDate={startDate}
-                  endDate={endDate}
-                  minDate={startDate}
-                  dateFormat="dd/MM/yyyy"
-                  className="px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
-              </div>
-              <div className="flex gap-2 mt-6">
-                <Button 
-                  size="sm"
-                  onClick={() => {
-                    // Apply custom date range filter
-                    setFinancialPeriod('today'); // Reset to trigger fetch
-                    fetchTransactions();
-                    success('Filter Diterapkan', 'Menampilkan data sesuai rentang tanggal');
-                  }}
-                >
-                  Terapkan
-                </Button>
-                <Button 
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setShowDatePicker(false)}
-                >
-                  Tutup
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-      )}
 
       {/* Financial Summary Card - Full Width */}
       {dailySummary && (
@@ -621,16 +417,62 @@ export default function FinancialPage() {
         />
       )}
 
-      {/* Financial Chart - HERO SECTION (Enlarged & Prominent) */}
+      {/* Transaksi Terkini - Repositioned for better visibility */}
+      <Card className="shadow-lg">
+        <CardHeader className="border-b bg-gradient-to-r from-blue-50 to-indigo-50">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="p-2 bg-blue-500 rounded-lg">
+                <Receipt className="w-5 h-5 text-white" />
+              </div>
+              <div>
+                <h3 className="text-lg font-bold text-gray-900">Transaksi Terkini</h3>
+                <p className="text-sm text-gray-600">5 transaksi terakhir periode ini</p>
+              </div>
+            </div>
+            <Button 
+              variant="outline" 
+              size="sm"
+              onClick={() => {
+                // Scroll to full table below
+                document.getElementById('full-transaction-table')?.scrollIntoView({ behavior: 'smooth' });
+              }}
+            >
+              Lihat Semua
+            </Button>
+          </div>
+        </CardHeader>
+        <CardContent className="p-0">
+          <TransactionTable
+            transactions={filteredTransactions.slice(0, 5)}
+            loading={loading}
+            onView={handleViewTransaction}
+            onEdit={handleEditTransaction}
+            onDelete={handleDeleteTransaction}
+            onShowAddModal={() => setShowAddModal(true)}
+          />
+        </CardContent>
+      </Card>
+
+      {/* Financial Chart - Net Cash Flow by Day */}
       <FinancialChart 
         period={financialPeriod}
         transactions={transactions}
         dailySummary={dailySummary}
       />
 
-      {/* Transactions Table */}
-      <Card>
-        <CardHeader>
+      {/* Full Transactions Table */}
+      <Card id="full-transaction-table" className="scroll-mt-6">
+        <CardHeader className="border-b">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 bg-gray-500 rounded-lg">
+              <Receipt className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h3 className="text-lg font-bold text-gray-900">Semua Transaksi</h3>
+              <p className="text-sm text-gray-600">Riwayat lengkap transaksi keuangan</p>
+            </div>
+          </div>
           <TransactionFilters
             searchTerm={searchTerm}
             onSearchChange={setSearchTerm}
@@ -669,6 +511,37 @@ export default function FinancialPage() {
           setSelectedTransaction(null);
         }}
       />
+
+      {/* Floating Action Button - Bottom Right */}
+      <button
+        onClick={() => setShowAddModal(true)}
+        className="fixed bottom-8 right-8 z-50 group"
+        aria-label="Catat Transaksi"
+      >
+        {/* FAB with gradient and shadow */}
+        <div className="relative">
+          {/* Pulsing ring animation */}
+          <div className="absolute inset-0 bg-emerald-500 rounded-full animate-ping opacity-20"></div>
+          
+          {/* Main FAB button */}
+          <div className="relative flex items-center gap-3 bg-gradient-to-br from-emerald-500 to-green-600 text-white rounded-full shadow-2xl hover:shadow-emerald-500/50 transition-all duration-300 hover:scale-110 active:scale-95">
+            {/* Icon circle */}
+            <div className="p-5">
+              <Plus className="w-7 h-7" strokeWidth={3} />
+            </div>
+            
+            {/* Expandable label */}
+            <div className="overflow-hidden max-w-0 group-hover:max-w-xs transition-all duration-300 ease-out">
+              <span className="font-bold text-base whitespace-nowrap pr-5">
+                Catat Pemasukan/Pengeluaran
+              </span>
+            </div>
+          </div>
+          
+          {/* Glow effect */}
+          <div className="absolute inset-0 bg-emerald-400 rounded-full blur-xl opacity-30 group-hover:opacity-50 transition-opacity"></div>
+        </div>
+      </button>
 
     </div>
   );
