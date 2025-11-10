@@ -198,16 +198,16 @@ export function FinancialSummaryCard({
       
       <CardContent className="p-6 space-y-6">
         {/* PRIMARY: Saldo Tersedia - Horizontal Full Width Layout */}
-        <div className="relative overflow-hidden bg-gradient-to-br from-emerald-50 via-green-50 to-emerald-100 border-2 border-emerald-300 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300">
+        <div className="relative bg-gradient-to-br from-emerald-50 via-green-50 to-emerald-100 border-2 border-emerald-300 rounded-2xl p-6 shadow-lg hover:shadow-xl transition-all duration-300">
           {/* Animated Background Pattern */}
-          <div className="absolute inset-0 opacity-5">
+          <div className="absolute inset-0 opacity-5 overflow-hidden rounded-2xl">
             <div className="absolute top-0 -left-4 w-24 h-24 bg-emerald-500 rounded-full blur-3xl"></div>
             <div className="absolute bottom-0 -right-4 w-32 h-32 bg-green-500 rounded-full blur-3xl"></div>
           </div>
           
           <div className="relative z-10">
             {/* Grid Layout: Left side (Icon + Amount) | Right side (Breakdown) */}
-            <div className="grid md:grid-cols-[1fr_auto] gap-6 items-center">
+            <div className="grid md:grid-cols-[1fr_auto] gap-6 items-center">{/* Removed overflow-hidden here to allow tooltips */}
               
               {/* Left Section: Icon, Title, Amount, Status */}
               <div className="flex items-center gap-6">
@@ -274,7 +274,7 @@ export function FinancialSummaryCard({
                   </div>
                   <span className="text-lg font-bold text-gray-900">{formatCurrency(summary.breakdown?.kasToko || 0)}</span>
                   {/* Tooltip */}
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-[100] shadow-xl">
                     Saldo operasional toko (POS, inventory)
                     <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
                   </div>
@@ -289,7 +289,7 @@ export function FinancialSummaryCard({
                   </div>
                   <span className="text-lg font-bold text-gray-900">{formatCurrency(summary.breakdown?.simpanan || 0)}</span>
                   {/* Tooltip */}
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-[100] shadow-xl">
                     Dana anggota (pokok, wajib, sukarela)
                     <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
                   </div>
@@ -298,13 +298,13 @@ export function FinancialSummaryCard({
                 {/* Pinjaman */}
                 <div className="bg-white/60 backdrop-blur-sm rounded-xl p-3.5 border border-emerald-200/50 group/tooltip relative">
                   <div className="flex items-center gap-2 mb-1.5">
-                    <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
+                    <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
                     <span className="text-xs font-medium text-gray-700">Pinjaman</span>
-                    <Info className="w-3 h-3 text-gray-400 hover:text-purple-500 cursor-help" />
+                    <Info className="w-3 h-3 text-gray-400 hover:text-orange-500 cursor-help" />
                   </div>
                   <span className="text-lg font-bold text-gray-900">{formatCurrency(summary.breakdown?.pinjaman || 0)}</span>
                   {/* Tooltip */}
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-[100] shadow-xl">
                     Piutang/utang pinjaman (coming soon)
                     <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
                   </div>
@@ -313,15 +313,15 @@ export function FinancialSummaryCard({
                 {/* Titipan */}
                 <div className="bg-white/60 backdrop-blur-sm rounded-xl p-3.5 border border-emerald-200/50 group/tooltip relative">
                   <div className="flex items-center gap-2 mb-1.5">
-                    <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                    <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
                     <span className="text-xs font-medium text-gray-700">Titipan</span>
-                    <Info className="w-3 h-3 text-gray-400 hover:text-orange-500 cursor-help" />
+                    <Info className="w-3 h-3 text-gray-400 hover:text-purple-500 cursor-help" />
                   </div>
-                  <span className={`text-lg font-bold ${(summary.breakdown?.titipan || 0) > 0 ? 'text-orange-600' : 'text-gray-900'}`}>
+                  <span className={`text-lg font-bold ${(summary.breakdown?.titipan || 0) > 0 ? 'text-purple-600' : 'text-gray-900'}`}>
                     {formatCurrency(summary.breakdown?.titipan || 0)}
                   </span>
                   {/* Tooltip */}
-                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-[100] shadow-xl">
                     Utang ke supplier konsinyasi
                     <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
                   </div>
