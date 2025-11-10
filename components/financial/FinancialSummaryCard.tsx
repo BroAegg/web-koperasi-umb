@@ -266,39 +266,65 @@ export function FinancialSummaryCard({
               {/* Right Section: Breakdown Cards (4 sources) */}
               <div className="grid grid-cols-2 gap-3 md:min-w-[450px]">
                 {/* Kas Toko */}
-                <div className="bg-white/60 backdrop-blur-sm rounded-xl p-3.5 border border-emerald-200/50">
+                <div className="bg-white/60 backdrop-blur-sm rounded-xl p-3.5 border border-emerald-200/50 group/tooltip relative">
                   <div className="flex items-center gap-2 mb-1.5">
                     <div className="w-2 h-2 bg-blue-500 rounded-full"></div>
                     <span className="text-xs font-medium text-gray-700">Kas Toko</span>
+                    <Info className="w-3 h-3 text-gray-400 hover:text-blue-500 cursor-help" />
                   </div>
                   <span className="text-lg font-bold text-gray-900">{formatCurrency(summary.breakdown?.kasToko || 0)}</span>
+                  {/* Tooltip */}
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
+                    Saldo operasional toko (POS, inventory)
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                  </div>
                 </div>
                 
                 {/* Simpanan */}
-                <div className="bg-white/60 backdrop-blur-sm rounded-xl p-3.5 border border-emerald-200/50">
+                <div className="bg-white/60 backdrop-blur-sm rounded-xl p-3.5 border border-emerald-200/50 group/tooltip relative">
                   <div className="flex items-center gap-2 mb-1.5">
                     <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                     <span className="text-xs font-medium text-gray-700">Simpanan</span>
+                    <Info className="w-3 h-3 text-gray-400 hover:text-green-500 cursor-help" />
                   </div>
                   <span className="text-lg font-bold text-gray-900">{formatCurrency(summary.breakdown?.simpanan || 0)}</span>
+                  {/* Tooltip */}
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
+                    Dana anggota (pokok, wajib, sukarela)
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                  </div>
                 </div>
                 
                 {/* Pinjaman */}
-                <div className="bg-white/60 backdrop-blur-sm rounded-xl p-3.5 border border-emerald-200/50">
+                <div className="bg-white/60 backdrop-blur-sm rounded-xl p-3.5 border border-emerald-200/50 group/tooltip relative">
                   <div className="flex items-center gap-2 mb-1.5">
                     <div className="w-2 h-2 bg-purple-500 rounded-full"></div>
                     <span className="text-xs font-medium text-gray-700">Pinjaman</span>
+                    <Info className="w-3 h-3 text-gray-400 hover:text-purple-500 cursor-help" />
                   </div>
                   <span className="text-lg font-bold text-gray-900">{formatCurrency(summary.breakdown?.pinjaman || 0)}</span>
+                  {/* Tooltip */}
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
+                    Piutang/utang pinjaman (coming soon)
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                  </div>
                 </div>
                 
                 {/* Titipan */}
-                <div className="bg-white/60 backdrop-blur-sm rounded-xl p-3.5 border border-emerald-200/50">
+                <div className="bg-white/60 backdrop-blur-sm rounded-xl p-3.5 border border-emerald-200/50 group/tooltip relative">
                   <div className="flex items-center gap-2 mb-1.5">
                     <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
                     <span className="text-xs font-medium text-gray-700">Titipan</span>
+                    <Info className="w-3 h-3 text-gray-400 hover:text-orange-500 cursor-help" />
                   </div>
-                  <span className="text-lg font-bold text-gray-900">{formatCurrency(summary.breakdown?.titipan || 0)}</span>
+                  <span className={`text-lg font-bold ${(summary.breakdown?.titipan || 0) > 0 ? 'text-orange-600' : 'text-gray-900'}`}>
+                    {formatCurrency(summary.breakdown?.titipan || 0)}
+                  </span>
+                  {/* Tooltip */}
+                  <div className="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-3 py-2 bg-gray-900 text-white text-xs rounded-lg opacity-0 group-hover/tooltip:opacity-100 transition-opacity pointer-events-none whitespace-nowrap z-50">
+                    Utang ke supplier konsinyasi
+                    <div className="absolute top-full left-1/2 -translate-x-1/2 border-4 border-transparent border-t-gray-900"></div>
+                  </div>
                 </div>
               </div>
               
