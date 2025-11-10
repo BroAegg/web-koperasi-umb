@@ -254,39 +254,28 @@ export async function GET(request: NextRequest) {
       },
     });
 
-    // @ts-ignore - Get both INCOME (setor) and EXPENSE (tarik) for savings
-    const savingsTransactions = await prisma.transactions.findMany({
-      where: {
-        OR: [
-          {
-            type: 'INCOME',
-            note: { startsWith: 'Setor Simpanan' },
-          },
-          {
-            type: 'EXPENSE',
-            note: { startsWith: 'Penarikan Simpanan' },
-          },
-        ],
-        status: 'COMPLETED',
-        date: { lte: new Date() },
-      },
-    });
-
     let kasToko = 0;
     operationalTransactions.forEach((t: any) => {
       if (t.type === 'SALE') kasToko += Number(t.totalAmount);
       else if (t.type === 'PURCHASE' || t.type === 'EXPENSE') kasToko -= Number(t.totalAmount);
     });
 
+    // Calculate Simpanan from Members table (single source of truth)
+    // Simpanan = Total saldo simpanan semua anggota (Pokok + Wajib + Sukarela)
+    // @ts-ignore
+    const allMembers = await prisma.members.findMany({
+      select: {
+        simpananPokok: true,
+        simpananWajib: true,
+        simpananSukarela: true,
+      },
+    });
+
     let simpanan = 0;
-    savingsTransactions.forEach((t: any) => {
-      if (t.type === 'INCOME') {
-        // SETOR = tambah saldo
-        simpanan += Number(t.totalAmount);
-      } else if (t.type === 'EXPENSE') {
-        // TARIK = kurangi saldo
-        simpanan -= Number(t.totalAmount);
-      }
+    allMembers.forEach((member: any) => {
+      simpanan += Number(member.simpananPokok || 0);
+      simpanan += Number(member.simpananWajib || 0);
+      simpanan += Number(member.simpananSukarela || 0);
     });
 
     // Calculate Titipan (consignment liability)
