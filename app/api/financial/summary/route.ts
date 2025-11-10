@@ -284,6 +284,13 @@ export async function GET(request: NextRequest) {
       simpanan += Number(member.simpananSukarela || 0);
     });
 
+    console.log('📊 Simpanan Breakdown:', {
+      pokok: simpananPokok,
+      wajib: simpananWajib,
+      sukarela: simpananSukarela,
+      total: simpanan
+    });
+
     // Calculate Titipan (consignment liability)
     // Titipan = Dana dari penjualan barang konsinyasi yang belum dibayar ke supplier
     // @ts-ignore
@@ -426,6 +433,8 @@ export async function GET(request: NextRequest) {
       },
       updatedAt: new Date().toISOString(),
     };
+
+    console.log('🚀 Sending breakdownDetails:', summary.breakdownDetails);
 
     return NextResponse.json({
       success: true,
