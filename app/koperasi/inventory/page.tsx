@@ -63,8 +63,8 @@ import StockModal from '@/components/inventory/StockModal';
 import FilterModal from '@/components/inventory/FilterModal';
 
 export default function InventoryPage() {
-  // ✅ AUTHORIZATION CHECK - Admin/Super Admin only
-  const { user, loading: authLoading, authorized } = useAuth(['ADMIN', 'SUPER_ADMIN']);
+  // ✅ AUTHORIZATION CHECK - Admin/Super Admin/Kasir
+  const { user, loading: authLoading, authorized } = useAuth(['ADMIN', 'SUPER_ADMIN', 'KASIR']);
   
   // UI State
   const [searchTerm, setSearchTerm] = useState("");

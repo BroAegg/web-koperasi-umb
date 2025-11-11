@@ -15,8 +15,8 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Authorization check - Only ADMIN and SUPER_ADMIN
-    if (!['ADMIN', 'SUPER_ADMIN'].includes(session.user.role)) {
+    // Authorization check - Allow ADMIN, SUPER_ADMIN, and KASIR
+    if (!['ADMIN', 'SUPER_ADMIN', 'KASIR'].includes(session.user.role)) {
       return NextResponse.json(
         { success: false, error: 'Forbidden - Admin access required' },
         { status: 403 }

@@ -1,11 +1,21 @@
 'use client';
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
-import dynamic from 'next/dynamic';
-import { useAuth } from '@/lib/use-auth';
-import { useNotification } from '@/lib/notification-context';
+import { Badge, Button, Card, CardContent, CardHeader, Input } from '@/components/ui';
 import { useOrientation } from '@/hooks/useOrientation';
-import { Card, CardHeader, CardContent, Button, Input, Badge } from '@/components/ui';
+import { useNotification } from '@/lib/notification-context';
+import { useAuth } from '@/lib/use-auth';
+import {
+    CreditCard,
+    Minus,
+    Package,
+    Plus,
+    Receipt,
+    Search,
+    ShoppingCart,
+    Trash2
+} from 'lucide-react';
+import dynamic from 'next/dynamic';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 // LAZY LOAD heavy components for faster initial page load
 const PaymentModal = dynamic(() => import('@/components/pos/PaymentModal').then(mod => ({ default: mod.PaymentModal })), {
@@ -17,18 +27,6 @@ const QuickTransactionHistory = dynamic(() => import('@/components/pos/QuickTran
   loading: () => <div className="flex items-center justify-center p-4"><div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div></div>,
   ssr: false
 });
-import { 
-  Search, 
-  ShoppingCart, 
-  Plus, 
-  Minus, 
-  Trash2,
-  CreditCard,
-  Receipt,
-  Package,
-  Zap,
-  CheckCircle
-} from 'lucide-react';
 
 interface Product {
   id: string;
@@ -48,7 +46,7 @@ interface CartItem extends Product {
 // REMOVED: Member interface (member feature removed from POS)
 
 export default function POSPage() {
-  const { user, loading } = useAuth(['ADMIN', 'SUPER_ADMIN', 'KASIR']);
+  const { user, loading, authorized } = useAuth(['ADMIN', 'SUPER_ADMIN', 'KASIR']);
   const { success, error } = useNotification();
   const orientation = useOrientation();
   const [products, setProducts] = useState<Product[]>([]);
@@ -255,6 +253,17 @@ export default function POSPage() {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (!authorized) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <p className="text-red-600 font-semibold">Unauthorized Access</p>
+          <p className="text-gray-600 mt-2">Redirecting...</p>
+        </div>
       </div>
     );
   }

@@ -3,11 +3,11 @@
  * Extracted to separate file to avoid Next.js type errors
  */
 
-import { NextAuthOptions } from 'next-auth'
-import CredentialsProvider from 'next-auth/providers/credentials'
 import { PrismaClient, Role } from '@prisma/client'
 import bcrypt from 'bcryptjs'
 import { randomUUID } from 'crypto'
+import { NextAuthOptions } from 'next-auth'
+import CredentialsProvider from 'next-auth/providers/credentials'
 
 const prisma = new PrismaClient()
 

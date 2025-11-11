@@ -39,7 +39,7 @@ function KoperasiContent({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const pathname = usePathname();
-  const { user, loading, authorized, logout } = useAuth(["ADMIN", "SUPER_ADMIN", "SUPPLIER", "DEVELOPER"]);
+  const { user, loading, authorized, logout } = useAuth(["ADMIN", "SUPER_ADMIN", "KASIR", "SUPPLIER", "DEVELOPER"]);
 
   // Auto-collapse sidebar on POS page for more space
   useEffect(() => {
@@ -111,9 +111,9 @@ function KoperasiContent({ children }: { children: React.ReactNode }) {
     {
       title: "OPERASIONAL TOKO",
       items: [
-        { name: "POS Kasir", href: "/koperasi/pos", icon: CreditCard, roles: ["ADMIN", "SUPER_ADMIN"] },
-        { name: "Riwayat Transaksi", href: "/koperasi/transactions", icon: Receipt, roles: ["ADMIN", "SUPER_ADMIN"] },
-        { name: "Inventory", href: "/koperasi/inventory", icon: Package, roles: ["ADMIN", "SUPER_ADMIN"] },
+        { name: "POS Kasir", href: "/koperasi/pos", icon: CreditCard, roles: ["ADMIN", "SUPER_ADMIN", "KASIR"] },
+        { name: "Riwayat Transaksi", href: "/koperasi/transactions", icon: Receipt, roles: ["ADMIN", "SUPER_ADMIN", "KASIR"] },
+        { name: "Inventory", href: "/koperasi/inventory", icon: Package, roles: ["ADMIN", "SUPER_ADMIN", "KASIR"] },
       ]
     },
     {
@@ -290,7 +290,8 @@ function KoperasiContent({ children }: { children: React.ReactNode }) {
                 <p className="font-semibold text-slate-800 truncate">{user?.name}</p>
                 <p className="text-xs text-blue-600 font-medium">
                   {user?.role === 'SUPER_ADMIN' ? 'Super Admin' : 
-                   user?.role === 'DEVELOPER' ? 'Developer' : 'Admin'}
+                   user?.role === 'DEVELOPER' ? 'Developer' :
+                   user?.role === 'KASIR' ? 'Kasir' : 'Admin'}
                 </p>
               </div>
             )}

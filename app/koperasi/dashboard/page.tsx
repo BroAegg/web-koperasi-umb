@@ -1,9 +1,9 @@
 'use client';
 
-import { useEffect } from 'react';
+import { DashboardLoadingSkeleton } from '@/components/ui/loading-skeleton';
 import { useAuth } from '@/lib/use-auth';
 import { useRouter } from 'next/navigation';
-import { DashboardLoadingSkeleton } from '@/components/ui/loading-skeleton';
+import { useEffect } from 'react';
 
 export default function DashboardPage() {
   const { user, loading, authorized } = useAuth(['ADMIN', 'SUPER_ADMIN', 'DEVELOPER', 'KASIR']);
