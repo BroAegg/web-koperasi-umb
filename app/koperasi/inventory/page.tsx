@@ -97,7 +97,13 @@ export default function InventoryPage() {
   const [returnRemaining, setReturnRemaining] = useState(false);
   const [remainingBatches, setRemainingBatches] = useState<{totalQty: number; productCount: number}>({totalQty: 0, productCount: 0});
   
-  // 🔄 Payment State Management
+  // � History Filter State
+  const [historySearchQuery, setHistorySearchQuery] = useState('');
+  const [historyFilterPeriod, setHistoryFilterPeriod] = useState<string>('all');
+  const [historyStartDate, setHistoryStartDate] = useState('');
+  const [historyEndDate, setHistoryEndDate] = useState('');
+  
+  // �🔄 Payment State Management
   const [paymentLoading, setPaymentLoading] = useState<Record<string, boolean>>({});
   const [optimisticPayments, setOptimisticPayments] = useState<string[]>([]);
   const [paymentErrors, setPaymentErrors] = useState<Record<string, string>>({});
@@ -2474,48 +2480,229 @@ export default function InventoryPage() {
       {showPaymentHistoryModal && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-[60] p-2 sm:p-4">
           <div className="bg-white rounded-xl sm:rounded-2xl shadow-2xl w-full max-w-5xl max-h-[95vh] sm:max-h-[90vh] overflow-hidden animate-in fade-in zoom-in duration-200">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-4 sm:p-6 text-white relative overflow-hidden">
-              <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full -mr-32 -mt-32"></div>
+            {/* Header - Compact */}
+            <div className="bg-gradient-to-r from-indigo-600 to-purple-600 px-4 py-3 text-white relative overflow-hidden">
+              <div className="absolute top-0 right-0 w-40 h-40 bg-white/10 rounded-full -mr-20 -mt-20"></div>
               <div className="relative flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-3 bg-white/20 rounded-lg">
-                    <History className="w-6 h-6" />
+                <div className="flex items-center gap-2">
+                  <div className="p-2 bg-white/20 rounded-lg">
+                    <History className="w-4 h-4" />
                   </div>
                   <div>
-                    <h2 className="text-2xl font-bold">History Pembayaran Titipan</h2>
-                    <p className="text-indigo-100 text-sm mt-1">Riwayat semua pembayaran yang telah dilakukan</p>
+                    <h2 className="text-lg font-bold">History Pembayaran Titipan</h2>
+                    <p className="text-indigo-100 text-xs">Riwayat semua pembayaran yang telah dilakukan</p>
                   </div>
                 </div>
                 <button
                   onClick={() => setShowPaymentHistoryModal(false)}
-                  className="p-2 hover:bg-white/20 rounded-full transition-colors"
+                  className="p-1.5 hover:bg-white/20 rounded-full transition-colors"
                 >
-                  <X className="w-6 h-6" />
+                  <X className="w-5 h-5" />
                 </button>
               </div>
             </div>
 
             {/* Content */}
-            <div className="p-6 overflow-y-auto max-h-[calc(95vh-180px)]">
-              {consignmentPaymentHistory.length === 0 ? (
-                <div className="text-center py-12 text-gray-500">
-                  <Receipt className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                  <p className="text-lg font-medium mb-2">Belum Ada Riwayat Pembayaran</p>
-                  <p className="text-sm">History pembayaran titipan akan muncul di sini</p>
+            <div className="p-4 space-y-3">
+              {/* Filter Section - Compact */}
+              <div className="bg-white border border-gray-200 rounded-lg p-3">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-3">
+                  {/* Search */}
+                  <div className="lg:col-span-2">
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Cari Supplier
+                    </label>
+                    <div className="relative">
+                      <input
+                        type="text"
+                        placeholder="Nama supplier atau kontak..."
+                        value={historySearchQuery}
+                        onChange={(e) => setHistorySearchQuery(e.target.value)}
+                        className="w-full pl-9 pr-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                      />
+                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-400" />
+                    </div>
+                  </div>
+
+                  {/* Period Filter */}
+                  <div>
+                    <label className="block text-xs font-medium text-gray-700 mb-1">
+                      Periode
+                    </label>
+                    <select
+                      value={historyFilterPeriod}
+                      onChange={(e) => setHistoryFilterPeriod(e.target.value)}
+                      className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                    >
+                      <option value="all">Semua Periode</option>
+                      <option value="today">Hari Ini</option>
+                      <option value="yesterday">Kemarin</option>
+                      <option value="thisWeek">Minggu Ini</option>
+                      <option value="thisMonth">Bulan Ini</option>
+                      <option value="lastMonth">Bulan Lalu</option>
+                      <option value="custom">Custom</option>
+                    </select>
+                  </div>
+
+                  {/* Date Range - Only shown when custom */}
+                  {historyFilterPeriod === 'custom' && (
+                    <>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Dari Tanggal
+                        </label>
+                        <input
+                          type="date"
+                          value={historyStartDate}
+                          onChange={(e) => setHistoryStartDate(e.target.value)}
+                          className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Sampai Tanggal
+                        </label>
+                        <input
+                          type="date"
+                          value={historyEndDate}
+                          onChange={(e) => setHistoryEndDate(e.target.value)}
+                          className="w-full px-3 py-1.5 text-sm border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+                        />
+                      </div>
+                    </>
+                  )}
                 </div>
-              ) : (
-                <div className="space-y-4">
-                  {consignmentPaymentHistory.map((payment: {
-                    id: string;
-                    supplierName: string;
-                    amount: number;
-                    period: string;
-                    paymentMethod: string;
-                    createdAt: string;
-                    note?: string;
-                    metadata?: any;
-                  }, index: number) => {
+
+                {/* Active Filters Display */}
+                {(historySearchQuery || historyFilterPeriod !== 'all') && (
+                  <div className="mt-2 flex items-center gap-2 flex-wrap">
+                    <span className="text-xs text-gray-600">Filter aktif:</span>
+                    {historySearchQuery && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-100 text-indigo-700 text-xs rounded-full">
+                        {historySearchQuery}
+                        <button onClick={() => setHistorySearchQuery('')} className="hover:text-indigo-900">
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    )}
+                    {historyFilterPeriod !== 'all' && (
+                      <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-indigo-100 text-indigo-700 text-xs rounded-full">
+                        {historyFilterPeriod === 'today' ? 'Hari Ini' :
+                         historyFilterPeriod === 'yesterday' ? 'Kemarin' :
+                         historyFilterPeriod === 'thisWeek' ? 'Minggu Ini' :
+                         historyFilterPeriod === 'thisMonth' ? 'Bulan Ini' :
+                         historyFilterPeriod === 'lastMonth' ? 'Bulan Lalu' :
+                         'Custom'}
+                        <button onClick={() => {
+                          setHistoryFilterPeriod('all');
+                          setHistoryStartDate('');
+                          setHistoryEndDate('');
+                        }} className="hover:text-indigo-900">
+                          <X className="w-3 h-3" />
+                        </button>
+                      </span>
+                    )}
+                    <button
+                      onClick={() => {
+                        setHistorySearchQuery('');
+                        setHistoryFilterPeriod('all');
+                        setHistoryStartDate('');
+                        setHistoryEndDate('');
+                      }}
+                      className="text-xs text-indigo-600 hover:text-indigo-800 font-medium"
+                    >
+                      Reset Semua
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* History List */}
+              <div className="overflow-y-auto max-h-[calc(95vh-260px)]">
+              <>
+              {(() => {
+                // Filter logic
+                let filtered = consignmentPaymentHistory;
+
+                // Search filter
+                if (historySearchQuery) {
+                  const query = historySearchQuery.toLowerCase();
+                  filtered = filtered.filter(payment => {
+                    const supplierInfo = periodFinancialData.consignmentBreakdown?.find(
+                      s => s.supplierId === payment.supplierName
+                    );
+                    const supplierName = (supplierInfo?.supplierName || payment.supplierName).toLowerCase();
+                    const contact = (supplierInfo?.supplierContact || '').toLowerCase();
+                    const phone = (supplierInfo?.supplierPhone || '').toLowerCase();
+                    return supplierName.includes(query) || contact.includes(query) || phone.includes(query);
+                  });
+                }
+
+                // Period filter
+                if (historyFilterPeriod !== 'all') {
+                  const now = new Date();
+                  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                  
+                  filtered = filtered.filter(payment => {
+                    const paymentDate = new Date(payment.createdAt);
+                    const paymentDay = new Date(paymentDate.getFullYear(), paymentDate.getMonth(), paymentDate.getDate());
+                    
+                    switch(historyFilterPeriod) {
+                      case 'today':
+                        return paymentDay.getTime() === today.getTime();
+                      case 'yesterday':
+                        const yesterday = new Date(today);
+                        yesterday.setDate(yesterday.getDate() - 1);
+                        return paymentDay.getTime() === yesterday.getTime();
+                      case 'thisWeek':
+                        const weekStart = new Date(today);
+                        weekStart.setDate(today.getDate() - today.getDay());
+                        return paymentDate >= weekStart;
+                      case 'thisMonth':
+                        return paymentDate.getMonth() === now.getMonth() && 
+                               paymentDate.getFullYear() === now.getFullYear();
+                      case 'lastMonth':
+                        const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                        return paymentDate.getMonth() === lastMonth.getMonth() && 
+                               paymentDate.getFullYear() === lastMonth.getFullYear();
+                      case 'custom':
+                        if (historyStartDate && historyEndDate) {
+                          const start = new Date(historyStartDate);
+                          const end = new Date(historyEndDate);
+                          end.setHours(23, 59, 59, 999);
+                          return paymentDate >= start && paymentDate <= end;
+                        }
+                        return true;
+                      default:
+                        return true;
+                    }
+                  });
+                }
+
+                return filtered.length === 0 ? (
+                  <div className="text-center py-12 text-gray-500">
+                    <Receipt className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                    <p className="text-lg font-medium mb-2">
+                      {consignmentPaymentHistory.length === 0 ? 'Belum Ada Riwayat Pembayaran' : 'Tidak Ada Hasil'}
+                    </p>
+                    <p className="text-sm">
+                      {consignmentPaymentHistory.length === 0 
+                        ? 'History pembayaran titipan akan muncul di sini' 
+                        : 'Coba ubah filter pencarian Anda'}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {filtered.map((payment: {
+                      id: string;
+                      supplierName: string;
+                      amount: number;
+                      period: string;
+                      paymentMethod: string;
+                      createdAt: string;
+                      note?: string;
+                      metadata?: any;
+                    }, index: number) => {
                     const paymentDate = new Date(payment.createdAt);
                     const supplierInfo = periodFinancialData.consignmentBreakdown?.find(
                       s => s.supplierId === payment.supplierName
@@ -2648,20 +2835,100 @@ export default function InventoryPage() {
                     );
                   })}
                 </div>
-              )}
+              );
+              })()}
+              </>
+              </div>
             </div>
 
-            {/* Footer */}
-            <div className="border-t p-4 bg-gray-50 flex items-center justify-between">
-              <p className="text-sm text-gray-600">
-                Total: <span className="font-bold text-gray-900">{consignmentPaymentHistory.length}</span> pembayaran
-              </p>
-              <button
-                onClick={() => setShowPaymentHistoryModal(false)}
-                className="px-6 py-2 bg-gray-200 hover:bg-gray-300 text-gray-700 rounded-lg font-medium transition-colors"
-              >
-                Tutup
-              </button>
+            {/* Footer - Compact */}
+            <div className="border-t bg-gradient-to-r from-gray-50 to-gray-100">
+              <div className="px-4 py-2.5">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full"></div>
+                      <span className="text-xs text-gray-600">
+                        Total: <span className="font-bold text-gray-900">{
+                          (() => {
+                            let filtered = consignmentPaymentHistory;
+                            if (historySearchQuery) {
+                              const query = historySearchQuery.toLowerCase();
+                              filtered = filtered.filter(payment => {
+                                const supplierInfo = periodFinancialData.consignmentBreakdown?.find(
+                                  s => s.supplierId === payment.supplierName
+                                );
+                                const supplierName = (supplierInfo?.supplierName || payment.supplierName).toLowerCase();
+                                const contact = (supplierInfo?.supplierContact || '').toLowerCase();
+                                const phone = (supplierInfo?.supplierPhone || '').toLowerCase();
+                                return supplierName.includes(query) || contact.includes(query) || phone.includes(query);
+                              });
+                            }
+                            if (historyFilterPeriod !== 'all') {
+                              const now = new Date();
+                              const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+                              filtered = filtered.filter(payment => {
+                                const paymentDate = new Date(payment.createdAt);
+                                const paymentDay = new Date(paymentDate.getFullYear(), paymentDate.getMonth(), paymentDate.getDate());
+                                switch(historyFilterPeriod) {
+                                  case 'today': return paymentDay.getTime() === today.getTime();
+                                  case 'yesterday':
+                                    const yesterday = new Date(today);
+                                    yesterday.setDate(yesterday.getDate() - 1);
+                                    return paymentDay.getTime() === yesterday.getTime();
+                                  case 'thisWeek':
+                                    const weekStart = new Date(today);
+                                    weekStart.setDate(today.getDate() - today.getDay());
+                                    return paymentDate >= weekStart;
+                                  case 'thisMonth':
+                                    return paymentDate.getMonth() === now.getMonth() && 
+                                           paymentDate.getFullYear() === now.getFullYear();
+                                  case 'lastMonth':
+                                    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                                    return paymentDate.getMonth() === lastMonth.getMonth() && 
+                                           paymentDate.getFullYear() === lastMonth.getFullYear();
+                                  case 'custom':
+                                    if (historyStartDate && historyEndDate) {
+                                      const start = new Date(historyStartDate);
+                                      const end = new Date(historyEndDate);
+                                      end.setHours(23, 59, 59, 999);
+                                      return paymentDate >= start && paymentDate <= end;
+                                    }
+                                    return true;
+                                  default: return true;
+                                }
+                              });
+                            }
+                            return filtered.length;
+                          })()
+                        }</span> pembayaran
+                      </span>
+                    </div>
+                    {consignmentPaymentHistory.length > 0 && (
+                      <div className="flex items-center gap-1.5">
+                        <div className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></div>
+                        <span className="text-xs text-gray-600">
+                          Total Dibayar: <span className="font-bold text-emerald-600">
+                            Rp {consignmentPaymentHistory.reduce((sum, p) => sum + p.amount, 0).toLocaleString('id-ID')}
+                          </span>
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <button
+                    onClick={() => {
+                      setShowPaymentHistoryModal(false);
+                      setHistorySearchQuery('');
+                      setHistoryFilterPeriod('all');
+                      setHistoryStartDate('');
+                      setHistoryEndDate('');
+                    }}
+                    className="px-5 py-1.5 bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 text-white text-sm rounded-lg font-medium transition-all shadow-sm hover:shadow"
+                  >
+                    Tutup
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>

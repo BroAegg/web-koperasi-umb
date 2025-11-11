@@ -134,8 +134,8 @@ export default function PeakHoursPage() {
               <TrendingUp className="w-5 h-5 text-green-600" />
               <p className="text-sm font-medium text-green-900">Peak Hour</p>
             </div>
-            <p className="text-2xl font-bold text-green-900">{insights.peakHour.label}</p>
-            <p className="text-sm text-green-700 mt-1">{insights.peakHour.transactionCount} transactions</p>
+            <p className="text-2xl font-bold text-green-900">{insights?.peakHour?.label || 'N/A'}</p>
+            <p className="text-sm text-green-700 mt-1">{insights?.peakHour?.transactionCount || 0} transactions</p>
           </div>
 
           <div className="bg-blue-50 rounded-lg border border-blue-200 p-4">
@@ -143,8 +143,8 @@ export default function PeakHoursPage() {
               <Clock className="w-5 h-5 text-blue-600" />
               <p className="text-sm font-medium text-blue-900">Quiet Hour</p>
             </div>
-            <p className="text-2xl font-bold text-blue-900">{insights.quietHour.label}</p>
-            <p className="text-sm text-blue-700 mt-1">{insights.quietHour.transactionCount} transactions</p>
+            <p className="text-2xl font-bold text-blue-900">{insights?.quietHour?.label || 'N/A'}</p>
+            <p className="text-sm text-blue-700 mt-1">{insights?.quietHour?.transactionCount || 0} transactions</p>
           </div>
 
           <div className="bg-purple-50 rounded-lg border border-purple-200 p-4">
@@ -152,8 +152,8 @@ export default function PeakHoursPage() {
               <Calendar className="w-5 h-5 text-purple-600" />
               <p className="text-sm font-medium text-purple-900">Peak Day</p>
             </div>
-            <p className="text-2xl font-bold text-purple-900">{insights.peakDay.day}</p>
-            <p className="text-sm text-purple-700 mt-1">{insights.peakDay.transactionCount} transactions</p>
+            <p className="text-2xl font-bold text-purple-900">{insights?.peakDay?.day || 'N/A'}</p>
+            <p className="text-sm text-purple-700 mt-1">{insights?.peakDay?.transactionCount || 0} transactions</p>
           </div>
 
           <div className="bg-gray-50 rounded-lg border border-gray-200 p-4">
@@ -161,8 +161,8 @@ export default function PeakHoursPage() {
               <Calendar className="w-5 h-5 text-gray-600" />
               <p className="text-sm font-medium text-gray-900">Quiet Day</p>
             </div>
-            <p className="text-2xl font-bold text-gray-900">{insights.quietDay.day}</p>
-            <p className="text-sm text-gray-700 mt-1">{insights.quietDay.transactionCount} transactions</p>
+            <p className="text-2xl font-bold text-gray-900">{insights?.quietDay?.day || 'N/A'}</p>
+            <p className="text-sm text-gray-700 mt-1">{insights?.quietDay?.transactionCount || 0} transactions</p>
           </div>
         </div>
       )}
