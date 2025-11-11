@@ -38,12 +38,49 @@ export interface NewTransaction {
   date: string;
 }
 
+export interface BalanceBreakdown {
+  kasToko: number;
+  simpanan: number;
+  pinjaman: number;
+  titipan: number;
+}
+
+export interface BreakdownDetails {
+  kasToko: {
+    toko: number;
+    total: number;
+  };
+  simpanan: {
+    pokok: number;
+    wajib: number;
+    sukarela: number;
+    total: number;
+  };
+  pinjaman: {
+    total: number;
+  };
+  titipan: {
+    total: number;
+  };
+}
+
+export interface CashFlowSource {
+  source: string;
+  amount: number;
+}
+
 export interface DailySummary {
   date: string;
   totalIncome: number;
   totalExpense: number;
   netIncome: number;
   transactionCount: number;
+  cumulativeBalance?: number; // Saldo kumulatif dari awal waktu
+  breakdown?: BalanceBreakdown; // Breakdown by source
+  breakdownDetails?: BreakdownDetails; // Detailed breakdown with sub-categories
+  topCashIn?: CashFlowSource[]; // Top 3 cash in sources
+  topCashOut?: CashFlowSource[]; // Top 3 cash out sources
+  updatedAt?: string; // Last update timestamp
   toko?: {
     revenue: number;
     cogs: number;

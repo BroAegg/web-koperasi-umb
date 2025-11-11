@@ -91,6 +91,29 @@ export async function GET(request: NextRequest) {
     const netIncome = totalIncome - totalExpense;
     const transactionCount = transactions.length;
 
+    // Calculate CUMULATIVE BALANCE (total saldo dari awal waktu sampai sekarang)
+    // INCOME dan SALE = uang masuk
+    const allTimeIncome = await prisma.transactions.aggregate({
+      where: {
+        type: { in: ['INCOME', 'SALE'] },
+        status: 'COMPLETED',
+        date: { lte: new Date() },
+      },
+      _sum: { totalAmount: true }
+    });
+
+    // EXPENSE dan PURCHASE = uang keluar
+    const allTimeExpense = await prisma.transactions.aggregate({
+      where: {
+        type: { in: ['EXPENSE', 'PURCHASE'] },
+        status: 'COMPLETED',
+        date: { lte: new Date() },
+      },
+      _sum: { totalAmount: true }
+    });
+
+    const cumulativeBalance = Number(allTimeIncome._sum.totalAmount || 0) - Number(allTimeExpense._sum.totalAmount || 0);
+
     // Get weekly summary (last 7 days)
     const weekStartDate = new Date(startDate);
     weekStartDate.setDate(weekStartDate.getDate() - 6);
@@ -221,13 +244,180 @@ export async function GET(request: NextRequest) {
       }
     });
 
+    // Calculate balance breakdown by source
+    // @ts-ignore
+    const operationalTransactions = await prisma.transactions.findMany({
+      where: {
+        type: { in: ['SALE', 'PURCHASE', 'EXPENSE'] },
+        status: 'COMPLETED',
+        date: { lte: new Date() },
+      },
+    });
+
+    let kasToko = 0;
+    operationalTransactions.forEach((t: any) => {
+      if (t.type === 'SALE') kasToko += Number(t.totalAmount);
+      else if (t.type === 'PURCHASE' || t.type === 'EXPENSE') kasToko -= Number(t.totalAmount);
+    });
+
+    // Calculate Simpanan from Members table (single source of truth)
+    // Simpanan = Total saldo simpanan semua anggota (Pokok + Wajib + Sukarela)
+    // @ts-ignore
+    const allMembers = await prisma.members.findMany({
+      select: {
+        simpananPokok: true,
+        simpananWajib: true,
+        simpananSukarela: true,
+      },
+    });
+
+    let simpananPokok = 0;
+    let simpananWajib = 0;
+    let simpananSukarela = 0;
+    let simpanan = 0;
+    allMembers.forEach((member: any) => {
+      simpananPokok += Number(member.simpananPokok || 0);
+      simpananWajib += Number(member.simpananWajib || 0);
+      simpananSukarela += Number(member.simpananSukarela || 0);
+      simpanan += Number(member.simpananPokok || 0);
+      simpanan += Number(member.simpananWajib || 0);
+      simpanan += Number(member.simpananSukarela || 0);
+    });
+
+    console.log('📊 Simpanan Breakdown:', {
+      pokok: simpananPokok,
+      wajib: simpananWajib,
+      sukarela: simpananSukarela,
+      total: simpanan
+    });
+
+    // Calculate Titipan (consignment liability)
+    // Titipan = Dana dari penjualan barang konsinyasi yang belum dibayar ke supplier
+    // @ts-ignore
+    const consignmentSales = await prisma.transaction_items.findMany({
+      where: {
+        transactions: {
+          type: 'SALE',
+          status: 'COMPLETED',
+          date: { lte: new Date() },
+        },
+        products: {
+          OR: [
+            { ownershipType: 'TITIPAN' },
+            { isConsignment: true },
+          ],
+        },
+      },
+      include: {
+        transactions: true,
+        products: true,
+      },
+    });
+
+    // @ts-ignore
+    const consignmentPayments = await prisma.transactions.findMany({
+      where: {
+        type: 'EXPENSE',
+        note: { contains: 'Pembayaran Titipan' },
+        status: 'COMPLETED',
+        date: { lte: new Date() },
+      },
+    });
+
+    // Titipan = Total COGS barang konsinyasi yang terjual - Total pembayaran ke supplier
+    let titipanFromSales = 0;
+    consignmentSales.forEach((item: any) => {
+      titipanFromSales += Number(item.totalCogs || 0);
+    });
+
+    let titipanPayments = 0;
+    consignmentPayments.forEach((payment: any) => {
+      titipanPayments += Number(payment.totalAmount);
+    });
+
+    const titipan = titipanFromSales - titipanPayments; // Saldo utang ke supplier
+
+    // For now, pinjaman is 0 (to be implemented in future phases)
+    const pinjaman = 0;
+
+    // Calculate top cash in sources (group by transaction type/note)
+    const cashInSources: Record<string, number> = {};
+    transactions.forEach((t: any) => {
+      if (t.type === 'SALE' || t.type === 'INCOME') {
+        const source = t.note && t.note.startsWith('Setor Simpanan') 
+          ? 'Simpanan Anggota' 
+          : t.type === 'SALE' 
+            ? 'Penjualan POS' 
+            : 'Pemasukan Lain';
+        
+        cashInSources[source] = (cashInSources[source] || 0) + Number(t.totalAmount);
+      }
+    });
+
+    // Calculate top cash out sources
+    const cashOutSources: Record<string, number> = {};
+    transactions.forEach((t: any) => {
+      if (t.type === 'PURCHASE' || t.type === 'EXPENSE') {
+        let source = 'Pengeluaran Operasional';
+        
+        if (t.type === 'PURCHASE') {
+          source = 'Pembelian Inventory';
+        } else if (t.note && t.note.startsWith('Penarikan Simpanan')) {
+          source = 'Penarikan Simpanan Anggota';
+        } else if (t.note && t.note.includes('Pembayaran Titipan')) {
+          source = 'Pembayaran Titipan Supplier';
+        }
+        
+        cashOutSources[source] = (cashOutSources[source] || 0) + Number(t.totalAmount);
+      }
+    });
+
+    // Get top 3 sources for each
+    const topCashIn = Object.entries(cashInSources)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 3)
+      .map(([source, amount]) => ({ source, amount }));
+
+    const topCashOut = Object.entries(cashOutSources)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 3)
+      .map(([source, amount]) => ({ source, amount }));
+
     const summary = {
       date,
+      cumulativeBalance, // Total saldo kumulatif dari awal waktu
+      breakdown: {
+        kasToko,
+        simpanan,
+        pinjaman,
+        titipan,
+      },
+      breakdownDetails: {
+        kasToko: {
+          toko: kasToko,
+          total: kasToko,
+        },
+        simpanan: {
+          pokok: simpananPokok,
+          wajib: simpananWajib,
+          sukarela: simpananSukarela,
+          total: simpanan,
+        },
+        pinjaman: {
+          // Placeholder for future implementation
+          total: pinjaman,
+        },
+        titipan: {
+          total: titipan,
+        },
+      },
       daily: {
         totalIncome,
         totalExpense,
         netIncome,
         transactionCount,
+        topCashIn,
+        topCashOut,
       },
       weekly: {
         totalIncome: weeklyIncome,
@@ -241,11 +431,22 @@ export async function GET(request: NextRequest) {
         netIncome: monthlyIncome - monthlyExpense,
         transactionCount: monthlyTransactions.length,
       },
+      updatedAt: new Date().toISOString(),
     };
+
+    console.log('🚀 Sending breakdownDetails:', summary.breakdownDetails);
 
     return NextResponse.json({
       success: true,
-      data: summary.daily, // Return daily summary for the main API
+      data: {
+        ...summary.daily,
+        cumulativeBalance, // Kirim saldo kumulatif ke frontend
+        breakdown: summary.breakdown,
+        breakdownDetails: summary.breakdownDetails, // Kirim detailed breakdown
+        topCashIn,
+        topCashOut,
+        updatedAt: summary.updatedAt,
+      },
       summary, // Include all summaries for detailed view
     });
   } catch (error) {
