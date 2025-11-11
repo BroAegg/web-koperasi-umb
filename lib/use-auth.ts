@@ -8,7 +8,7 @@ interface User {
   id: string;
   email: string;
   name: string;
-  role: "SUPER_ADMIN" | "ADMIN" | "SUPPLIER" | "USER" | "DEVELOPER";
+  role: "SUPER_ADMIN" | "ADMIN" | "KASIR" | "SUPPLIER" | "USER" | "DEVELOPER";
 }
 
 export function useAuth(requiredRole?: string[]) {
@@ -64,6 +64,8 @@ export function useAuth(requiredRole?: string[]) {
           // Redirect based on user role
           if (userData.role === "SUPPLIER") {
             router.push("/koperasi/supplier");
+          } else if (userData.role === "KASIR") {
+            router.push("/koperasi/pos");
           } else if (userData.role === "ADMIN" || userData.role === "SUPER_ADMIN") {
             router.push("/koperasi/dashboard");
           } else if (userData.role === "DEVELOPER") {

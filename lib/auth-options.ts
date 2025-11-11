@@ -54,17 +54,17 @@ export const authOptions: NextAuthOptions = {
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          throw new Error('Email dan password harus diisi')
+          throw new Error('Username dan password harus diisi')
         }
 
         try {
-          // Find user by email
+          // Find user by email (field name is 'email' but contains username)
           const user = await prisma.users.findUnique({
             where: { email: credentials.email }
           })
 
           if (!user) {
-            throw new Error('Email atau password salah')
+            throw new Error('Username atau password salah')
           }
 
           // Check if user is active
@@ -79,7 +79,7 @@ export const authOptions: NextAuthOptions = {
           )
 
           if (!isValidPassword) {
-            throw new Error('Email atau password salah')
+            throw new Error('Username atau password salah')
           }
 
           // Create audit log for successful login

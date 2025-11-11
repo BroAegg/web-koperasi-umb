@@ -1,12 +1,12 @@
 "use client";
 
-import { useState } from 'react';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
+import { Input } from '@/components/ui/input';
+import { Building2, Eye, EyeOff, Lock, Mail } from 'lucide-react';
 import Image from "next/image";
 import Link from "next/link";
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Card, CardContent } from '@/components/ui/card';
-import { Eye, EyeOff, Mail, Lock, Building2 } from 'lucide-react';
+import { useState } from 'react';
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
@@ -20,7 +20,7 @@ export default function LoginPage() {
     e.preventDefault();
     
     if (!formData.email || !formData.password) {
-      alert('Email dan password harus diisi');
+      alert('Username dan password harus diisi');
       return;
     }
 
@@ -113,9 +113,9 @@ export default function LoginPage() {
 
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <Input
-                    label="Email"
-                    type="email"
-                    placeholder="Masukkan email Anda"
+                    label="Username"
+                    type="text"
+                    placeholder="Masukkan username Anda"
                     value={formData.email}
                     onChange={(e: React.ChangeEvent<HTMLInputElement>) => setFormData({...formData, email: e.target.value})}
                     leftIcon={<Mail className="w-4 h-4 text-gray-400" />}

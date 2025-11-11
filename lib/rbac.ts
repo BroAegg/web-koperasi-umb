@@ -78,8 +78,32 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     'settings:audit',
   ],
 
-  // Admin (Kasir) - Transaksi + view only
+  // Admin - Management & oversight (between SUPER_ADMIN and KASIR)
   ADMIN: [
+    'users:read',
+    'products:create',
+    'products:read',
+    'products:update',
+    'products:delete',
+    'products:export',
+    'transactions:create',
+    'transactions:read-all',
+    'transactions:export',
+    'inventory:create',
+    'inventory:read',
+    'inventory:update',
+    'inventory:export',
+    'reports:sales',
+    'reports:profit',
+    'reports:cashier',
+    'reports:inventory',
+    'reports:export',
+    'reports:dashboard',
+    'settings:general',
+  ],
+
+  // Kasir - Store operations only (POS & basic transactions)
+  KASIR: [
     'products:read',
     'transactions:create',
     'transactions:read', // Own transactions only

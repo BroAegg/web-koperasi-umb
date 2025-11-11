@@ -48,7 +48,7 @@ interface CartItem extends Product {
 // REMOVED: Member interface (member feature removed from POS)
 
 export default function POSPage() {
-  const { user, loading } = useAuth(['ADMIN', 'SUPER_ADMIN']);
+  const { user, loading } = useAuth(['ADMIN', 'SUPER_ADMIN', 'KASIR']);
   const { success, error } = useNotification();
   const orientation = useOrientation();
   const [products, setProducts] = useState<Product[]>([]);

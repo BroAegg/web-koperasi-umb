@@ -628,6 +628,7 @@ enum ReferenceType {
 enum Role {
   SUPER_ADMIN
   ADMIN
+  KASIR
   SUPPLIER
   USER
   DEVELOPER
