@@ -2,12 +2,15 @@
 
 import { useAuth } from "@/lib/use-auth";
 
+// Define required roles as constant to prevent re-creation
+const INVENTORY_REQUIRED_ROLES = ["SUPER_ADMIN", "ADMIN", "KASIR"];
+
 export default function InventoryLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { loading, authorized } = useAuth(["SUPER_ADMIN", "ADMIN"]);
+  const { loading, authorized } = useAuth(INVENTORY_REQUIRED_ROLES);
 
   if (loading) {
     return (

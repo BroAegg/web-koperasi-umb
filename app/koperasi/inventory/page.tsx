@@ -1,70 +1,66 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from "react";
-import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
+import { exportProductsExcel } from '@/lib/export-excel';
 import { useNotification } from '@/lib/notification-context';
 import { useAuth } from '@/lib/use-auth';
 import { formatCurrency } from '@/lib/utils';
-import { 
-  Package, 
-  Plus, 
-  Download, 
-  BarChart3, 
-  AlertTriangle,
-  DollarSign,
-  TrendingUp,
-  PiggyBank,
-  Info,
-  Hash,
-  Receipt,
-  Calendar,
-  Search,
-  Eye,
-  X,
-  ChevronLeft,
-  ChevronRight,
-  ChevronDown,
-  Phone,
-  Edit,
-  Trash2,
-  Minus,
-  User,
-  MapPin,
-  FileSpreadsheet,
-  History
+import {
+    AlertTriangle,
+    BarChart3,
+    Calendar,
+    ChevronDown,
+    DollarSign,
+    Download,
+    Edit,
+    FileSpreadsheet,
+    Hash,
+    History,
+    Info,
+    MapPin,
+    Minus,
+    Package,
+    Phone,
+    PiggyBank,
+    Plus,
+    Receipt,
+    Search,
+    Trash2,
+    TrendingUp,
+    User,
+    X
 } from 'lucide-react';
-import { exportProductsExcel } from '@/lib/export-excel';
+import { useEffect, useMemo, useRef, useState } from "react";
 
 // Import centralized types
-import { 
-  Product, 
-  Category, 
-  Supplier, 
-  StockMovement,
-  ProductFormData,
-  StockFormData,
-  FinancialData,
-  FinancialPeriod,
-  OwnershipFilter,
-  StockCycleFilter
+import {
+    Category,
+    FinancialData,
+    FinancialPeriod,
+    OwnershipFilter,
+    Product,
+    ProductFormData,
+    StockCycleFilter,
+    StockFormData,
+    StockMovement,
+    Supplier
 } from '@/types/inventory';
 
 // Import extracted components (mix of named and default exports)
-import { FinancialMetricsCard } from '@/components/inventory/FinancialMetricsCard';
-import { ProductFilters } from '@/components/inventory/ProductFilters';
-import { Pagination } from '@/components/inventory/Pagination';
-import { StockMovementsList } from '@/components/inventory/StockMovementsList';
-import ProductTable from '@/components/inventory/ProductTable';
-import ProductModal from '@/components/inventory/ProductModal';
-import StockModal from '@/components/inventory/StockModal';
 import FilterModal from '@/components/inventory/FilterModal';
+import { Pagination } from '@/components/inventory/Pagination';
+import { ProductFilters } from '@/components/inventory/ProductFilters';
+import ProductModal from '@/components/inventory/ProductModal';
+import ProductTable from '@/components/inventory/ProductTable';
+import StockModal from '@/components/inventory/StockModal';
+
+// Define required roles as constant outside component to prevent re-creation
+const INVENTORY_REQUIRED_ROLES = ['ADMIN', 'SUPER_ADMIN', 'KASIR'];
 
 export default function InventoryPage() {
   // ✅ AUTHORIZATION CHECK - Admin/Super Admin/Kasir
-  const { user, loading: authLoading, authorized } = useAuth(['ADMIN', 'SUPER_ADMIN', 'KASIR']);
+  const { user, loading: authLoading, authorized } = useAuth(INVENTORY_REQUIRED_ROLES);
   
   // UI State
   const [searchTerm, setSearchTerm] = useState("");

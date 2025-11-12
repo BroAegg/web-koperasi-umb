@@ -2,7 +2,7 @@
 
 import { signOut, useSession } from "next-auth/react";
 import { useRouter } from "next/navigation";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 interface User {
   id: string;
@@ -17,11 +17,15 @@ export function useAuth(requiredRole?: string[]) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [authorized, setAuthorized] = useState(false);
-
-  // Stabilize requiredRole array to prevent infinite loops
-  const requiredRoleKey = useMemo(() => {
-    return requiredRole ? requiredRole.sort().join(',') : '';
-  }, [requiredRole?.join(',')]);
+  
+  // Store requiredRole in ref to prevent mutation issues
+  // Initialize once and never update to prevent mutation from external sources
+  const requiredRoleRef = useRef<string[] | undefined>(undefined);
+  
+  // Only set ref on first render
+  if (requiredRoleRef.current === undefined && requiredRole) {
+    requiredRoleRef.current = [...requiredRole];
+  }
 
   useEffect(() => {
     // Wait for session to load
@@ -56,23 +60,15 @@ export function useAuth(requiredRole?: string[]) {
       });
 
       // Check role authorization
-      if (requiredRole && requiredRole.length > 0) {
-        const isAuthorized = requiredRole.includes(userData.role);
+      const currentRequiredRoles = requiredRoleRef.current;
+      if (currentRequiredRoles && currentRequiredRoles.length > 0) {
+        const isAuthorized = currentRequiredRoles.includes(userData.role);
+        
         setAuthorized(isAuthorized);
         
         if (!isAuthorized) {
-          // Redirect based on user role
-          if (userData.role === "SUPPLIER") {
-            router.push("/koperasi/supplier");
-          } else if (userData.role === "KASIR") {
-            router.push("/koperasi/pos");
-          } else if (userData.role === "ADMIN" || userData.role === "SUPER_ADMIN") {
-            router.push("/koperasi/dashboard");
-          } else if (userData.role === "DEVELOPER") {
-            router.push("/koperasi/developer-dashboard");
-          } else {
-            router.push("/koperasi/dashboard");
-          }
+          // Redirect to unauthorized page instead of role-specific pages
+          router.push("/unauthorized");
         }
       } else {
         setAuthorized(true);
@@ -80,7 +76,7 @@ export function useAuth(requiredRole?: string[]) {
       
       setLoading(false);
     }
-  }, [session, status, router, requiredRoleKey]);
+  }, [session, status, router]);
 
   const logout = async () => {
     await signOut({ redirect: true, callbackUrl: "/login" });
