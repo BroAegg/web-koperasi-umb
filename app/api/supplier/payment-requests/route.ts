@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getUserFromToken } from '@/lib/auth';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth-options';
 
 // Helper function to calculate period dates
 function getPeriodDates(period: string): { periodStart: Date; periodEnd: Date } {
@@ -38,14 +39,20 @@ function getPeriodDates(period: string): { periodStart: Date; periodEnd: Date } 
 // GET - List supplier's own payment requests
 export async function GET(req: NextRequest) {
   try {
-    const auth = req.headers.get('authorization') || '';
-    const token = auth.replace(/^Bearer\s+/i, '');
-    const user = await getUserFromToken(token);
+    const session = await getServerSession(authOptions);
     
-    if (!user || user.role !== 'SUPPLIER') {
+    if (!session || !session.user) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const user = session.user;
+    if (user.role !== 'SUPPLIER' && user.role !== 'DEVELOPER') {
       return NextResponse.json(
         { success: false, error: 'Unauthorized - Supplier access only' },
-        { status: 401 }
+        { status: 403 }
       );
     }
 
@@ -120,14 +127,20 @@ export async function GET(req: NextRequest) {
 // POST - Submit payment request
 export async function POST(req: NextRequest) {
   try {
-    const auth = req.headers.get('authorization') || '';
-    const token = auth.replace(/^Bearer\s+/i, '');
-    const user = await getUserFromToken(token);
+    const session = await getServerSession(authOptions);
     
-    if (!user || user.role !== 'SUPPLIER') {
+    if (!session || !session.user) {
+      return NextResponse.json(
+        { success: false, error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    const user = session.user;
+    if (user.role !== 'SUPPLIER' && user.role !== 'DEVELOPER') {
       return NextResponse.json(
         { success: false, error: 'Unauthorized - Supplier access only' },
-        { status: 401 }
+        { status: 403 }
       );
     }
 

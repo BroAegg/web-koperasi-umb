@@ -1,21 +1,25 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getUserFromToken } from '@/lib/auth';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth-options';
 
 // GET /api/supplier/profile - Get supplier profile info
 export async function GET(request: NextRequest) {
   try {
-    // Get user from token
-    const token = request.headers.get('authorization')?.replace('Bearer ', '');
-    if (!token) {
+    // Get session from NextAuth
+    const session = await getServerSession(authOptions);
+    console.log('[API] /api/supplier/profile - Session:', JSON.stringify(session, null, 2));
+    
+    if (!session || !session.user) {
+      console.log('[API] /api/supplier/profile - No session or user');
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
-    const user = await getUserFromToken(token);
-    if (!user || user.role !== 'SUPPLIER') {
+    const user = session.user;
+    if (user.role !== 'SUPPLIER' && user.role !== 'DEVELOPER') {
       return NextResponse.json(
         { success: false, error: 'Unauthorized - Supplier only' },
         { status: 403 }
@@ -70,17 +74,18 @@ export async function GET(request: NextRequest) {
 // PUT /api/supplier/profile - Update supplier profile
 export async function PUT(request: NextRequest) {
   try {
-    // Get user from token
-    const token = request.headers.get('authorization')?.replace('Bearer ', '');
-    if (!token) {
+    // Get session from NextAuth
+    const session = await getServerSession(authOptions);
+    
+    if (!session || !session.user) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
-    const user = await getUserFromToken(token);
-    if (!user || user.role !== 'SUPPLIER') {
+    const user = session.user;
+    if (user.role !== 'SUPPLIER' && user.role !== 'DEVELOPER') {
       return NextResponse.json(
         { success: false, error: 'Unauthorized - Supplier only' },
         { status: 403 }

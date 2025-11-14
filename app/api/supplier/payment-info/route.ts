@@ -1,21 +1,23 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
-import { getUserFromToken } from '@/lib/auth';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth-options';
 
 // GET /api/supplier/payment-info - Get payment information
 export async function GET(request: NextRequest) {
   try {
-    // Get user from token
-    const token = request.headers.get('authorization')?.replace('Bearer ', '');
-    if (!token) {
+    // Get session from NextAuth
+    const session = await getServerSession(authOptions);
+    
+    if (!session || !session.user) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
-    const user = await getUserFromToken(token);
-    if (!user || user.role !== 'SUPPLIER') {
+    const user = session.user;
+    if (user.role !== 'SUPPLIER' && user.role !== 'DEVELOPER') {
       return NextResponse.json(
         { success: false, error: 'Unauthorized - Supplier only' },
         { status: 403 }
