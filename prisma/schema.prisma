@@ -451,6 +451,7 @@ model suppliers {
   productCategory        String?
   rejectedReason         String?
   status                 SupplierStatus           @default(PENDING)
+  preferredPaymentMethod PaymentMethod            @default(TRANSFER)
   
   // Grace period tracking
   paymentGraceDays       Int                      @default(7)

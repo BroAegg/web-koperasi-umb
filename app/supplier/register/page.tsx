@@ -24,6 +24,7 @@ export default function SupplierRegisterPage() {
     description: '',
     password: '',
     confirmPassword: '',
+    paymentMethod: 'TRANSFER', // Default payment method
   });
   const [error, setError] = useState('');
 
@@ -67,6 +68,7 @@ export default function SupplierRegisterPage() {
           address: formData.address,
           description: formData.description,
           password: formData.password,
+          paymentMethod: formData.paymentMethod,
         }),
       });
 
@@ -111,9 +113,16 @@ export default function SupplierRegisterPage() {
               <p className="text-gray-700">
                 <span className="font-medium">Email:</span> {formData.email}
               </p>
+              <p className="text-gray-700">
+                <span className="font-medium">Metode Pembayaran:</span>{' '}
+                {formData.paymentMethod === 'CASH' ? '💵 Bayar di Tempat (Cash)' : '🏦 Transfer Bank'}
+              </p>
             </div>
             <p className="text-sm text-gray-600 mt-4">
-              Admin akan melakukan verifikasi data Anda. Setelah disetujui, Anda akan diminta untuk melakukan pembayaran biaya aktivasi sebesar Rp 25.000.
+              Admin akan melakukan verifikasi data Anda. Setelah disetujui, Anda akan diminta untuk melakukan pembayaran biaya aktivasi sebesar Rp 25.000{' '}
+              {formData.paymentMethod === 'CASH' 
+                ? 'di kantor koperasi.' 
+                : 'melalui transfer bank.'}
             </p>
             <Button 
               className="w-full mt-6"
@@ -333,9 +342,9 @@ export default function SupplierRegisterPage() {
                     </div>
                   </div>
 
-                  {/* 8. Informasi Pembayaran */}
+                  {/* 8. Metode Pembayaran */}
                   <div className="border-t border-gray-200 pt-4 mt-4">
-                    <div className="bg-blue-50 rounded-lg p-4">
+                    <div className="bg-blue-50 rounded-lg p-4 mb-4">
                       <h3 className="text-sm font-semibold text-gray-900 mb-2 flex items-center gap-2">
                         <CreditCard className="w-5 h-5 text-blue-600" />
                         Informasi Biaya Aktivasi
@@ -344,8 +353,78 @@ export default function SupplierRegisterPage() {
                         <span className="font-semibold">Biaya Aktivasi:</span> Rp 25.000 / bulan
                       </p>
                       <p className="text-xs text-gray-600">
-                        Setelah pendaftaran Anda disetujui oleh admin, Anda akan diminta untuk melakukan pembayaran biaya aktivasi sebesar Rp 25.000 untuk mengaktifkan akun supplier Anda.
+                        Setelah pendaftaran Anda disetujui oleh admin, Anda dapat memilih metode pembayaran yang sesuai.
                       </p>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="block text-sm font-medium text-gray-700">
+                        Pilih Metode Pembayaran <span className="text-red-500">*</span>
+                      </label>
+                      
+                      <div className="space-y-3">
+                        {/* Transfer Bank */}
+                        <label 
+                          className={`flex items-start p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                            formData.paymentMethod === 'TRANSFER' 
+                              ? 'border-blue-500 bg-blue-50' 
+                              : 'border-gray-300 hover:border-blue-300'
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="paymentMethod"
+                            value="TRANSFER"
+                            checked={formData.paymentMethod === 'TRANSFER'}
+                            onChange={(e) => setFormData({...formData, paymentMethod: e.target.value})}
+                            className="w-4 h-4 text-blue-600 mt-1"
+                          />
+                          <div className="ml-3 flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <CreditCard className="w-5 h-5 text-blue-600" />
+                              <span className="font-medium text-gray-900">Transfer Bank</span>
+                            </div>
+                            <p className="text-sm text-gray-600 mb-2">
+                              Transfer ke rekening koperasi dan upload bukti pembayaran
+                            </p>
+                            <div className="bg-white border border-blue-200 rounded p-2 text-xs text-gray-700">
+                              <p><strong>BRI:</strong> 1234-5678-9012-3456</p>
+                              <p><strong>a.n.</strong> Koperasi UMB</p>
+                            </div>
+                          </div>
+                        </label>
+
+                        {/* Cash */}
+                        <label 
+                          className={`flex items-start p-4 border-2 rounded-lg cursor-pointer transition-all ${
+                            formData.paymentMethod === 'CASH' 
+                              ? 'border-green-500 bg-green-50' 
+                              : 'border-gray-300 hover:border-green-300'
+                          }`}
+                        >
+                          <input
+                            type="radio"
+                            name="paymentMethod"
+                            value="CASH"
+                            checked={formData.paymentMethod === 'CASH'}
+                            onChange={(e) => setFormData({...formData, paymentMethod: e.target.value})}
+                            className="w-4 h-4 text-green-600 mt-1"
+                          />
+                          <div className="ml-3 flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Building2 className="w-5 h-5 text-green-600" />
+                              <span className="font-medium text-gray-900">Bayar di Tempat (Cash)</span>
+                            </div>
+                            <p className="text-sm text-gray-600 mb-2">
+                              Datang langsung ke kantor koperasi untuk pembayaran tunai
+                            </p>
+                            <div className="bg-white border border-green-200 rounded p-2 text-xs text-gray-700">
+                              <p><strong>Alamat:</strong> Kantor Koperasi UMB</p>
+                              <p><strong>Jam Operasional:</strong> Senin-Jumat, 08:00-16:00</p>
+                            </div>
+                          </div>
+                        </label>
+                      </div>
                     </div>
                   </div>
 

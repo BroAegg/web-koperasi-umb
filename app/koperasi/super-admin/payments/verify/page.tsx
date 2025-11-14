@@ -326,7 +326,18 @@ export default function PaymentVerificationPage() {
                         </div>
                         <div className="flex items-center gap-2">
                           <DollarSign className="w-4 h-4" />
-                          <span>Metode: {payment.paymentMethod}</span>
+                          <span>Metode: </span>
+                          {payment.paymentMethod === 'CASH' ? (
+                            <span className="px-2 py-0.5 bg-green-100 text-green-700 text-xs font-semibold rounded-full">
+                              💵 CASH
+                            </span>
+                          ) : payment.paymentMethod === 'TRANSFER' ? (
+                            <span className="px-2 py-0.5 bg-blue-100 text-blue-700 text-xs font-semibold rounded-full">
+                              🏦 TRANSFER
+                            </span>
+                          ) : (
+                            <span>{payment.paymentMethod}</span>
+                          )}
                         </div>
                       </div>
 
@@ -375,7 +386,22 @@ export default function PaymentVerificationPage() {
 
                     {/* Right: Actions */}
                     <div className="space-y-3">
-                      {payment.paymentProof && (
+                      {payment.paymentMethod === 'CASH' ? (
+                        <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                          <div className="flex items-center gap-2 mb-2">
+                            <DollarSign className="w-5 h-5 text-green-600" />
+                            <p className="font-semibold text-green-800">Pembayaran Tunai</p>
+                          </div>
+                          <p className="text-xs text-green-700 mb-3">
+                            Tidak ada bukti transfer untuk pembayaran tunai. Payment diinput langsung oleh kasir di kantor.
+                          </p>
+                          {payment.note && payment.note.includes('Diinput oleh') && (
+                            <div className="text-xs text-green-600 bg-green-100 rounded p-2">
+                              {payment.note.split('|').find(n => n.includes('Diinput oleh'))?.trim()}
+                            </div>
+                          )}
+                        </div>
+                      ) : payment.paymentProof ? (
                         <div>
                           <p className="text-xs text-slate-600 mb-2">Bukti Pembayaran:</p>
                           <div className="bg-slate-100 rounded-lg p-2 mb-2">
@@ -384,8 +410,10 @@ export default function PaymentVerificationPage() {
                               alt="Bukti Pembayaran" 
                               className="w-full h-32 object-contain rounded cursor-pointer hover:opacity-80 transition-opacity"
                               onClick={() => {
-                                const imgSrc = payment.paymentProof!.startsWith('data:') ? payment.paymentProof : `/uploads/payments/${payment.paymentProof}`;
-                                window.open(imgSrc, "_blank");
+                                if (payment.paymentProof) {
+                                  const imgSrc = payment.paymentProof.startsWith('data:') ? payment.paymentProof : `/uploads/payments/${payment.paymentProof}`;
+                                  window.open(imgSrc, "_blank");
+                                }
                               }}
                             />
                           </div>
@@ -394,13 +422,21 @@ export default function PaymentVerificationPage() {
                             size="sm"
                             className="w-full"
                             onClick={() => {
-                              const imgSrc = payment.paymentProof!.startsWith('data:') ? payment.paymentProof : `/uploads/payments/${payment.paymentProof}`;
-                              window.open(imgSrc, "_blank");
+                              if (payment.paymentProof) {
+                                const imgSrc = payment.paymentProof.startsWith('data:') ? payment.paymentProof : `/uploads/payments/${payment.paymentProof}`;
+                                window.open(imgSrc, "_blank");
+                              }
                             }}
                           >
                             <FileText className="w-4 h-4 mr-2" />
                             Buka Bukti di Tab Baru
                           </Button>
+                        </div>
+                      ) : (
+                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-4">
+                          <p className="text-xs text-amber-700">
+                            Tidak ada bukti pembayaran
+                          </p>
                         </div>
                       )}
 

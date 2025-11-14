@@ -9,12 +9,20 @@ export async function POST(request: NextRequest) {
     // Parse JSON body
     const body = await request.json();
     
-    const { name, email, phone, category, address, description, password } = body;
+    const { name, email, phone, category, address, description, password, paymentMethod } = body;
 
     // Validation
     if (!name || !email || !phone || !category || !address || !password) {
       return NextResponse.json(
         { success: false, error: 'Semua field wajib diisi' },
+        { status: 400 }
+      );
+    }
+
+    // Validate payment method
+    if (paymentMethod && !['TRANSFER', 'CASH'].includes(paymentMethod)) {
+      return NextResponse.json(
+        { success: false, error: 'Metode pembayaran tidak valid' },
         { status: 400 }
       );
     }
@@ -60,6 +68,7 @@ export async function POST(request: NextRequest) {
         productCategory: category,
         address: address,
         description: description || null,
+        preferredPaymentMethod: paymentMethod || 'TRANSFER', // Store payment preference in dedicated field
         status: 'PENDING', // Waiting for admin review
         paymentStatus: 'UNPAID', // Payment will be done after approval
         isActive: false,
@@ -78,6 +87,7 @@ export async function POST(request: NextRequest) {
         email: supplier.email,
         status: supplier.status,
         paymentStatus: supplier.paymentStatus,
+        preferredPaymentMethod: supplier.preferredPaymentMethod,
       },
     });
   } catch (error) {

@@ -415,6 +415,9 @@ export default function SupplierDashboard() {
 
   // Show approved status - waiting for payment (APPROVED but not ACTIVE)
   if (supplierProfile.status === "APPROVED") {
+    // Get payment method from dedicated field
+    const paymentMethod = supplierProfile.preferredPaymentMethod || 'TRANSFER';
+
     return (
       <div className="space-y-6">
         <div className="flex items-center justify-between">
@@ -444,26 +447,91 @@ export default function SupplierDashboard() {
               <p className="text-blue-100 text-sm">per bulan</p>
             </div>
 
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
-              <p className="text-sm font-semibold text-gray-900 mb-2">📋 Informasi Pembayaran:</p>
-              <div className="space-y-1 text-sm text-gray-700">
-                <p><strong>Bank BRI:</strong> 1234-5678-9012-3456</p>
-                <p><strong>Atas Nama:</strong> Koperasi UMB</p>
-                <p><strong>Jumlah:</strong> Rp 25.000</p>
-              </div>
-            </div>
+            {paymentMethod === 'CASH' ? (
+              // CASH Payment Method - Visit Office
+              <>
+                <div className="bg-green-50 border-2 border-green-300 rounded-xl p-6 mb-6">
+                  <div className="flex items-start gap-3 mb-4">
+                    <div className="w-10 h-10 bg-green-200 rounded-full flex items-center justify-center flex-shrink-0">
+                      <Building className="w-5 h-5 text-green-700" />
+                    </div>
+                    <div>
+                      <h4 className="font-semibold text-green-900 text-lg mb-1">💵 Pembayaran Tunai</h4>
+                      <p className="text-sm text-green-700">
+                        Anda memilih metode pembayaran tunai. Silakan kunjungi kantor koperasi untuk melakukan pembayaran.
+                      </p>
+                    </div>
+                  </div>
 
-            <Button
-              onClick={() => router.push('/koperasi/supplier/payment')}
-              className="w-full py-6 text-lg font-semibold"
-            >
-              <Upload className="w-5 h-5 mr-2" />
-              Upload Bukti Pembayaran
-            </Button>
+                  <div className="bg-white rounded-lg p-4 space-y-3">
+                    <div className="flex items-start gap-2">
+                      <Info className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-semibold text-gray-900 mb-1">Alamat Kantor:</p>
+                        <p className="text-sm text-gray-700">
+                          Jl. Soekarno Hatta No. 754, Bandung<br />
+                          Gedung Rektorat Universitas Muhammadiyah Bandung
+                        </p>
+                      </div>
+                    </div>
 
-            <p className="text-xs text-gray-500 mt-4 text-center">
-              Setelah pembayaran diverifikasi, Anda dapat langsung mengakses dashboard dan mengelola produk.
-            </p>
+                    <div className="flex items-start gap-2">
+                      <Clock className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-semibold text-gray-900 mb-1">Jam Operasional:</p>
+                        <p className="text-sm text-gray-700">
+                          Senin - Jumat: 08:00 - 16:00 WIB<br />
+                          Sabtu: 08:00 - 12:00 WIB
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="flex items-start gap-2">
+                      <CreditCard className="w-4 h-4 text-green-600 mt-0.5 flex-shrink-0" />
+                      <div>
+                        <p className="text-sm font-semibold text-gray-900 mb-1">Yang Harus Dibawa:</p>
+                        <ul className="text-sm text-gray-700 list-disc list-inside">
+                          <li>Uang tunai Rp 25.000</li>
+                          <li>KTP atau identitas diri</li>
+                          <li>Kode supplier: <strong className="font-mono">{supplierProfile.code}</strong></li>
+                        </ul>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                  <p className="text-sm text-blue-800 text-center">
+                    <strong>ℹ️ Info:</strong> Setelah pembayaran tunai di kantor, kasir akan menginput pembayaran Anda.
+                    Admin akan memverifikasi dan mengaktifkan akun dalam 1x24 jam.
+                  </p>
+                </div>
+              </>
+            ) : (
+              // TRANSFER Payment Method - Upload Proof
+              <>
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                  <p className="text-sm font-semibold text-gray-900 mb-2">📋 Informasi Transfer:</p>
+                  <div className="space-y-1 text-sm text-gray-700">
+                    <p><strong>Bank BRI:</strong> 1234-5678-9012-3456</p>
+                    <p><strong>Atas Nama:</strong> Koperasi UMB</p>
+                    <p><strong>Jumlah:</strong> Rp 25.000</p>
+                  </div>
+                </div>
+
+                <Button
+                  onClick={() => router.push('/koperasi/supplier/payment')}
+                  className="w-full py-6 text-lg font-semibold"
+                >
+                  <Upload className="w-5 h-5 mr-2" />
+                  Upload Bukti Pembayaran
+                </Button>
+
+                <p className="text-xs text-gray-500 mt-4 text-center">
+                  Setelah pembayaran diverifikasi, Anda dapat langsung mengakses dashboard dan mengelola produk.
+                </p>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>
