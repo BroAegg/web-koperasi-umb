@@ -1,9 +1,9 @@
 import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
+import { randomUUID } from 'crypto';
 import { getServerSession } from 'next-auth';
 import { NextRequest, NextResponse } from 'next/server';
-import { randomUUID } from 'crypto';
 
 export async function POST(req: NextRequest) {
   try {

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/prisma';
 import { getUserFromToken } from '@/lib/auth';
+import { generateInvoiceNumber } from '@/lib/invoice-generator';
 
 export async function PATCH(
   req: NextRequest,
@@ -106,11 +107,13 @@ export async function PATCH(
     } else {
       // Approve and create transaction
       const transactionId = `txn-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+      const invoiceNumber = generateInvoiceNumber();
 
       // Create EXPENSE transaction
       await prisma.transactions.create({
         data: {
           id: transactionId,
+          invoiceNumber,
           type: 'EXPENSE',
           totalAmount: paymentRequest.amount,
           paymentMethod: paymentRequest.paymentMethod,
