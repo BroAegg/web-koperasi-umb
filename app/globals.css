@@ -31,33 +31,9 @@
   --foreground: #111827;
 }
 
-/* Dark mode variables */
-.dark {
-  color-scheme: dark;
-  
-  /* Override colors for dark mode */
-  --background: #111827;
-  --foreground: #f9fafb;
-  
-  --koperasi-gray-50: #111827;
-  --koperasi-gray-100: #1f2937;
-  --koperasi-gray-200: #374151;
-  --koperasi-gray-300: #4b5563;
-  --koperasi-gray-400: #6b7280;
-  --koperasi-gray-500: #9ca3af;
-  --koperasi-gray-600: #d1d5db;
-  --koperasi-gray-700: #e5e7eb;
-  --koperasi-gray-800: #f3f4f6;
-  --koperasi-gray-900: #f9fafb;
-}
-
 /* Theme configuration for Tailwind */
 html {
   color-scheme: light;
-}
-
-html.dark {
-  color-scheme: dark;
 }
 
 body {
@@ -81,19 +57,6 @@ body {
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--koperasi-gray-500);
-}
-
-/* Dark mode scrollbar */
-.dark ::-webkit-scrollbar-track {
-  background: var(--koperasi-gray-100);
-}
-
-.dark ::-webkit-scrollbar-thumb {
-  background: var(--koperasi-gray-400);
-}
-
-.dark ::-webkit-scrollbar-thumb:hover {
   background: var(--koperasi-gray-500);
 }
 
