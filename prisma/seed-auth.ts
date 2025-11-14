@@ -57,6 +57,16 @@ const INITIAL_USERS: SeedUser[] = [
     mustChangePassword: true
   },
   
+  // Supplier
+  {
+    id: 'supplier-001',
+    email: 'supplier',
+    password: 'password',
+    name: 'Supplier',
+    role: 'SUPPLIER',
+    mustChangePassword: false
+  },
+  
   // Developer - Hidden (Emergency access)
   {
     id: 'developer-aegner',
