@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
     const products = await prisma.products.findMany({
       where,
       include: {
-        supplier: {
+        suppliers: {
           select: {
             id: true,
             businessName: true,
@@ -55,7 +55,7 @@ export async function GET(request: NextRequest) {
             phone: true,
           },
         },
-        category: {
+        categories: {
           select: {
             id: true,
             name: true,

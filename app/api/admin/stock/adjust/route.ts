@@ -45,7 +45,7 @@ export async function POST(request: NextRequest) {
     const product = await prisma.products.findUnique({
       where: { id: productId },
       include: {
-        supplier: {
+        suppliers: {
           select: {
             id: true,
             businessName: true,
@@ -127,7 +127,7 @@ export async function POST(request: NextRequest) {
           newStock: result.updatedProduct.stock,
           adjustment: quantity,
         },
-        supplier: product.supplier,
+        supplier: product.suppliers,
         movement: {
           id: result.movement.id,
           type: result.movement.movementType,
@@ -181,12 +181,12 @@ export async function GET(request: NextRequest) {
     const adjustments = await prisma.stock_movements.findMany({
       where,
       include: {
-        product: {
+        products: {
           select: {
             id: true,
             name: true,
             stock: true,
-            supplier: {
+            suppliers: {
               select: {
                 id: true,
                 businessName: true,

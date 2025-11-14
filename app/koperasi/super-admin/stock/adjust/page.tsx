@@ -271,7 +271,7 @@ export default function ManualStockAdjustmentPage() {
                 <div className="grid grid-cols-2 gap-2">
                   <Button
                     type="button"
-                    variant={adjustmentType === "add" ? "default" : "outline"}
+                    variant={adjustmentType === "add" ? "primary" : "outline"}
                     onClick={() => setAdjustmentType("add")}
                     className="flex items-center gap-2"
                   >
@@ -280,7 +280,7 @@ export default function ManualStockAdjustmentPage() {
                   </Button>
                   <Button
                     type="button"
-                    variant={adjustmentType === "reduce" ? "default" : "outline"}
+                    variant={adjustmentType === "reduce" ? "primary" : "outline"}
                     onClick={() => setAdjustmentType("reduce")}
                     className="flex items-center gap-2"
                   >
