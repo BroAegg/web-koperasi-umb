@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useSupplierData } from '@/hooks/useSupplierData';
 import { calculateSupplierStats } from '@/lib/supplier-helpers';
 import { Supplier, SupplierFilter } from '@/types/supplier';
+import { Plus, Loader2 } from 'lucide-react';
 
 // Modular Components
 import { 
@@ -22,6 +23,7 @@ export default function SuperAdminSuppliersPage() {
   const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
   const [showRejectModal, setShowRejectModal] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
+  const [simulateLoading, setSimulateLoading] = useState(false);
 
   // Use custom hook for all supplier data operations
   const {
@@ -80,6 +82,30 @@ export default function SuperAdminSuppliersPage() {
     setActionLoading(false);
   };
 
+  const handleSimulateSupplier = async () => {
+    if (!confirm('Buat supplier simulasi untuk testing?')) return;
+
+    setSimulateLoading(true);
+    try {
+      const res = await fetch('/api/admin/suppliers/simulate', {
+        method: 'POST',
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        alert(data.message);
+        // Refresh data
+        window.location.reload();
+      } else {
+        alert('❌ ' + data.error);
+      }
+    } catch (error) {
+      console.error('Simulate error:', error);
+      alert('❌ Gagal membuat supplier simulasi');
+    } finally {
+      setSimulateLoading(false);
+    }
+  };
 
   // Loading state
   if (loading) {
@@ -107,9 +133,28 @@ export default function SuperAdminSuppliersPage() {
   return (
     <div className="p-6 space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-3xl font-bold text-gray-900">Manajemen Supplier</h1>
-        <p className="text-gray-600 mt-2">Kelola persetujuan dan verifikasi pembayaran supplier</p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-900">Manajemen Supplier</h1>
+          <p className="text-gray-600 mt-2">Kelola persetujuan dan verifikasi pembayaran supplier</p>
+        </div>
+        <button
+          onClick={handleSimulateSupplier}
+          disabled={simulateLoading}
+          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
+        >
+          {simulateLoading ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              Membuat...
+            </>
+          ) : (
+            <>
+              <Plus className="w-4 h-4" />
+              Simulasi Supplier
+            </>
+          )}
+        </button>
       </div>
 
       {/* Stats Cards - Using Modular Components */}

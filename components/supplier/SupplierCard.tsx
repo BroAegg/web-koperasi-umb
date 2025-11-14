@@ -8,10 +8,12 @@ import {
   Package,
   CheckCircle,
   XCircle,
-  Eye
+  Eye,
+  DollarSign
 } from 'lucide-react';
 import { Supplier } from '@/types/supplier';
 import { getSupplierStatusBadge, getPaymentStatusBadge, formatCurrency, formatDate } from '@/lib/supplier-helpers';
+import { useRouter } from 'next/navigation';
 
 interface SupplierCardProps {
   supplier: Supplier;
@@ -30,10 +32,22 @@ export default function SupplierCard({
   onView,
   actionLoading = false
 }: SupplierCardProps) {
+  const router = useRouter();
   const statusBadge = getSupplierStatusBadge(supplier.status);
   const paymentBadge = getPaymentStatusBadge(supplier.paymentStatus);
   const StatusIcon = statusBadge.icon;
   const PaymentIcon = paymentBadge.icon;
+
+  // Check if supplier has CASH payment method and is APPROVED
+  const isCashMethodApproved = 
+    supplier.status === 'APPROVED' && 
+    supplier.preferredPaymentMethod === 'CASH' &&
+    supplier.paymentStatus !== 'PAID_PENDING_APPROVAL';
+
+  const handleInputCashPayment = () => {
+    // Navigate to kasir cash payment page with pre-filled supplier
+    router.push(`/koperasi/kasir/payments/cash?supplierId=${supplier.id}&supplierName=${encodeURIComponent(supplier.businessName)}`);
+  };
 
   return (
     <Card className="hover:shadow-md transition-shadow">
@@ -95,6 +109,20 @@ export default function SupplierCard({
                 </span>
               </div>
               <div>
+                <p className="text-xs text-gray-500 mb-1">Metode Pembayaran</p>
+                {supplier.preferredPaymentMethod === 'CASH' ? (
+                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-700">
+                    💵 CASH
+                  </span>
+                ) : supplier.preferredPaymentMethod === 'TRANSFER' ? (
+                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-700">
+                    🏦 TRANSFER
+                  </span>
+                ) : (
+                  <span className="text-xs text-gray-500">-</span>
+                )}
+              </div>
+              <div>
                 <p className="text-xs text-gray-500 mb-1">Fee Bulanan</p>
                 <span className="text-sm font-medium text-gray-900">
                   {supplier.monthlyFee ? formatCurrency(Number(supplier.monthlyFee)) : 'Rp 0'}
@@ -139,6 +167,19 @@ export default function SupplierCard({
 
           {/* Action Buttons */}
           <div className="flex flex-col gap-2 ml-4">
+            {/* CASH Payment Input Button - For APPROVED suppliers with CASH method */}
+            {isCashMethodApproved && (
+              <Button
+                size="sm"
+                onClick={handleInputCashPayment}
+                disabled={actionLoading}
+                className="bg-green-600 hover:bg-green-700 text-white"
+              >
+                <DollarSign className="w-4 h-4 mr-1" />
+                Input Cash Payment
+              </Button>
+            )}
+
             {/* Payment Verification Actions */}
             {supplier.paymentStatus === 'PAID_PENDING_APPROVAL' && onVerifyPayment && (
               <>
@@ -164,7 +205,7 @@ export default function SupplierCard({
             )}
 
             {/* Supplier Approval Actions */}
-            {supplier.status === 'PENDING' && supplier.paymentStatus === 'PAID_APPROVED' && onApprove && (
+            {supplier.status === 'PENDING' && onApprove && (
               <Button
                 size="sm"
                 onClick={() => onApprove(supplier.id)}

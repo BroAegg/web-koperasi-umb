@@ -45,6 +45,22 @@ export default function CashPaymentPage() {
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
 
+  // Check for URL params (pre-filled from supplier management)
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const supplierId = urlParams.get('supplierId');
+    const supplierName = urlParams.get('supplierName');
+
+    if (supplierId && supplierName) {
+      // Auto-search with supplier name
+      setSearchTerm(decodeURIComponent(supplierName));
+      // Trigger search automatically
+      setTimeout(() => {
+        handleSearch();
+      }, 500);
+    }
+  }, []);
+
   // Search suppliers
   const handleSearch = async () => {
     if (!searchTerm.trim()) {

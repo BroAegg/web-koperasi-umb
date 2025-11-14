@@ -118,12 +118,6 @@ function KoperasiContent({ children }: { children: React.ReactNode }) {
       ]
     },
     {
-      title: "PEMBAYARAN SUPPLIER",
-      items: [
-        { name: "Input Cash Payment", href: "/koperasi/kasir/payments/cash", icon: DollarSign, roles: ["ADMIN", "SUPER_ADMIN", "KASIR"] },
-      ]
-    },
-    {
       title: "PENGATURAN SISTEM",
       items: [
         { name: "Broadcast", href: "/koperasi/broadcast", icon: Megaphone, roles: ["SUPER_ADMIN"] },
