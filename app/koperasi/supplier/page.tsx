@@ -2,12 +2,14 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useSession } from "next-auth/react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Package, CreditCard, CheckCircle, Clock, AlertCircle, Upload, Receipt, X, Eye, XCircle, Building } from "lucide-react";
 
 export default function SupplierDashboard() {
   const router = useRouter();
+  const { data: session, status } = useSession();
   const [user, setUser] = useState<any>(null);
   const [supplierProfile, setSupplierProfile] = useState<any>(null);
   const [stats, setStats] = useState({
@@ -34,64 +36,47 @@ export default function SupplierDashboard() {
 
   useEffect(() => {
     console.log('[Supplier Dashboard] Component mounted');
-    const token = localStorage.getItem("token");
-    console.log('[Supplier Dashboard] Token exists:', !!token);
+    console.log('[Supplier Dashboard] Session status:', status);
+    console.log('[Supplier Dashboard] Session:', session);
     
-    if (!token) {
-      console.log('[Supplier Dashboard] No token, redirecting to login');
+    if (status === 'loading') {
+      console.log('[Supplier Dashboard] Session loading...');
+      return;
+    }
+
+    if (status === 'unauthenticated') {
+      console.log('[Supplier Dashboard] Not authenticated, redirecting to login');
       router.push("/login");
       return;
     }
 
-    // Fetch user info
-    console.log('[Supplier Dashboard] Fetching user info...');
-    fetch("/api/auth/me", {
-      headers: { Authorization: `Bearer ${token}` },
-    })
+    if (!session?.user) {
+      console.log('[Supplier Dashboard] No session user');
+      return;
+    }
+
+    const currentUser = session.user;
+    console.log('[Supplier Dashboard] Current user:', currentUser);
+
+    // Check if user is supplier
+    if (currentUser.role !== "SUPPLIER" && currentUser.role !== "DEVELOPER") {
+      console.log('[Supplier Dashboard] Not a supplier, redirecting to admin dashboard');
+      router.push("/koperasi/dashboard");
+      return;
+    }
+
+    setUser(currentUser);
+
+    // Fetch supplier profile using NextAuth token
+    console.log('[Supplier Dashboard] Fetching supplier profile...');
+    fetch("/api/supplier/profile")
       .then((r) => {
-        console.log('[Supplier Dashboard] Auth response status:', r.status);
-        return r.json();
-      })
-      .then((d) => {
-        console.log('[Supplier Dashboard] Auth response data:', d);
-        if (d.success && d.data) {
-          if (d.data.role !== "SUPPLIER") {
-            // Redirect to appropriate dashboard
-            console.log('[Supplier Dashboard] Not a supplier, redirecting to admin dashboard');
-            router.push("/koperasi/dashboard");
-            return Promise.reject('Not a supplier'); // Break chain
-          }
-          console.log('[Supplier Dashboard] User is supplier:', d.data);
-          setUser(d.data);
-          console.log('[Supplier Dashboard] User state SET, now user is:', d.data);
-          
-          // Fetch supplier profile
-          console.log('[Supplier Dashboard] About to fetch supplier profile...');
-          return fetch("/api/supplier/profile", {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-        } else {
-          console.log('[Supplier Dashboard] Auth failed, redirecting to login');
-          router.push("/login");
-          return Promise.reject('Auth failed'); // Break chain
-        }
-      })
-      .then((r) => {
-        if (!r) {
-          console.log('[Supplier Dashboard] No response from profile API');
-          return null;
-        }
         console.log('[Supplier Dashboard] Profile response status:', r.status);
         return r.json();
       })
       .then((d) => {
-        if (!d) {
-          console.log('[Supplier Dashboard] No profile data');
-          return;
-        }
         console.log('[Supplier Dashboard] Profile response data:', d);
         if (d?.success) {
-          // API returns { profile: {...}, supplier: {...} }
           const profile = d.data?.profile || d.data;
           setSupplierProfile(profile);
           console.log('[Supplier Dashboard] Profile loaded:', profile);
@@ -100,26 +85,19 @@ export default function SupplierDashboard() {
         }
       })
       .catch((error) => {
-        if (error !== 'Not a supplier' && error !== 'Auth failed') {
-          console.error('[Supplier Dashboard] Unexpected error:', error);
-        }
-        // Don't redirect on profile error, show registration prompt instead
+        console.error('[Supplier Dashboard] Unexpected error:', error);
       });
 
     // Fetch payment requests history
-    if (token) {
-      fetch('/api/supplier/payment-requests', {
-        headers: { Authorization: `Bearer ${token}` },
+    fetch('/api/supplier/payment-requests')
+      .then(r => r.json())
+      .then(d => {
+        if (d.success) {
+          setPaymentRequests(d.data || []);
+        }
       })
-        .then(r => r.json())
-        .then(d => {
-          if (d.success) {
-            setPaymentRequests(d.data || []);
-          }
-        })
-        .catch(console.error);
-    }
-  }, [router]);
+      .catch(console.error);
+  }, [session, status, router]);
 
   // Handle image upload
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -158,7 +136,6 @@ export default function SupplierDashboard() {
 
     try {
       setSubmitting(true);
-      const token = localStorage.getItem('token');
 
       // Step 1: Upload image
       const formData = new FormData();
@@ -166,7 +143,6 @@ export default function SupplierDashboard() {
 
       const uploadRes = await fetch('/api/upload/payment-proof', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
         body: formData,
       });
       const uploadData = await uploadRes.json();
@@ -180,7 +156,6 @@ export default function SupplierDashboard() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           proofImageUrl: uploadData.url,
@@ -200,9 +175,7 @@ export default function SupplierDashboard() {
       setProofImagePreview(null);
 
       // Refresh supplier profile
-      const refreshRes = await fetch('/api/supplier/profile', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const refreshRes = await fetch('/api/supplier/profile');
       const refreshData = await refreshRes.json();
       if (refreshData.success) {
         setSupplierProfile(refreshData.data);
@@ -229,7 +202,6 @@ export default function SupplierDashboard() {
 
     try {
       setSubmitting(true);
-      const token = localStorage.getItem('token');
 
       // Step 1: Upload image
       const formData = new FormData();
@@ -237,7 +209,6 @@ export default function SupplierDashboard() {
 
       const uploadRes = await fetch('/api/upload/payment-proof', {
         method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
         body: formData,
       });
       const uploadData = await uploadRes.json();
@@ -251,7 +222,6 @@ export default function SupplierDashboard() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           amount: parseFloat(amount),
@@ -282,9 +252,7 @@ export default function SupplierDashboard() {
       setShowPaymentRequestModal(false);
 
       // Refresh payment requests
-      const refreshRes = await fetch('/api/supplier/payment-requests', {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const refreshRes = await fetch('/api/supplier/payment-requests');
       const refreshData = await refreshRes.json();
       if (refreshData.success) {
         setPaymentRequests(refreshData.data || []);
@@ -335,7 +303,15 @@ export default function SupplierDashboard() {
 
   const pendingRequestsCount = paymentRequests.filter(r => r.status === 'PENDING').length;
 
-  if (!user) {
+  if (status === 'loading') {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+
+  if (!session || !user) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
