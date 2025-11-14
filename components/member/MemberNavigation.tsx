@@ -1,14 +1,14 @@
 "use client";
 
 import {
-  CreditCard,
-  Home,
-  LogOut,
-  Menu,
-  ShoppingCart,
-  User,
-  Wallet,
-  X
+    CreditCard,
+    Home,
+    LogOut,
+    Menu,
+    ShoppingCart,
+    User,
+    Wallet,
+    X
 } from 'lucide-react';
 import { signOut, useSession } from 'next-auth/react';
 import Link from 'next/link';
