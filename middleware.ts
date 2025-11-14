@@ -23,10 +23,22 @@ export default withAuth(
       }
     }
 
-    // Koperasi routes - require authentication
+    // Supplier routes - require SUPPLIER role
+    if (path.startsWith('/supplier')) {
+      if (token?.role !== 'SUPPLIER' && token?.role !== 'DEVELOPER') {
+        return NextResponse.redirect(new URL('/unauthorized', req.url))
+      }
+    }
+
+    // Koperasi routes - require authentication (but NOT for suppliers)
     if (path.startsWith('/koperasi')) {
       if (!token) {
         return NextResponse.redirect(new URL('/login', req.url))
+      }
+
+      // Suppliers cannot access koperasi routes
+      if (token.role === 'SUPPLIER') {
+        return NextResponse.redirect(new URL('/unauthorized', req.url))
       }
 
       // Super admin routes
@@ -72,7 +84,7 @@ export default withAuth(
         }
 
         // Protected routes require token
-        if (path.startsWith('/koperasi') || path.startsWith('/dev')) {
+        if (path.startsWith('/koperasi') || path.startsWith('/dev') || path.startsWith('/supplier')) {
           return !!token
         }
 

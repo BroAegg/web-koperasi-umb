@@ -29,6 +29,8 @@ export default function LoginPage() {
     try {
       // Use NextAuth signIn
       const { signIn } = await import('next-auth/react');
+      const { getSession } = await import('next-auth/react');
+      
       const result = await signIn('credentials', {
         email: formData.email,
         password: formData.password,
@@ -38,8 +40,21 @@ export default function LoginPage() {
       if (result?.error) {
         alert(result.error);
       } else if (result?.ok) {
-        // Success - redirect to dashboard
-        window.location.href = '/koperasi/dashboard';
+        // Get session to determine role
+        const session = await getSession();
+        const role = session?.user?.role;
+
+        // Redirect based on role
+        switch (role) {
+          case 'SUPPLIER':
+            window.location.href = '/supplier/dashboard';
+            break;
+          case 'DEVELOPER':
+            window.location.href = '/dev/dashboard';
+            break;
+          default:
+            window.location.href = '/koperasi/dashboard';
+        }
       }
     } catch (error) {
       console.error('Login error:', error);
