@@ -8,6 +8,7 @@ const nextConfig: NextConfig = {
   /* Production optimizations */
   reactStrictMode: true,
   compress: true,
+  trailingSlash: false,
   
   /* Production compiler optimizations */
   compiler: {

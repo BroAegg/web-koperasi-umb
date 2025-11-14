@@ -4,10 +4,10 @@
  * PATCH /api/admin/payments/verify - Verify/Reject payment
  */
 
-import { NextRequest, NextResponse } from 'next/server';
-import { getServerSession } from 'next-auth';
 import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
+import { getServerSession } from 'next-auth';
+import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(request: NextRequest) {
   try {
@@ -33,7 +33,6 @@ export async function GET(request: NextRequest) {
             phone: true,
             status: true,
             paymentStatus: true,
-            isSuspendedForPayment: true,
             nextPaymentDue: true,
           },
         },
