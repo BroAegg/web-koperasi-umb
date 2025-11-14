@@ -48,6 +48,8 @@ export default function LoginPage() {
           window.location.href = '/koperasi/supplier/dashboard';
         } else if (session?.user?.role === 'DEVELOPER') {
           window.location.href = '/dev';
+        } else if (session?.user?.role === 'USER') {
+          window.location.href = '/member/dashboard';
         } else {
           window.location.href = '/koperasi/dashboard';
         }
