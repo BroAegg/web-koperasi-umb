@@ -22,29 +22,28 @@ async function handleApproveSupplier(
       );
     }
 
-    // Check if payment has been approved
-    if (supplier.paymentStatus !== 'PAID_APPROVED') {
+    // Check if supplier is PENDING
+    if (supplier.status !== 'PENDING') {
       return NextResponse.json(
-        { success: false, error: 'Pembayaran belum diverifikasi. Verifikasi pembayaran terlebih dahulu.' },
+        { success: false, error: 'Supplier sudah di-approve atau ditolak sebelumnya.' },
         { status: 400 }
       );
     }
 
-    // Approve supplier and set to APPROVED
+    // Approve supplier - status APPROVED means waiting for payment
     const updatedSupplier = await prisma.suppliers.update({
       where: { id: supplierId },
       data: {
-        status: 'APPROVED',
+        status: 'APPROVED', // Approved but needs to pay first
         approvedAt: new Date(),
-        isPaymentActive: true,
-        // Set next payment due to 30 days from now
-        nextPaymentDue: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        isActive: false, // Will be true after payment verified
+        isPaymentActive: false, // Will be true after payment verified
       },
     });
 
     return NextResponse.json({
       success: true,
-      message: 'Supplier berhasil diapprove dan diaktifkan',
+      message: 'Supplier berhasil diapprove. Supplier akan diminta untuk melakukan pembayaran biaya aktivasi.',
       data: {
         ...updatedSupplier,
         supplierName: supplier.businessName,

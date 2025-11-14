@@ -1,21 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
-import { getUserFromToken } from '@/lib/auth';
 
 // POST /api/supplier/upload-payment - Upload payment proof with file validation
 export async function POST(request: NextRequest) {
   try {
-    // Get user from token
-    const token = request.headers.get('authorization')?.replace('Bearer ', '');
-    if (!token) {
+    // Get session from NextAuth
+    const session = await getServerSession(authOptions);
+    if (!session || !session.user) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
-    const user = await getUserFromToken(token);
-    if (!user || user.role !== 'SUPPLIER') {
+    const user = session.user;
+    if (user.role !== 'SUPPLIER') {
       return NextResponse.json(
         { success: false, error: 'Unauthorized - Supplier only' },
         { status: 403 }
@@ -34,15 +35,23 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Parse form data for file upload
-    const formData = await request.formData();
-    const file = formData.get('file') as File | null;
-    const amount = formData.get('amount') as string;
-
-    // Validation: File must be provided
-    if (!file) {
+    // Check if supplier is APPROVED (waiting for payment)
+    if (supplier.status !== 'APPROVED') {
       return NextResponse.json(
-        { success: false, error: 'No file uploaded' },
+        { success: false, error: 'Supplier belum di-approve oleh admin atau sudah aktif' },
+        { status: 400 }
+      );
+    }
+
+    // Parse JSON body (not FormData, since we're sending base64)
+    const body = await request.json();
+    const paymentProof = body.paymentProof; // base64 string
+    const amount = body.amount;
+
+    // Validation: Payment proof must be provided
+    if (!paymentProof) {
+      return NextResponse.json(
+        { success: false, error: 'Bukti pembayaran wajib diupload' },
         { status: 400 }
       );
     }
@@ -50,39 +59,14 @@ export async function POST(request: NextRequest) {
     // Validation: Amount must be provided
     if (!amount) {
       return NextResponse.json(
-        { success: false, error: 'Payment amount is required' },
+        { success: false, error: 'Jumlah pembayaran wajib diisi' },
         { status: 400 }
       );
     }
 
-    // Validation: File must be an image
-    if (!file.type.startsWith('image/')) {
-      return NextResponse.json(
-        { success: false, error: 'File must be an image (jpg, png, webp)' },
-        { status: 400 }
-      );
-    }
-
-    // Validation: File size max 5MB
-    const maxSize = 5 * 1024 * 1024; // 5MB
-    if (file.size > maxSize) {
-      return NextResponse.json(
-        { success: false, error: 'File too large. Maximum size is 5MB' },
-        { status: 400 }
-      );
-    }
-
-    // TODO: Upload file to storage (cloud storage or local)
-    // For now, we'll just store the filename
-    const filename = `payment-${supplier.id}-${Date.now()}-${file.name}`;
-    
-    // In production, you would:
-    // 1. Upload to cloud storage (AWS S3, Google Cloud Storage, etc.)
-    // 2. Get the URL
-    // 3. Store the URL in database
-    
-    // For now, we'll use a placeholder path
-    const paymentProofPath = `/uploads/payments/${filename}`;
+    // Store base64 payment proof (or upload to cloud storage in production)
+    const filename = `payment-${supplier.id}-${Date.now()}.jpg`;
+    const paymentProofPath = paymentProof; // Store base64 directly for now
 
     // Create payment record
     const payment = await prisma.supplier_payments.create({
@@ -113,8 +97,6 @@ export async function POST(request: NextRequest) {
       data: {
         ...payment,
         filename,
-        fileSize: file.size,
-        fileType: file.type,
       },
     });
   } catch (error) {

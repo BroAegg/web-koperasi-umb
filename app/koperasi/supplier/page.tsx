@@ -367,7 +367,7 @@ export default function SupplierDashboard() {
     );
   }
 
-  // Show pending approval status
+  // Show pending approval status (waiting for admin review)
   if (supplierProfile.status === "PENDING") {
     return (
       <div className="space-y-6">
@@ -406,6 +406,63 @@ export default function SupplierDashboard() {
             </div>
             <p className="text-xs text-gray-500 mt-4">
               Butuh bantuan? Hubungi admin@koperasi-umb.com
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+  // Show approved status - waiting for payment (APPROVED but not ACTIVE)
+  if (supplierProfile.status === "APPROVED") {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold text-gray-900">Dashboard Penitip</h1>
+            <p className="text-gray-600 mt-1">Selamat datang, {user.name}</p>
+          </div>
+        </div>
+
+        <Card className="border-2 border-green-200">
+          <CardContent className="p-8">
+            <div className="text-center mb-8">
+              <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                <CheckCircle className="w-10 h-10 text-green-600" />
+              </div>
+              <h3 className="text-2xl font-bold text-gray-900 mb-2">
+                🎉 Selamat! Akun Anda Disetujui
+              </h3>
+              <p className="text-gray-600">
+                Lakukan pembayaran biaya aktivasi untuk mengaktifkan akun supplier Anda
+              </p>
+            </div>
+
+            <div className="bg-gradient-to-br from-blue-600 to-indigo-600 text-white rounded-2xl p-8 mb-6 text-center">
+              <p className="text-blue-100 text-sm mb-2">Biaya Aktivasi Bulanan</p>
+              <p className="text-5xl font-bold mb-2">Rp 25.000</p>
+              <p className="text-blue-100 text-sm">per bulan</p>
+            </div>
+
+            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+              <p className="text-sm font-semibold text-gray-900 mb-2">📋 Informasi Pembayaran:</p>
+              <div className="space-y-1 text-sm text-gray-700">
+                <p><strong>Bank BRI:</strong> 1234-5678-9012-3456</p>
+                <p><strong>Atas Nama:</strong> Koperasi UMB</p>
+                <p><strong>Jumlah:</strong> Rp 25.000</p>
+              </div>
+            </div>
+
+            <Button
+              onClick={() => router.push('/koperasi/supplier/payment')}
+              className="w-full py-6 text-lg font-semibold"
+            >
+              <Upload className="w-5 h-5 mr-2" />
+              Upload Bukti Pembayaran
+            </Button>
+
+            <p className="text-xs text-gray-500 mt-4 text-center">
+              Setelah pembayaran diverifikasi, Anda dapat langsung mengakses dashboard dan mengelola produk.
             </p>
           </CardContent>
         </Card>

@@ -45,7 +45,7 @@ async function handleVerifyPayment(
     const payment = supplier.supplier_payments[0];
 
     if (approve) {
-      // Approve payment
+      // Approve payment and activate supplier
       await prisma.$transaction([
         // Update payment status
         prisma.supplier_payments.update({
@@ -55,25 +55,30 @@ async function handleVerifyPayment(
             verifiedAt: new Date(),
           },
         }),
-        // Update supplier payment status
+        // Update supplier to ACTIVE status
         prisma.suppliers.update({
           where: { id: supplierId },
           data: {
+            status: 'ACTIVE', // Change from APPROVED to ACTIVE
             paymentStatus: 'PAID_APPROVED',
             lastPaymentDate: new Date(),
+            nextPaymentDue: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+            isActive: true,
+            isPaymentActive: true,
           },
         }),
       ]);
 
       return NextResponse.json({
         success: true,
-        message: 'Pembayaran berhasil diverifikasi',
+        message: 'Pembayaran berhasil diverifikasi. Supplier sekarang ACTIVE dan dapat mengakses dashboard.',
         data: {
           supplierId,
           supplierName: supplier.businessName,
           paymentId: payment.id,
           amount: Number(payment.amount),
           action: 'APPROVED',
+          newStatus: 'ACTIVE',
         },
       });
     } else {
