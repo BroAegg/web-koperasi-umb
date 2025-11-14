@@ -30,8 +30,16 @@ export default function MemberNavigation() {
   ];
 
   const handleLogout = async () => {
-    await signOut({ redirect: false });
-    router.push('/login');
+    try {
+      await signOut({ 
+        redirect: true,
+        callbackUrl: '/login'
+      });
+    } catch (error) {
+      console.error('Logout error:', error);
+      // Fallback: force redirect even if signOut fails
+      window.location.href = '/login';
+    }
   };
 
   return (
