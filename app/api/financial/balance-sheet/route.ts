@@ -12,8 +12,7 @@ interface BalanceSheetData {
   };
   aktiva: {
     lancar: {
-      kas: number;
-      bank: number;
+      kasBank: number; // Kas dan Setara Kas (gabungan kas + bank)
       piutang: number;
       persediaan: number;
       subtotal: number;
@@ -80,9 +79,10 @@ export async function GET(request: NextRequest) {
 
     // === AKTIVA LANCAR ===
     
-    // 1. KAS (Cash on Hand) - Accumulated cash up to endDate
-    // SALE transactions with CASH = Income
-    // PURCHASE transactions with CASH = Expense
+    // 1. KAS DAN SETARA KAS (Cash and Cash Equivalents)
+    // Menggabungkan kas tunai dan saldo bank sesuai standar akuntansi koperasi
+    
+    // KAS TUNAI - SALE transactions with CASH = Income
     const cashIncome = await prisma.transactions.aggregate({
       where: { 
         type: 'SALE',
@@ -93,6 +93,7 @@ export async function GET(request: NextRequest) {
       _sum: { totalAmount: true }
     });
     
+    // KAS TUNAI - PURCHASE transactions with CASH = Expense
     const cashExpense = await prisma.transactions.aggregate({
       where: {
         type: 'PURCHASE',
@@ -105,9 +106,7 @@ export async function GET(request: NextRequest) {
     
     const kas = decimalToNumber(cashIncome._sum.totalAmount) - decimalToNumber(cashExpense._sum.totalAmount);
 
-    // 2. BANK (Bank Balance) - Accumulated bank balance up to endDate
-    // SALE transactions with TRANSFER = Income
-    // PURCHASE transactions with TRANSFER = Expense
+    // BANK - SALE transactions with TRANSFER = Income
     const bankIncome = await prisma.transactions.aggregate({
       where: {
         type: 'SALE',
@@ -118,6 +117,7 @@ export async function GET(request: NextRequest) {
       _sum: { totalAmount: true }
     });
     
+    // BANK - PURCHASE transactions with TRANSFER = Expense
     const bankExpense = await prisma.transactions.aggregate({
       where: {
         type: 'PURCHASE',
@@ -129,11 +129,14 @@ export async function GET(request: NextRequest) {
     });
     
     const bank = decimalToNumber(bankIncome._sum.totalAmount) - decimalToNumber(bankExpense._sum.totalAmount);
+    
+    // GABUNGAN KAS DAN BANK (sesuai standar koperasi)
+    const kasBank = kas + bank;
 
-    // 3. PIUTANG (Accounts Receivable)
+    // 2. PIUTANG (Accounts Receivable)
     const piutang = 0; // TODO: Implement if you track customer credit
 
-    // 4. PERSEDIAAN GUDANG (Inventory Stock Value)
+    // 3. PERSEDIAAN GUDANG (Inventory Stock Value)
     // IMPORTANT: Only count TOKO products (owned by koperasi)
     // TITIPAN products are consignment goods, NOT owned by koperasi
     const allProducts = await prisma.products.findMany({
@@ -148,12 +151,12 @@ export async function GET(request: NextRequest) {
       return sum + (decimalToNumber(p.buyPrice) * (p.stock || 0));
     }, 0);
 
-    // 5. AKTIVA TETAP (Fixed Assets)
+    // 4. AKTIVA TETAP (Fixed Assets)
     const peralatan = 0; // Equipment - TODO: Add if tracked
     const kendaraan = 0; // Vehicles - TODO: Add if tracked
     const gedung = 0; // Buildings - TODO: Add if tracked
 
-    const aktivaLancarSubtotal = kas + bank + piutang + persediaan;
+    const aktivaLancarSubtotal = kasBank + piutang + persediaan;
     const aktivaTetapSubtotal = peralatan + kendaraan + gedung;
     const totalAktiva = aktivaLancarSubtotal + aktivaTetapSubtotal;
 
@@ -298,8 +301,7 @@ export async function GET(request: NextRequest) {
       period: { month, year, label: `${monthNames[month - 1]} ${year}` },
       aktiva: {
         lancar: {
-          kas: Math.round(kas),
-          bank: Math.round(bank),
+          kasBank: Math.round(kasBank),
           piutang: Math.round(piutang),
           persediaan: Math.round(persediaan),
           subtotal: Math.round(aktivaLancarSubtotal)
