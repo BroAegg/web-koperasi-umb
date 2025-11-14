@@ -145,12 +145,13 @@ export async function PATCH(request: NextRequest) {
       // Calculate next payment due (1st of next month)
       const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
 
-      // Update supplier status
+      // Update supplier status to ACTIVE if APPROVED
       await prisma.suppliers.update({
         where: { id: payment.supplierId },
         data: {
-          status: payment.suppliers.status === 'PENDING' ? 'ACTIVE' : payment.suppliers.status,
+          status: payment.suppliers.status === 'APPROVED' ? 'ACTIVE' : payment.suppliers.status,
           paymentStatus: 'PAID_APPROVED',
+          isActive: payment.suppliers.status === 'APPROVED' ? true : payment.suppliers.isActive,
           isPaymentActive: true,
           lastPaymentDate: now,
           nextPaymentDue: nextMonth,

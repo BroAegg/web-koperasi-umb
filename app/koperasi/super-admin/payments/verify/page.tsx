@@ -378,14 +378,28 @@ export default function PaymentVerificationPage() {
                       {payment.paymentProof && (
                         <div>
                           <p className="text-xs text-slate-600 mb-2">Bukti Pembayaran:</p>
+                          <div className="bg-slate-100 rounded-lg p-2 mb-2">
+                            <img 
+                              src={payment.paymentProof.startsWith('data:') ? payment.paymentProof : `/uploads/payments/${payment.paymentProof}`} 
+                              alt="Bukti Pembayaran" 
+                              className="w-full h-32 object-contain rounded cursor-pointer hover:opacity-80 transition-opacity"
+                              onClick={() => {
+                                const imgSrc = payment.paymentProof!.startsWith('data:') ? payment.paymentProof : `/uploads/payments/${payment.paymentProof}`;
+                                window.open(imgSrc, "_blank");
+                              }}
+                            />
+                          </div>
                           <Button
                             variant="outline"
                             size="sm"
                             className="w-full"
-                            onClick={() => window.open(payment.paymentProof!, "_blank")}
+                            onClick={() => {
+                              const imgSrc = payment.paymentProof!.startsWith('data:') ? payment.paymentProof : `/uploads/payments/${payment.paymentProof}`;
+                              window.open(imgSrc, "_blank");
+                            }}
                           >
                             <FileText className="w-4 h-4 mr-2" />
-                            Lihat Bukti
+                            Buka Bukti di Tab Baru
                           </Button>
                         </div>
                       )}
