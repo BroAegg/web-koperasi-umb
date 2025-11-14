@@ -47,7 +47,7 @@ export default function LoginPage() {
         // Redirect based on role
         switch (role) {
           case 'SUPPLIER':
-            window.location.href = '/supplier/dashboard';
+            window.location.href = '/koperasi/supplier';
             break;
           case 'DEVELOPER':
             window.location.href = '/dev/dashboard';

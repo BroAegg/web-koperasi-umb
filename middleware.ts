@@ -30,13 +30,22 @@ export default withAuth(
       }
     }
 
-    // Koperasi routes - require authentication (but NOT for suppliers)
+    // Koperasi routes - require authentication
     if (path.startsWith('/koperasi')) {
       if (!token) {
         return NextResponse.redirect(new URL('/login', req.url))
       }
 
-      // Suppliers cannot access koperasi routes
+      // Supplier-specific routes - only for suppliers
+      if (path.startsWith('/koperasi/supplier')) {
+        if (token.role !== 'SUPPLIER' && token.role !== 'DEVELOPER') {
+          return NextResponse.redirect(new URL('/unauthorized', req.url))
+        }
+        // Suppliers can access /koperasi/supplier routes
+        return NextResponse.next()
+      }
+
+      // Block suppliers from accessing other koperasi routes
       if (token.role === 'SUPPLIER') {
         return NextResponse.redirect(new URL('/unauthorized', req.url))
       }
