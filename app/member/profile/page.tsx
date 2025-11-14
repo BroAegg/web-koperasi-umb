@@ -219,7 +219,7 @@ export default function ProfilePage() {
         {/* Header */}
         <div className="mb-6">
           <Button
-            variant="ghost"
+            variant="outline"
             onClick={() => router.push('/member/dashboard')}
             className="mb-4 text-gray-600 hover:text-gray-900"
           >

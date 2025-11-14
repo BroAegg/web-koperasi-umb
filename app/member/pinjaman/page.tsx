@@ -180,7 +180,7 @@ export default function PinjamanPage() {
         {/* Header */}
         <div className="mb-6">
           <Button
-            variant="ghost"
+            variant="outline"
             onClick={() => router.push('/member/dashboard')}
             className="mb-4 text-gray-600 hover:text-gray-900"
           >
@@ -243,7 +243,7 @@ export default function PinjamanPage() {
                 Ajukan Pinjaman Baru
               </h3>
               <Button
-                variant="ghost"
+                variant="outline"
                 onClick={() => setShowApplyForm(false)}
                 className="text-gray-500 hover:text-gray-700"
               >

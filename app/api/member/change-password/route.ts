@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma';
 import bcrypt from 'bcryptjs';
 import { getServerSession } from 'next-auth';
 import { NextRequest, NextResponse } from 'next/server';
+import { randomUUID } from 'crypto';
 
 export async function POST(req: NextRequest) {
   try {
@@ -76,8 +77,11 @@ export async function POST(req: NextRequest) {
     // Log activity
     await prisma.activity_logs.create({
       data: {
+        id: randomUUID(),
         userId: user.id,
+        userRole: 'USER',
         action: 'PASSWORD_CHANGE',
+        module: 'MEMBER_PORTAL',
         description: 'Member mengubah password',
       },
     });

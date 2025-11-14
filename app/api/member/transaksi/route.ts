@@ -60,7 +60,7 @@ export async function GET(req: NextRequest) {
 
       return {
         id: transaction.id,
-        invoiceNumber: transaction.invoiceNumber,
+        invoiceNumber: transaction.id.substring(0, 12).toUpperCase(), // Use ID substring as invoice number
         date: transaction.createdAt.toISOString(),
         totalAmount: Number(transaction.totalAmount),
         pointsEarned,

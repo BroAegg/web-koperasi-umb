@@ -2,6 +2,7 @@ import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { NextRequest, NextResponse } from 'next/server';
+import { randomUUID } from 'crypto';
 
 export async function GET(req: NextRequest) {
   try {
@@ -115,10 +116,11 @@ export async function PUT(req: NextRequest) {
     // Log activity
     await prisma.activity_logs.create({
       data: {
+        id: randomUUID(),
         userId: session.user.id,
+        userRole: 'USER',
         action: 'PROFILE_UPDATE',
-        entityType: 'MEMBER',
-        entityId: member.id,
+        module: 'MEMBER_PORTAL',
         description: 'Member memperbarui informasi profil',
       },
     });

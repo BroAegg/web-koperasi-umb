@@ -145,7 +145,7 @@ export default function TransaksiPage() {
         {/* Header */}
         <div className="mb-6">
           <Button
-            variant="ghost"
+            variant="outline"
             onClick={() => router.push('/member/dashboard')}
             className="mb-4 text-gray-600 hover:text-gray-900"
           >
@@ -204,28 +204,28 @@ export default function TransaksiPage() {
             </div>
             <div className="flex gap-2">
               <Button
-                variant={dateFilter === 'all' ? 'default' : 'outline'}
+                variant={dateFilter === 'all' ? 'primary' : 'outline'}
                 onClick={() => setDateFilter('all')}
                 className={dateFilter === 'all' ? 'bg-orange-600 hover:bg-orange-700' : ''}
               >
                 Semua
               </Button>
               <Button
-                variant={dateFilter === 'today' ? 'default' : 'outline'}
+                variant={dateFilter === 'today' ? 'primary' : 'outline'}
                 onClick={() => setDateFilter('today')}
                 className={dateFilter === 'today' ? 'bg-orange-600 hover:bg-orange-700' : ''}
               >
                 Hari Ini
               </Button>
               <Button
-                variant={dateFilter === 'week' ? 'default' : 'outline'}
+                variant={dateFilter === 'week' ? 'primary' : 'outline'}
                 onClick={() => setDateFilter('week')}
                 className={dateFilter === 'week' ? 'bg-orange-600 hover:bg-orange-700' : ''}
               >
                 7 Hari
               </Button>
               <Button
-                variant={dateFilter === 'month' ? 'default' : 'outline'}
+                variant={dateFilter === 'month' ? 'primary' : 'outline'}
                 onClick={() => setDateFilter('month')}
                 className={dateFilter === 'month' ? 'bg-orange-600 hover:bg-orange-700' : ''}
               >
