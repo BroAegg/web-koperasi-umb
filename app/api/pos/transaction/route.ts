@@ -141,7 +141,7 @@ async function handlePOSTransaction(req: NextRequest) {
 
       // Process each item
       for (const item of items) {
-        // ✅ FIX: Get product data untuk calculate COGS (harga beli)
+        // ✅ FIX: Get product data untuk calculate COGS (harga beli) + profitShareRate
         const product = await tx.products.findUnique({
           where: { id: item.productId },
           select: {
@@ -151,6 +151,8 @@ async function handlePOSTransaction(req: NextRequest) {
             avgCost: true,
             ownershipType: true,
             isConsignment: true,
+            profitShareRate: true, // ✅ NEW: For supplier profit sharing
+            supplierId: true,      // ✅ NEW: To link to supplier
           }
         });
 
@@ -244,6 +246,45 @@ async function handlePOSTransaction(req: NextRequest) {
           } else {
             console.warn('[POS] No active consignment batch found for TITIPAN product:', item.productId);
           }
+        }
+        // ✅ NEW: SUPPLIER PROFIT SHARING - Handle products owned by suppliers
+        else if (product.ownershipType === 'SUPPLIER' && product.supplierId) {
+          // Calculate profit sharing based on profitShareRate
+          const totalRevenue = Number(item.subtotal); // Total selling price
+          const profitShareRate = Number(product.profitShareRate || 90); // Default 90% to supplier
+          
+          // Calculate shares
+          const supplierShare = (totalRevenue * profitShareRate) / 100;
+          const koperasiShare = totalRevenue - supplierShare;
+          
+          // Create consignment_sales record for supplier products
+          // This creates hutang (liability) to supplier for their share
+          await tx.consignment_sales.create({
+            data: {
+              id: randomUUID(),
+              batchId: null, // No batch for supplier products
+              supplierId: product.supplierId, // ✅ Link to supplier
+              transactionItemId: transactionItem.id,
+              qtySold: item.quantity,
+              unitPrice: item.unitPrice,
+              totalRevenue: totalRevenue,
+              feeType: 'PERCENTAGE',
+              feeAmount: koperasiShare, // Koperasi's share (fee)
+              netToConsignor: supplierShare, // Supplier's share (net)
+              isSettled: false, // Creates hutang to supplier
+              saleDate: new Date(),
+            },
+          });
+
+          console.log('[POS] Created supplier profit sharing:', {
+            productId: item.productId,
+            supplierId: product.supplierId,
+            totalRevenue,
+            profitShareRate: `${profitShareRate}%`,
+            supplierShare,
+            koperasiShare,
+            isSettled: false // Creates liability to supplier
+          });
         }
 
         // Update product stock

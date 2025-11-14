@@ -5,7 +5,9 @@ import { useRouter } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Package, CreditCard, CheckCircle, Clock, AlertCircle, Upload, Receipt, X, Eye, XCircle, Building } from "lucide-react";
+import { Tooltip, InfoBanner } from "@/components/ui/tooltip";
+import { OnboardingModal } from "@/components/supplier/OnboardingModal";
+import { Package, CreditCard, CheckCircle, Clock, AlertCircle, Upload, Receipt, X, Eye, XCircle, Building, Info } from "lucide-react";
 
 export default function SupplierDashboard() {
   const router = useRouter();
@@ -33,6 +35,17 @@ export default function SupplierDashboard() {
   const [proofImage, setProofImage] = useState<File | null>(null);
   const [proofImagePreview, setProofImagePreview] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  
+  // Onboarding
+  const [showOnboarding, setShowOnboarding] = useState(false);
+
+  useEffect(() => {
+    // Check if onboarding should be shown
+    const hasSeenOnboarding = localStorage.getItem('supplier_onboarding_completed');
+    if (!hasSeenOnboarding && supplierProfile?.status === 'ACTIVE') {
+      setShowOnboarding(true);
+    }
+  }, [supplierProfile]);
 
   useEffect(() => {
     console.log('[Supplier Dashboard] Component mounted');
@@ -323,24 +336,30 @@ export default function SupplierDashboard() {
   if (!supplierProfile) {
     return (
       <div className="space-y-6">
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Supplier Dashboard</h1>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Dashboard Penitip</h1>
             <p className="text-gray-600 mt-1">Selamat datang, {user.name}</p>
           </div>
         </div>
 
+        <InfoBanner
+          type="info"
+          title="🎉 Selamat Bergabung!"
+          message="Lengkapi profil Anda untuk mulai berjualan di BSM Mart. Proses pendaftaran hanya membutuhkan beberapa menit."
+        />
+
         <Card>
-          <CardContent className="p-8 text-center">
-            <AlertCircle className="h-16 w-16 text-blue-600 mx-auto mb-4" />
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">
-              Lengkapi Profil Supplier Anda
+          <CardContent className="p-6 md:p-8 text-center">
+            <AlertCircle className="h-12 w-12 md:h-16 md:w-16 text-blue-600 mx-auto mb-4" />
+            <h3 className="text-lg md:text-xl font-semibold text-gray-900 mb-2">
+              Lengkapi Profil Penitip Anda
             </h3>
-            <p className="text-gray-600 mb-6">
-              Untuk mulai menerima pesanan, silakan lengkapi profil supplier Anda terlebih dahulu.
+            <p className="text-sm md:text-base text-gray-600 mb-6">
+              Untuk mulai menerima pesanan, silakan lengkapi profil penitip Anda terlebih dahulu.
             </p>
-            <Button onClick={() => router.push("/koperasi/supplier/register")}>
-              Daftar Sebagai Supplier
+            <Button onClick={() => router.push("/koperasi/supplier/register")} className="w-full md:w-auto">
+              Daftar Sebagai Penitip
             </Button>
           </CardContent>
         </Card>
@@ -354,7 +373,7 @@ export default function SupplierDashboard() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Supplier Dashboard</h1>
+            <h1 className="text-3xl font-bold text-gray-900">Dashboard Penitip</h1>
             <p className="text-gray-600 mt-1">Selamat datang, {user.name}</p>
           </div>
         </div>
@@ -402,7 +421,7 @@ export default function SupplierDashboard() {
       <div className="space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Supplier Dashboard</h1>
+            <h1 className="text-3xl font-bold text-gray-900">Dashboard Penitip</h1>
             <p className="text-gray-600 mt-1">Selamat datang, {user.name}</p>
           </div>
         </div>
@@ -530,32 +549,41 @@ export default function SupplierDashboard() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold text-gray-900">Supplier Dashboard</h1>
-          <p className="text-gray-600 mt-1">{supplierProfile.businessName}</p>
+    <>
+      {/* Onboarding Modal */}
+      {showOnboarding && (
+        <OnboardingModal onComplete={() => setShowOnboarding(false)} />
+      )}
+
+      <div className="space-y-6">
+        <div className="flex items-center justify-between flex-wrap gap-4">
+          <div>
+            <h1 className="text-2xl md:text-3xl font-bold text-gray-900">Dashboard Penitip</h1>
+            <p className="text-sm md:text-base text-gray-600 mt-1">{supplierProfile.businessName}</p>
+          </div>
+          <div className={`px-3 py-1 rounded-full text-sm font-medium ${
+            stats.paymentStatus === "active" 
+              ? "bg-green-100 text-green-800" 
+              : "bg-red-100 text-red-800"
+          }`}>
+            {stats.paymentStatus === "active" ? "Pembayaran Aktif" : "Pembayaran Jatuh Tempo"}
+          </div>
         </div>
-        <div className={`px-3 py-1 rounded-full text-sm font-medium ${
-          stats.paymentStatus === "active" 
-            ? "bg-green-100 text-green-800" 
-            : "bg-red-100 text-red-800"
-        }`}>
-          {stats.paymentStatus === "active" ? "Payment Active" : "Payment Due"}
-        </div>
-      </div>
 
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4 md:p-6">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Orders</p>
-                <p className="text-2xl font-bold text-gray-900 mt-2">{stats.totalOrders}</p>
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-medium text-gray-600">Total Pesanan</p>
+                  <Tooltip content="Jumlah total pesanan produk Anda yang terjual" position="top" />
+                </div>
+                <p className="text-xl md:text-2xl font-bold text-gray-900 mt-2">{stats.totalOrders}</p>
               </div>
-              <div className="h-12 w-12 bg-blue-100 rounded-lg flex items-center justify-center">
-                <Package className="h-6 w-6 text-blue-600" />
+              <div className="h-10 w-10 md:h-12 md:w-12 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                <Package className="h-5 w-5 md:h-6 md:w-6 text-blue-600" />
               </div>
             </div>
           </CardContent>
@@ -565,7 +593,7 @@ export default function SupplierDashboard() {
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Pending Orders</p>
+                <p className="text-sm font-medium text-gray-600">Pesanan Pending</p>
                 <p className="text-2xl font-bold text-gray-900 mt-2">{stats.pendingOrders}</p>
               </div>
               <div className="h-12 w-12 bg-yellow-100 rounded-lg flex items-center justify-center">
@@ -576,30 +604,36 @@ export default function SupplierDashboard() {
         </Card>
 
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4 md:p-6">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Total Revenue</p>
-                <p className="text-2xl font-bold text-gray-900 mt-2">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-medium text-gray-600">Total Pendapatan</p>
+                  <Tooltip content="Pendapatan bersih 90% dari penjualan produk Anda" position="top" />
+                </div>
+                <p className="text-xl md:text-2xl font-bold text-gray-900 mt-2 truncate">
                   Rp {stats.totalRevenue.toLocaleString()}
                 </p>
               </div>
-              <div className="h-12 w-12 bg-green-100 rounded-lg flex items-center justify-center">
-                <CheckCircle className="h-6 w-6 text-green-600" />
+              <div className="h-10 w-10 md:h-12 md:w-12 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                <CheckCircle className="h-5 w-5 md:h-6 md:w-6 text-green-600" />
               </div>
             </div>
           </CardContent>
         </Card>
 
         <Card>
-          <CardContent className="p-6">
+          <CardContent className="p-4 md:p-6">
             <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm font-medium text-gray-600">Monthly Fee</p>
-                <p className="text-2xl font-bold text-gray-900 mt-2">Rp 25,000</p>
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <p className="text-sm font-medium text-gray-600">Biaya Bulanan</p>
+                  <Tooltip content="Biaya administrasi dan maintenance sistem per bulan" position="top" />
+                </div>
+                <p className="text-xl md:text-2xl font-bold text-gray-900 mt-2">Rp 25,000</p>
               </div>
-              <div className="h-12 w-12 bg-purple-100 rounded-lg flex items-center justify-center">
-                <CreditCard className="h-6 w-6 text-purple-600" />
+              <div className="h-10 w-10 md:h-12 md:w-12 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                <CreditCard className="h-5 w-5 md:h-6 md:w-6 text-purple-600" />
               </div>
             </div>
           </CardContent>
@@ -610,10 +644,10 @@ export default function SupplierDashboard() {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <Card>
           <CardContent className="p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Payment Status</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Status Pembayaran</h3>
             <div className="bg-gray-50 rounded-lg p-4 space-y-2">
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Next Payment Due:</span>
+                <span className="text-gray-600">Pembayaran Berikutnya:</span>
                 <span className="font-medium text-gray-900">
                   {supplierProfile.nextPaymentDue 
                     ? new Date(supplierProfile.nextPaymentDue).toLocaleDateString('id-ID')
@@ -621,7 +655,7 @@ export default function SupplierDashboard() {
                 </span>
               </div>
               <div className="flex justify-between text-sm">
-                <span className="text-gray-600">Last Payment:</span>
+                <span className="text-gray-600">Pembayaran Terakhir:</span>
                 <span className="font-medium text-gray-900">
                   {supplierProfile.lastPaymentDate 
                     ? new Date(supplierProfile.lastPaymentDate).toLocaleDateString('id-ID')
@@ -634,14 +668,14 @@ export default function SupplierDashboard() {
               onClick={() => router.push("/koperasi/supplier/payment")}
             >
               <CreditCard className="h-4 w-4 mr-2" />
-              Make Payment
+              Bayar Sekarang
             </Button>
           </CardContent>
         </Card>
 
         <Card>
           <CardContent className="p-6">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Actions</h3>
+            <h3 className="text-lg font-semibold text-gray-900 mb-4">Aksi Cepat</h3>
             <div className="space-y-3">
               <Button 
                 variant="outline" 
@@ -649,7 +683,7 @@ export default function SupplierDashboard() {
                 onClick={() => router.push("/koperasi/supplier/orders")}
               >
                 <Package className="h-4 w-4 mr-2" />
-                View Orders
+                Lihat Pesanan
               </Button>
               <Button 
                 variant="outline" 
@@ -657,7 +691,7 @@ export default function SupplierDashboard() {
                 onClick={() => router.push("/koperasi/supplier/products")}
               >
                 <Package className="h-4 w-4 mr-2" />
-                My Products
+                Produk Saya
               </Button>
               <Button 
                 variant="outline" 
@@ -665,7 +699,7 @@ export default function SupplierDashboard() {
                 onClick={() => router.push("/koperasi/supplier/profile")}
               >
                 <CheckCircle className="h-4 w-4 mr-2" />
-                Edit Profile
+                Ubah Profil
               </Button>
             </div>
           </CardContent>
@@ -982,6 +1016,7 @@ export default function SupplierDashboard() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </>
   );
 }

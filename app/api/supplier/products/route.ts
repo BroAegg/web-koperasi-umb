@@ -1,28 +1,31 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
-import { getUserFromToken } from '@/lib/auth';
 import { randomUUID } from 'crypto';
 import { Decimal } from '@prisma/client/runtime/library';
 
 // GET /api/supplier/products - Get supplier's own products only
 export async function GET(request: NextRequest) {
   try {
-    // Get user from token
-    const token = request.headers.get('authorization')?.replace('Bearer ', '');
-    if (!token) {
+    // Get session
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
-    const user = await getUserFromToken(token);
-    if (!user || user.role !== 'SUPPLIER') {
+    // Check if user is supplier
+    if (session.user.role !== 'SUPPLIER') {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized - Supplier only' },
+        { success: false, error: 'Forbidden - Supplier only' },
         { status: 403 }
       );
     }
+
+    const user = session.user;
 
     // Get supplier from suppliers table
     const supplier = await prisma.suppliers.findFirst({
@@ -99,22 +102,24 @@ export async function GET(request: NextRequest) {
 // POST /api/supplier/products - Create new product (auto-assign to supplier)
 export async function POST(request: NextRequest) {
   try {
-    // Get user from token
-    const token = request.headers.get('authorization')?.replace('Bearer ', '');
-    if (!token) {
+    // Get session
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
-    const user = await getUserFromToken(token);
-    if (!user || user.role !== 'SUPPLIER') {
+    // Check if user is supplier
+    if (session.user.role !== 'SUPPLIER') {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized - Supplier only' },
+        { success: false, error: 'Forbidden - Supplier only' },
         { status: 403 }
       );
     }
+
+    const user = session.user;
 
     // Get supplier from suppliers table
     const supplier = await prisma.suppliers.findFirst({
@@ -207,22 +212,24 @@ export async function POST(request: NextRequest) {
 // PUT /api/supplier/products - Update product (with ownership check)
 export async function PUT(request: NextRequest) {
   try {
-    // Get user from token
-    const token = request.headers.get('authorization')?.replace('Bearer ', '');
-    if (!token) {
+    // Get session
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
-    const user = await getUserFromToken(token);
-    if (!user || user.role !== 'SUPPLIER') {
+    // Check if user is supplier
+    if (session.user.role !== 'SUPPLIER') {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized - Supplier only' },
+        { success: false, error: 'Forbidden - Supplier only' },
         { status: 403 }
       );
     }
+
+    const user = session.user;
 
     // Get supplier from suppliers table
     const supplier = await prisma.suppliers.findFirst({
@@ -325,22 +332,24 @@ export async function PUT(request: NextRequest) {
 // DELETE /api/supplier/products - Delete product (with ownership check)
 export async function DELETE(request: NextRequest) {
   try {
-    // Get user from token
-    const token = request.headers.get('authorization')?.replace('Bearer ', '');
-    if (!token) {
+    // Get session
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
-    const user = await getUserFromToken(token);
-    if (!user || user.role !== 'SUPPLIER') {
+    // Check if user is supplier
+    if (session.user.role !== 'SUPPLIER') {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized - Supplier only' },
+        { success: false, error: 'Forbidden - Supplier only' },
         { status: 403 }
       );
     }
+
+    const user = session.user;
 
     // Get supplier from suppliers table
     const supplier = await prisma.suppliers.findFirst({

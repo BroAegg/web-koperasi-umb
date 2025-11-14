@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getUserFromToken } from '@/lib/auth';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth-options';
 
 // Simple in-memory config (you can move to database later)
 // For now, use environment variable or hardcode
@@ -8,16 +9,8 @@ const DEFAULT_MAX_PRODUCTS = 3;
 // GET /api/settings/supplier-config
 export async function GET(request: NextRequest) {
   try {
-    const token = request.headers.get('authorization')?.replace('Bearer ', '');
-    if (!token) {
-      return NextResponse.json(
-        { success: false, error: 'Unauthorized' },
-        { status: 401 }
-      );
-    }
-
-    const user = await getUserFromToken(token);
-    if (!user) {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
@@ -48,18 +41,17 @@ export async function GET(request: NextRequest) {
 // PUT /api/settings/supplier-config (Super Admin only)
 export async function PUT(request: NextRequest) {
   try {
-    const token = request.headers.get('authorization')?.replace('Bearer ', '');
-    if (!token) {
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
-    const user = await getUserFromToken(token);
-    if (!user || user.role !== 'SUPER_ADMIN') {
+    if (session.user.role !== 'SUPER_ADMIN') {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized - Super Admin only' },
+        { success: false, error: 'Forbidden - Super Admin only' },
         { status: 403 }
       );
     }

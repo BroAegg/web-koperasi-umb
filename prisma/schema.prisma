@@ -67,15 +67,16 @@ model broadcasts {
 }
 
 model categories {
-  id          String     @id
-  name        String     @unique
-  description String?
-  icon        String?    @default("📦")
-  order       Int        @default(0)
-  isActive    Boolean    @default(true)
-  createdAt   DateTime   @default(now())
-  updatedAt   DateTime
-  products    products[]
+  id                  String                @id
+  name                String                @unique
+  description         String?
+  icon                String?               @default("📦")
+  order               Int                   @default(0)
+  isActive            Boolean               @default(true)
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime
+  products            products[]
+  product_submissions product_submissions[]
 }
 
 model consignment_batches {
@@ -107,8 +108,9 @@ model consignment_batches {
 }
 
 model consignment_sales {
-  id                  String              @id
-  batchId             String
+  id                  String               @id
+  batchId             String?
+  supplierId          String?
   transactionItemId   String
   qtySold             Int
   unitPrice           Decimal
@@ -117,15 +119,17 @@ model consignment_sales {
   feeAmount           Decimal
   netToConsignor      Decimal
   settlementId        String?
-  isSettled           Boolean             @default(false)
-  saleDate            DateTime            @default(now())
-  createdAt           DateTime            @default(now())
-  isProduction        Boolean             @default(true)
-  consignment_batches consignment_batches @relation(fields: [batchId], references: [id])
-  settlements         settlements?        @relation(fields: [settlementId], references: [id])
-  transaction_items   transaction_items   @relation(fields: [transactionItemId], references: [id])
+  isSettled           Boolean              @default(false)
+  saleDate            DateTime             @default(now())
+  createdAt           DateTime             @default(now())
+  isProduction        Boolean              @default(true)
+  consignment_batches consignment_batches? @relation(fields: [batchId], references: [id])
+  supplier            suppliers?           @relation(fields: [supplierId], references: [id])
+  settlements         settlements?         @relation(fields: [settlementId], references: [id])
+  transaction_items   transaction_items    @relation(fields: [transactionItemId], references: [id])
 
   @@index([batchId])
+  @@index([supplierId])
   @@index([saleDate])
   @@index([settlementId])
   @@index([isProduction])
@@ -265,12 +269,19 @@ model products {
   stockCycle          StockCycle            @default(MINGGUAN)
   supplierContact     String?
   supplierId          String?
+  
+  // Profit sharing
+  profitShareRate     Decimal?              @default(90.00)
+  
+  // Relations
   consignment_batches consignment_batches[]
   categories          categories            @relation(fields: [categoryId], references: [id])
   suppliers           suppliers?            @relation(fields: [supplierId], references: [id])
   purchase_items      purchase_items[]
   stock_movements     stock_movements[]
   transaction_items   transaction_items[]
+  submission          product_submissions?  @relation(name: "ApprovedSubmission")
+  stock_requests      stock_requests[]
 
   @@index([categoryId])
   @@index([supplierId])
@@ -388,35 +399,102 @@ model supplier_payments {
   @@index([supplierId, paymentDate])
 }
 
+model product_submissions {
+  id                String           @id @default(cuid())
+  supplierId        String
+  name              String
+  description       String?
+  categoryId        String
+  price             Decimal
+  stockInitial      Int
+  unit              String           @default("pcs")
+  image             String?
+  status            SubmissionStatus @default(PENDING_REVIEW)
+  submittedAt       DateTime         @default(now())
+  reviewedAt        DateTime?
+  reviewedBy        String?
+  rejectionReason   String?
+  approvedProductId String?          @unique
+  
+  // Relations
+  supplier          suppliers        @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  reviewer          users?           @relation(fields: [reviewedBy], references: [id])
+  approvedProduct   products?        @relation(name: "ApprovedSubmission", fields: [approvedProductId], references: [id])
+  category          categories       @relation(fields: [categoryId], references: [id])
+  
+  @@index([supplierId, status])
+  @@index([status, submittedAt])
+}
+
 model suppliers {
-  id                   String                 @id
-  code                 String                 @unique
-  phone                String
-  email                String                 @unique
-  address              String
-  paymentTerms         String?
-  isActive             Boolean                @default(true)
-  note                 String?
-  createdAt            DateTime               @default(now())
-  updatedAt            DateTime
-  approvedAt           DateTime?
-  approvedById         String?
-  businessName         String
-  description          String?
-  isPaymentActive      Boolean                @default(false)
-  lastPaymentDate      DateTime?
-  monthlyFee           Decimal                @default(25000)
-  nextPaymentDue       DateTime?
-  ownerName            String
-  password             String
-  paymentStatus        PaymentStatus          @default(UNPAID)
-  productCategory      String?
-  rejectedReason       String?
-  status               SupplierStatus         @default(PENDING)
-  consignment_payments consignment_payments[]
-  products             products[]
-  purchases            purchases[]
-  supplier_payments    supplier_payments[]
+  id                     String                   @id
+  code                   String                   @unique
+  phone                  String
+  email                  String                   @unique
+  address                String
+  paymentTerms           String?
+  isActive               Boolean                  @default(true)
+  note                   String?
+  createdAt              DateTime                 @default(now())
+  updatedAt              DateTime
+  approvedAt             DateTime?
+  approvedById           String?
+  businessName           String
+  description            String?
+  isPaymentActive        Boolean                  @default(false)
+  lastPaymentDate        DateTime?
+  monthlyFee             Decimal                  @default(25000)
+  nextPaymentDue         DateTime?
+  ownerName              String
+  password               String
+  paymentStatus          PaymentStatus            @default(UNPAID)
+  productCategory        String?
+  rejectedReason         String?
+  status                 SupplierStatus           @default(PENDING)
+  
+  // Grace period tracking
+  paymentGraceDays       Int                      @default(7)
+  isSuspendedForPayment  Boolean                  @default(false)
+  suspendedAt            DateTime?
+  suspensionReason       String?
+  
+  // Product limits
+  maxActiveProducts      Int                      @default(10)
+  currentActiveProducts  Int                      @default(0)
+  
+  // Relations
+  consignment_payments   consignment_payments[]
+  products               products[]
+  purchases              purchases[]
+  supplier_payments      supplier_payments[]
+  product_submissions    product_submissions[]
+  stock_requests         stock_requests[]
+  consignment_sales      consignment_sales[]
+}
+
+model stock_requests {
+  id                String              @id
+  supplierId        String
+  productId         String
+  qtyRequested      Int
+  currentStock      Int
+  reason            String?
+  status            RestockStatus       @default(PENDING)
+  requestedAt       DateTime            @default(now())
+  reviewedAt        DateTime?
+  reviewedBy        String?
+  rejectionReason   String?
+  note              String?
+  
+  // Relations
+  supplier          suppliers           @relation(fields: [supplierId], references: [id])
+  product           products            @relation(fields: [productId], references: [id])
+  reviewer          users?              @relation(fields: [reviewedBy], references: [id])
+  
+  @@index([supplierId])
+  @@index([productId])
+  @@index([status])
+  @@index([requestedAt])
 }
 
 model transaction_items {
@@ -480,6 +558,8 @@ model users {
   consignment_payments consignment_payments[]
   members              members?
   sessions             sessions[]
+  product_submissions  product_submissions[]
+  stock_requests       stock_requests[]
 }
 
 model sessions {
@@ -570,11 +650,13 @@ enum MovementType {
   ADJUSTMENT
   TRANSFER_IN
   TRANSFER_OUT
+  RESTOCK
 }
 
 enum OwnershipType {
   TOKO
   TITIPAN
+  SUPPLIER
 }
 
 enum PaymentMethod {
@@ -623,6 +705,7 @@ enum ReferenceType {
   SALE
   ADJUSTMENT
   EXPIRY
+  STOCK_REQUEST
 }
 
 enum Role {
@@ -648,10 +731,24 @@ enum SettlementStatus {
   DISPUTED
 }
 
+enum SubmissionStatus {
+  PENDING_REVIEW
+  APPROVED
+  REJECTED
+  RESUBMITTED
+}
+
 enum StockCycle {
   HARIAN
   MINGGUAN
   DUA_MINGGUAN
+}
+
+enum RestockStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  COMPLETED
 }
 
 enum SupplierStatus {

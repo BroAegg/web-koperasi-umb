@@ -42,18 +42,14 @@ export default function LoginPage() {
       } else if (result?.ok) {
         // Get session to determine role
         const session = await getSession();
-        const role = session?.user?.role;
-
+        
         // Redirect based on role
-        switch (role) {
-          case 'SUPPLIER':
-            window.location.href = '/koperasi/supplier';
-            break;
-          case 'DEVELOPER':
-            window.location.href = '/dev/dashboard';
-            break;
-          default:
-            window.location.href = '/koperasi/dashboard';
+        if (session?.user?.role === 'SUPPLIER') {
+          window.location.href = '/koperasi/supplier/dashboard';
+        } else if (session?.user?.role === 'DEVELOPER') {
+          window.location.href = '/dev';
+        } else {
+          window.location.href = '/koperasi/dashboard';
         }
       }
     } catch (error) {

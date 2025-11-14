@@ -346,16 +346,16 @@ export default function SupplierProducts() {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Produk Saya</h1>
-          <p className="text-gray-600 mt-1">Kelola produk yang Anda jual</p>
+          <h1 className="text-xl md:text-2xl font-bold text-gray-900">Produk Saya</h1>
+          <p className="text-sm md:text-base text-gray-600 mt-1">Kelola produk yang Anda jual</p>
         </div>
         
-        <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-2 px-4 py-2 bg-blue-50 rounded-lg border border-blue-200">
-            <Package className="w-5 h-5 text-blue-600" />
-            <span className="text-sm text-gray-600">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+          <div className="flex items-center space-x-2 px-3 md:px-4 py-2 bg-blue-50 rounded-lg border border-blue-200">
+            <Package className="w-4 h-4 md:w-5 md:h-5 text-blue-600 flex-shrink-0" />
+            <span className="text-xs md:text-sm text-gray-600 whitespace-nowrap">
               Produk: <strong className="text-blue-600">{products.length}/{maxProducts}</strong> slot
             </span>
           </div>
@@ -363,6 +363,8 @@ export default function SupplierProducts() {
           <Button 
             onClick={handleOpenModal}
             disabled={!canAddMore}
+            className="w-full sm:w-auto"
+            size="sm"
           >
             <Plus className="w-4 h-4 mr-2" />
             {canAddMore ? 'Request Produk Baru' : 'Slot Penuh'}

@@ -264,6 +264,9 @@ export async function GET(request: NextRequest) {
     console.log(`[Financial Period] Processing ${unsettledConsignmentSales.length} unsettled consignment sales`);
     
     for (const sale of unsettledConsignmentSales) {
+      // Skip if no consignment batch (e.g., supplier products)
+      if (!sale.consignment_batches) continue;
+      
       const consignor = sale.consignment_batches.consignors;
       const consignorId = consignor.id;
       const consignorName = consignor.name;

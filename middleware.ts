@@ -24,8 +24,12 @@ export default withAuth(
     }
 
     // Supplier routes - require SUPPLIER role
-    if (path.startsWith('/supplier')) {
-      if (token?.role !== 'SUPPLIER' && token?.role !== 'DEVELOPER') {
+    if (path.startsWith('/koperasi/supplier')) {
+      if (!token) {
+        return NextResponse.redirect(new URL('/login', req.url))
+      }
+      
+      if (token.role !== 'SUPPLIER' && token.role !== 'DEVELOPER') {
         return NextResponse.redirect(new URL('/unauthorized', req.url))
       }
     }

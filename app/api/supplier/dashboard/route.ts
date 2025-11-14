@@ -1,27 +1,29 @@
-// @ts-nocheck - TypeScript cache issue: Prisma model names correct at runtime (see PRISMA-NAMING-CONVENTIONS.md)
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerSession } from 'next-auth';
+import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
-import { getUserFromToken } from '@/lib/auth';
 
 // GET /api/supplier/dashboard - Get supplier dashboard metrics
 export async function GET(request: NextRequest) {
   try {
-    // Get user from token
-    const token = request.headers.get('authorization')?.replace('Bearer ', '');
-    if (!token) {
+    // Get session
+    const session = await getServerSession(authOptions);
+    if (!session?.user) {
       return NextResponse.json(
         { success: false, error: 'Unauthorized' },
         { status: 401 }
       );
     }
 
-    const user = await getUserFromToken(token);
-    if (!user || user.role !== 'SUPPLIER') {
+    // Check if user is supplier
+    if (session.user.role !== 'SUPPLIER') {
       return NextResponse.json(
-        { success: false, error: 'Unauthorized - Supplier only' },
+        { success: false, error: 'Forbidden - Supplier only' },
         { status: 403 }
       );
     }
+
+    const user = session.user;
 
     // Get supplier from suppliers table (master data for products relation)
     const supplier = await prisma.suppliers.findFirst({
@@ -161,7 +163,7 @@ export async function GET(request: NextRequest) {
       success: true,
       data: {
         supplier: {
-          name: supplier.name,
+          businessName: supplier.businessName,
           email: supplier.email,
           phone: supplier.phone,
           address: supplier.address,
