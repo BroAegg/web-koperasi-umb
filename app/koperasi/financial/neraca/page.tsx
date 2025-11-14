@@ -503,6 +503,8 @@ export default function NeracaPage() {
                     {formatCurrency(balanceSheet.pasiva.ekuitas.sisaHasilUsaha)}
                   </span>
                 </div>
+                {/* HIDDEN: Laba Rugi Ditahan - Belum dibutuhkan untuk saat ini */}
+                {/* 
                 <div className="flex items-center justify-between py-2 border-b border-slate-100">
                   <span className="text-slate-700 flex items-center gap-2">
                     <TrendingUp className="h-4 w-4 text-slate-500" />
@@ -512,6 +514,7 @@ export default function NeracaPage() {
                     {formatCurrency(balanceSheet.pasiva.ekuitas.labaRugiDitahan)}
                   </span>
                 </div>
+                */}
                 <div className="flex items-center justify-between pt-3 font-semibold text-green-900 bg-green-50 px-3 py-2 rounded-lg">
                   <span>Subtotal Ekuitas</span>
                   <span>{formatCurrency(balanceSheet.pasiva.ekuitas.subtotal)}</span>
