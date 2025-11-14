@@ -72,9 +72,12 @@ async function main() {
       monthlyPayment: 444352,
       remainingAmount: 3554816,
       status: 'ACTIVE',
+      purpose: 'Renovasi rumah',
+      approvedAt: new Date('2024-05-25'),
+      approvedBy: 'admin',
       startDate: new Date('2024-06-01'),
       endDate: new Date('2025-06-01'),
-      description: 'Pinjaman untuk renovasi rumah',
+      description: 'Pinjaman untuk renovasi rumah - Disetujui',
       updatedAt: new Date(),
     },
   });

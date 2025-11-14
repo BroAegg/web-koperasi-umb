@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {
     ArrowLeft,
-    Award,
     Calendar,
     Mail,
     MapPin,

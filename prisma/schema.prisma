@@ -208,7 +208,10 @@ model loans {
   tenor           Int
   monthlyPayment  Decimal
   remainingAmount Decimal
-  status          LoanStatus      @default(ACTIVE)
+  status          LoanStatus      @default(PENDING)
+  purpose         String?
+  approvedAt      DateTime?
+  approvedBy      String?
   startDate       DateTime        @default(now())
   endDate         DateTime
   description     String?
@@ -522,6 +525,7 @@ model transaction_items {
 
 model transactions {
   id                   String                @id
+  invoiceNumber        String                @unique
   memberId             String?
   type                 TransactionType
   totalAmount          Decimal
@@ -630,6 +634,9 @@ enum Gender {
 }
 
 enum LoanStatus {
+  PENDING
+  APPROVED
+  REJECTED
   ACTIVE
   COMPLETED
   OVERDUE

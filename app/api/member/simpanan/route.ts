@@ -34,51 +34,45 @@ export async function GET(req: NextRequest) {
       );
     }
 
-    // Get savings history (from pointsHistory as placeholder)
-    // In production, you would have a dedicated savings_transactions table
-    const history = await prisma.pointsHistory.findMany({
+    // Get savings history
+    const history = await prisma.savings.findMany({
       where: {
         memberId: member.id,
-        type: 'EARN', // Using as placeholder for savings deposits
       },
       orderBy: {
-        createdAt: 'desc',
+        date: 'desc',
       },
       take: 50,
       select: {
         id: true,
-        points: true,
+        type: true,
+        amount: true,
         description: true,
-        createdAt: true,
+        date: true,
       },
     });
 
     // Calculate total
     const totalSimpanan = 
-      member.simpananPokok + 
-      member.simpananWajib + 
-      member.simpananSukarela;
+      Number(member.simpananPokok) + 
+      Number(member.simpananWajib) + 
+      Number(member.simpananSukarela);
 
-    // Map history with type classification
+    // Map history
     const mappedHistory = history.map((item) => {
-      // Determine type based on description
-      let type: 'POKOK' | 'WAJIB' | 'SUKARELA' = 'SUKARELA';
-      if (item.description.includes('Pokok')) type = 'POKOK';
-      else if (item.description.includes('Wajib')) type = 'WAJIB';
-
       return {
         id: item.id,
-        type,
-        amount: item.points * 1000, // Convert points to currency (placeholder)
-        date: item.createdAt.toISOString(),
-        description: item.description,
+        type: item.type as 'POKOK' | 'WAJIB' | 'SUKARELA',
+        amount: Number(item.amount),
+        date: item.date.toISOString(),
+        description: item.description || '',
       };
     });
 
     const data = {
-      simpananPokok: member.simpananPokok,
-      simpananWajib: member.simpananWajib,
-      simpananSukarela: member.simpananSukarela,
+      simpananPokok: Number(member.simpananPokok),
+      simpananWajib: Number(member.simpananWajib),
+      simpananSukarela: Number(member.simpananSukarela),
       totalSimpanan,
       history: mappedHistory,
     };

@@ -49,6 +49,8 @@ export async function GET(req: NextRequest) {
         status: true,
         purpose: true,
         approvedAt: true,
+        startDate: true,
+        endDate: true,
         createdAt: true,
       },
     });
@@ -57,9 +59,8 @@ export async function GET(req: NextRequest) {
     const activeLoans = loans
       .filter((loan) => ['PENDING', 'APPROVED', 'ACTIVE'].includes(loan.status))
       .map((loan) => {
-        const startDate = loan.approvedAt || loan.createdAt;
-        const endDate = new Date(startDate);
-        endDate.setMonth(endDate.getMonth() + loan.tenor);
+        const startDate = loan.approvedAt || loan.startDate;
+        const endDate = loan.endDate;
 
         const monthsElapsed = Math.floor(
           (Date.now() - startDate.getTime()) / (1000 * 60 * 60 * 24 * 30)
@@ -68,13 +69,13 @@ export async function GET(req: NextRequest) {
 
         return {
           id: loan.id,
-          amount: loan.amount,
-          remaining: loan.remainingAmount,
-          interestRate: loan.interestRate,
+          amount: Number(loan.amount),
+          remaining: Number(loan.remainingAmount),
+          interestRate: Number(loan.interestRate),
           tenor: loan.tenor,
-          monthlyPayment: loan.monthlyPayment,
+          monthlyPayment: Number(loan.monthlyPayment),
           status: loan.status as any,
-          purpose: loan.purpose,
+          purpose: loan.purpose || 'Tidak disebutkan',
           startDate: startDate.toISOString(),
           endDate: endDate.toISOString(),
           paidMonths,
@@ -84,19 +85,18 @@ export async function GET(req: NextRequest) {
     const completedLoans = loans
       .filter((loan) => ['COMPLETED', 'REJECTED'].includes(loan.status))
       .map((loan) => {
-        const startDate = loan.approvedAt || loan.createdAt;
-        const endDate = new Date(startDate);
-        endDate.setMonth(endDate.getMonth() + loan.tenor);
+        const startDate = loan.approvedAt || loan.startDate;
+        const endDate = loan.endDate;
 
         return {
           id: loan.id,
-          amount: loan.amount,
-          remaining: loan.remainingAmount,
-          interestRate: loan.interestRate,
+          amount: Number(loan.amount),
+          remaining: Number(loan.remainingAmount),
+          interestRate: Number(loan.interestRate),
           tenor: loan.tenor,
-          monthlyPayment: loan.monthlyPayment,
+          monthlyPayment: Number(loan.monthlyPayment),
           status: loan.status as any,
-          purpose: loan.purpose,
+          purpose: loan.purpose || 'Tidak disebutkan',
           startDate: startDate.toISOString(),
           endDate: endDate.toISOString(),
           paidMonths: loan.tenor,

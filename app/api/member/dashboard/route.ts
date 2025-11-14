@@ -62,7 +62,7 @@ export async function GET() {
       gender: member.gender,
       joinDate: member.joinDate,
       status: member.status,
-      isMemberKoperasi: member.isMemberKoperasi,
+      isMemberKoperasi: true, // Always true for member portal users
       simpananPokok: Number(member.simpananPokok),
       simpananWajib: Number(member.simpananWajib),
       simpananSukarela: Number(member.simpananSukarela),

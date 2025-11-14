@@ -2,6 +2,7 @@ import { authOptions } from '@/lib/auth-options';
 import { prisma } from '@/lib/prisma';
 import { getServerSession } from 'next-auth';
 import { NextRequest, NextResponse } from 'next/server';
+import { randomUUID } from 'crypto';
 
 export async function POST(req: NextRequest) {
   try {
@@ -84,6 +85,9 @@ export async function POST(req: NextRequest) {
     const monthlyPayment = Math.ceil(totalAmount / tenor);
 
     // Create loan application
+    const endDate = new Date();
+    endDate.setMonth(endDate.getMonth() + tenor);
+    
     const loan = await prisma.loans.create({
       data: {
         memberId: member.id,
@@ -94,16 +98,18 @@ export async function POST(req: NextRequest) {
         monthlyPayment,
         purpose,
         status: 'PENDING',
+        endDate,
       },
     });
 
     // Log activity
-    await prisma.activityLogs.create({
+    await prisma.activity_logs.create({
       data: {
+        id: randomUUID(),
         userId: session.user.id,
+        userRole: 'USER',
         action: 'LOAN_APPLICATION',
-        entityType: 'LOAN',
-        entityId: loan.id,
+        module: 'MEMBER_PORTAL',
         description: `Pengajuan pinjaman sebesar ${new Intl.NumberFormat('id-ID', {
           style: 'currency',
           currency: 'IDR',
