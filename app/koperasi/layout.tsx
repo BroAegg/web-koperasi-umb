@@ -28,6 +28,7 @@ import {
   ShoppingCart,
   Receipt,
   User,
+  DollarSign,
   Award,
   BarChart3,
   ChevronLeft,
@@ -114,6 +115,12 @@ function KoperasiContent({ children }: { children: React.ReactNode }) {
         { name: "POS Kasir", href: "/koperasi/pos", icon: CreditCard, roles: ["ADMIN", "SUPER_ADMIN", "KASIR"] },
         { name: "Riwayat Transaksi", href: "/koperasi/transactions", icon: Receipt, roles: ["ADMIN", "SUPER_ADMIN", "KASIR"] },
         { name: "Inventory", href: "/koperasi/inventory", icon: Package, roles: ["ADMIN", "SUPER_ADMIN", "KASIR"] },
+      ]
+    },
+    {
+      title: "PEMBAYARAN SUPPLIER",
+      items: [
+        { name: "Input Cash Payment", href: "/koperasi/kasir/payments/cash", icon: DollarSign, roles: ["ADMIN", "SUPER_ADMIN", "KASIR"] },
       ]
     },
     {
