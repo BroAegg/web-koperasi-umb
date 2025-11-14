@@ -71,7 +71,7 @@ export async function POST() {
         productCategory: testSupplier.category,
         address: testSupplier.address,
         description: testSupplier.description,
-        preferredPaymentMethod: testSupplier.paymentMethod as any,
+        preferredPaymentMethod: testSupplier.paymentMethod === "CASH" ? "CASH" : "TRANSFER",
         status: "PENDING",
         paymentStatus: "UNPAID",
         isActive: false,
