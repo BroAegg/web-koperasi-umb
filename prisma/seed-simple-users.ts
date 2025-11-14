@@ -43,6 +43,13 @@ async function main() {
       mustChangePassword: false,
     },
     {
+      id: 'supplier-001',
+      email: 'supplier',
+      name: 'Supplier',
+      role: Role.SUPPLIER,
+      mustChangePassword: false,
+    },
+    {
       id: 'developer-aegner',
       email: 'developer',
       name: 'Developer',
@@ -102,6 +109,11 @@ async function main() {
   console.log('   Role: KASIR');
   console.log('   Access: POS & store operations only\n');
 
+  console.log('📧 supplier');
+  console.log('   Password: password');
+  console.log('   Role: SUPPLIER');
+  console.log('   Access: Supplier portal & consignment\n');
+
   console.log('📧 developer');
   console.log('   Password: password');
   console.log('   Role: DEVELOPER');
@@ -112,7 +124,8 @@ async function main() {
   console.log('   1. SUPER_ADMIN - Full system control');
   console.log('   2. ADMIN - Management & reporting');
   console.log('   3. KASIR - Store operations only');
-  console.log('   4. DEVELOPER - Technical access');
+  console.log('   4. SUPPLIER - Supplier portal & consignment');
+  console.log('   5. DEVELOPER - Technical access');
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━\n');
 
   console.log('🎉 Simple users seed completed successfully!');
