@@ -7,6 +7,8 @@ import { Toaster } from "sonner";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import { Analytics } from "@vercel/analytics/react";
 
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
   title: "Koperasi UM BANDUNG",
   description: "Sistem Koperasi Universitas Muhammadiyah Bandung",

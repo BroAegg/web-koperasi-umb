@@ -1,30 +1,32 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { Card, CardHeader, CardContent } from '@/components/ui/card';
+export const dynamic = 'force-dynamic';
+
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table';
-import { Loading, CardSkeleton } from '@/components/ui/loading';
+import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { TableEmptyState } from '@/components/ui/empty-state';
-import { formatDate } from '@/lib/utils';
+import { Input } from '@/components/ui/input';
+import { CardSkeleton, Loading } from '@/components/ui/loading';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useNotification } from '@/lib/notification-context';
-import { 
-  Megaphone, 
-  Plus, 
-  Send, 
-  Users,
-  Clock,
-  CheckCircle,
-  AlertCircle,
-  Eye,
-  Edit,
-  Trash2,
-  Search,
-  Filter,
-  Calendar,
-  X
+import { formatDate } from '@/lib/utils';
+import {
+    AlertCircle,
+    Calendar,
+    CheckCircle,
+    Clock,
+    Edit,
+    Eye,
+    Filter,
+    Megaphone,
+    Plus,
+    Search,
+    Send,
+    Trash2,
+    Users,
+    X
 } from 'lucide-react';
+import { useEffect, useState } from 'react';
 
 interface Broadcast {
   id: string;

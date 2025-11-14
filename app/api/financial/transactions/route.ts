@@ -1,7 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { generateInvoiceNumber } from '@/lib/invoice-generator';
+import { withActivityLog } from '@/lib/with-activity-log';
 import { PrismaClient } from '@prisma/client';
 import { randomUUID } from 'crypto';
-import { withActivityLog } from '@/lib/with-activity-log';
+import { NextRequest, NextResponse } from 'next/server';
 
 const prisma = new PrismaClient();
 
@@ -148,6 +149,7 @@ async function handleCreateFinancialTransaction(request: NextRequest) {
     const transaction = await prisma.transactions.create({
       data: {
         id: randomUUID(),
+        invoiceNumber: generateInvoiceNumber(),
         type: type.toUpperCase(),
         totalAmount: amount,
         paymentMethod: paymentMethod?.toUpperCase() || 'CASH',

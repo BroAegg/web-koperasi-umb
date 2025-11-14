@@ -1,10 +1,11 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/prisma';
 import { getUserFromToken } from '@/lib/auth';
-import { getServerSession } from 'next-auth/next';
 import { authOptions } from '@/lib/auth-options';
-import { nanoid } from 'nanoid';
+import { generateInvoiceNumber } from '@/lib/invoice-generator';
+import { prisma } from '@/lib/prisma';
 import { randomUUID } from 'crypto';
+import { nanoid } from 'nanoid';
+import { getServerSession } from 'next-auth/next';
+import { NextRequest, NextResponse } from 'next/server';
 
 // Helper function to calculate period dates
 function getPeriodDates(period: string): { periodStart: Date; periodEnd: Date } {
@@ -224,6 +225,7 @@ export async function POST(req: NextRequest) {
         await prisma.transactions.create({
           data: {
             id: transactionId,
+            invoiceNumber: generateInvoiceNumber(),
             totalAmount: -amount, // Negative because it's a payment (cash out)
             type: 'EXPENSE', // EXPENSE for cash out
             paymentMethod: paymentMethod as any,

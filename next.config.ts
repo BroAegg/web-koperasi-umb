@@ -6,7 +6,6 @@ const nextConfig: NextConfig = {
   outputFileTracingRoot: path.join(__dirname),
   
   /* Production optimizations */
-  output: 'standalone',
   reactStrictMode: true,
   compress: true,
   
@@ -112,6 +111,15 @@ const nextConfig: NextConfig = {
   /* TypeScript configuration */
   typescript: {
     ignoreBuildErrors: false,
+  },
+  
+  /* Skip error pages prerendering */
+  skipTrailingSlashRedirect: true,
+  skipMiddlewareUrlNormalize: true,
+  
+  /* Skip static generation for error pages */
+  generateBuildId: async () => {
+    return `build-${Date.now()}`;
   },
 };
 

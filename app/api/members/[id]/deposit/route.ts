@@ -1,6 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server';
+import { generateInvoiceNumber } from '@/lib/invoice-generator';
 import { PrismaClient } from '@prisma/client';
 import { randomUUID } from 'crypto';
+import { NextRequest, NextResponse } from 'next/server';
 
 const prisma = new PrismaClient();
 
@@ -56,6 +57,7 @@ export async function POST(
     await prisma.transactions.create({
       data: {
         id: randomUUID(),
+        invoiceNumber: generateInvoiceNumber(),
         memberId: id,
         type: 'INCOME',
         totalAmount: amount,
@@ -119,6 +121,7 @@ export async function POST(
     await prisma.transactions.create({
       data: {
         id: randomUUID(),
+        invoiceNumber: generateInvoiceNumber(),
         memberId: id,
         type: 'INCOME',
         totalAmount: amount,

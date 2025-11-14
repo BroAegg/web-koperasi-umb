@@ -1,12 +1,13 @@
+import { generateInvoiceNumber } from '@/lib/invoice-generator';
 // @ts-nocheck - TypeScript cache issue: Prisma model names correct at runtime (see PRISMA-NAMING-CONVENTIONS.md)
-import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/lib/prisma";
 import { getUserFromToken } from "@/lib/auth";
+import { authOptions } from "@/lib/auth-options";
+import { prisma } from "@/lib/prisma";
 import { withDeveloperSession } from "@/lib/prisma-middleware";
 import { withActivityLog } from "@/lib/with-activity-log";
 import { randomUUID } from "crypto";
 import { getServerSession } from "next-auth/next";
-import { authOptions } from "@/lib/auth-options";
+import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(req: NextRequest) {
   return withActivityLog({
@@ -126,6 +127,7 @@ async function handlePOSTransaction(req: NextRequest) {
       const transaction = await tx.transactions.create({
         data: {
           id: randomUUID(),
+          invoiceNumber: generateInvoiceNumber(),
           type: 'SALE',
           totalAmount,
           status: 'COMPLETED',
@@ -384,7 +386,7 @@ async function handlePOSTransaction(req: NextRequest) {
       }
     });
 
-  } catch (error) {
+  } catch (error: any) {
     console.error('[POS] Transaction error:', error);
     console.error('[POS] Error details:', {
       message: error?.message,
@@ -394,14 +396,14 @@ async function handlePOSTransaction(req: NextRequest) {
     });
     
     // Handle specific database errors
-    if (error.code === 'P2002') {
+    if (error?.code === 'P2002') {
       return NextResponse.json(
         { error: "Transaction ID conflict. Please retry." },
         { status: 409 }
       );
     }
 
-    if (error.code === 'P2025') {
+    if (error?.code === 'P2025') {
       return NextResponse.json(
         { error: "Product not found or already deleted" },
         { status: 404 }
@@ -506,7 +508,7 @@ export async function GET(req: NextRequest) {
             sku: item.products?.sku,
             quantity: item.quantity,
             unitPrice: item.unitPrice,
-            subtotal: item.subtotal,
+            subtotal: item.totalPrice,
             unit: item.products?.unit || 'pcs',
           })),
         })),

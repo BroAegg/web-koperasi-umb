@@ -90,6 +90,7 @@ export async function POST(req: NextRequest) {
     
     const loan = await prisma.loans.create({
       data: {
+        id: randomUUID(),
         memberId: member.id,
         amount,
         remainingAmount: totalAmount,
@@ -99,6 +100,7 @@ export async function POST(req: NextRequest) {
         purpose,
         status: 'PENDING',
         endDate,
+        updatedAt: new Date(),
       },
     });
 

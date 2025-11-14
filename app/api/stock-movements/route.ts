@@ -1,8 +1,9 @@
+import { generateInvoiceNumber } from '@/lib/invoice-generator';
 // @ts-nocheck - TypeScript cache issue: Prisma model names are correct at runtime (see PRISMA-NAMING-CONVENTIONS.md)
-import { NextRequest, NextResponse } from 'next/server';
-import { randomUUID } from 'crypto';
-import { PrismaClient } from '@prisma/client';
 import { withActivityLog } from '@/lib/with-activity-log';
+import { PrismaClient } from '@prisma/client';
+import { randomUUID } from 'crypto';
+import { NextRequest, NextResponse } from 'next/server';
 
 const prisma = new PrismaClient();
 
@@ -336,6 +337,7 @@ async function handleCreateStockMovement(request: NextRequest) {
         transaction = await tx.transactions.create({
           data: {
             id: randomUUID(),
+            invoiceNumber: generateInvoiceNumber(),
             type: 'SALE',
             totalAmount,
             paymentMethod: 'CASH', // Default for manual stock out
