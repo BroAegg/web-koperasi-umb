@@ -1,8 +1,8 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
-import { hashPassword } from "@/lib/auth-helpers";
+import { hashPassword } from "@/lib/auth";
 import { randomUUID } from "crypto";
 
 export async function POST() {
