@@ -230,6 +230,7 @@ model members {
   unitKerja        String
   joinDate         DateTime            @default(now())
   status           MemberStatus        @default(ACTIVE)
+  isMemberKoperasi Boolean             @default(true)
   simpananPokok    Decimal             @default(0)
   simpananWajib    Decimal             @default(0)
   simpananSukarela Decimal             @default(0)

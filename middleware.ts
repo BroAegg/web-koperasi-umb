@@ -34,6 +34,13 @@ export default withAuth(
       }
     }
 
+    // Member routes - require USER role (member koperasi)
+    if (path.startsWith('/member')) {
+      if (token?.role !== 'USER' && token?.role !== 'DEVELOPER') {
+        return NextResponse.redirect(new URL('/unauthorized', req.url))
+      }
+    }
+
     // Koperasi routes - require authentication
     if (path.startsWith('/koperasi')) {
       if (!token) {
@@ -51,6 +58,11 @@ export default withAuth(
 
       // Block suppliers from accessing other koperasi routes
       if (token.role === 'SUPPLIER') {
+        return NextResponse.redirect(new URL('/unauthorized', req.url))
+      }
+
+      // Block members from accessing koperasi routes (they use /member portal)
+      if (token.role === 'USER') {
         return NextResponse.redirect(new URL('/unauthorized', req.url))
       }
 
@@ -97,7 +109,7 @@ export default withAuth(
         }
 
         // Protected routes require token
-        if (path.startsWith('/koperasi') || path.startsWith('/dev') || path.startsWith('/supplier')) {
+        if (path.startsWith('/koperasi') || path.startsWith('/dev') || path.startsWith('/supplier') || path.startsWith('/member')) {
           return !!token
         }
 
