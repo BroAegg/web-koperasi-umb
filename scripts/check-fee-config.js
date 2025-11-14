@@ -7,10 +7,11 @@ async function checkFeeConfig() {
   // Check suppliers
   const suppliers = await prisma.suppliers.findMany({
     select: {
+      id: true,
       businessName: true,
       monthlyFee: true,
-      profitShareRate: true,
       status: true,
+      paymentStatus: true,
     },
   });
   
@@ -18,8 +19,8 @@ async function checkFeeConfig() {
   suppliers.forEach(s => {
     console.log(`📦 ${s.businessName}`);
     console.log(`   Status: ${s.status}`);
-    console.log(`   Monthly Fee: Rp ${s.monthlyFee.toLocaleString('id-ID')}`);
-    console.log(`   Profit Share: ${s.profitShareRate}% (Supplier gets ${s.profitShareRate}%, Koperasi gets ${100 - s.profitShareRate}%)`);
+    console.log(`   Payment Status: ${s.paymentStatus || 'N/A'}`);
+    console.log(`   Monthly Fee: Rp ${Number(s.monthlyFee || 25000).toLocaleString('id-ID')}`);
     console.log('');
   });
   
@@ -31,7 +32,9 @@ async function checkFeeConfig() {
     select: {
       name: true,
       profitShareRate: true,
-      supplier: {
+      supplierId: true,
+      sellPrice: true,
+      suppliers: {
         select: {
           businessName: true,
         },
@@ -43,9 +46,12 @@ async function checkFeeConfig() {
   console.log(`\n=== PRODUCT PROFIT SHARING ===\n`);
   console.log(`Sample ${products.length} supplier products:\n`);
   products.forEach(p => {
+    const profitRate = Number(p.profitShareRate || 90);
+    const koperasiRate = 100 - profitRate;
     console.log(`📦 ${p.name}`);
-    console.log(`   Supplier: ${p.supplier?.businessName || 'N/A'}`);
-    console.log(`   Profit Share: ${p.profitShareRate}%`);
+    console.log(`   Supplier: ${p.suppliers?.businessName || 'N/A'}`);
+    console.log(`   Sell Price: Rp ${Number(p.sellPrice).toLocaleString('id-ID')}`);
+    console.log(`   Profit Share: ${profitRate}% to supplier, ${koperasiRate}% to koperasi`);
     console.log('');
   });
   
