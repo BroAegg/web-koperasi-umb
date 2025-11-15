@@ -165,23 +165,25 @@ export default function ProfilePage() {
 
   const getTierBadge = (tier: string) => {
     const badges: Record<string, { color: string; icon: string }> = {
-      BRONZE: { color: 'bg-amber-700 text-white', icon: '🥉' },
-      SILVER: { color: 'bg-gray-400 text-white', icon: '🥈' },
-      GOLD: { color: 'bg-yellow-500 text-white', icon: '🥇' },
-      PLATINUM: { color: 'bg-purple-600 text-white', icon: '💎' },
+      BRONZE: { color: 'bg-amber-50 text-amber-700 border border-amber-200', icon: '⬡' },
+      SILVER: { color: 'bg-gray-50 text-gray-700 border border-gray-200', icon: '⬡' },
+      GOLD: { color: 'bg-yellow-50 text-yellow-700 border border-yellow-200', icon: '⬡' },
+      PLATINUM: { color: 'bg-purple-50 text-purple-700 border border-purple-200', icon: '⬡' },
     };
     const badge = badges[tier] || badges.BRONZE;
     return (
-      <Badge className={`${badge.color} px-3 py-1`}>
+      <Badge className={`${badge.color} px-2 sm:px-3 py-1 text-xs font-semibold`}>
         {badge.icon} {tier}
       </Badge>
     );
   };
 
   const getStatusBadge = (status: string) => {
-    const color = status === 'ACTIVE' ? 'bg-emerald-500' : 'bg-red-500';
+    const color = status === 'ACTIVE' 
+      ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' 
+      : 'bg-red-50 text-red-700 border border-red-200';
     return (
-      <Badge className={`${color} text-white px-3 py-1`}>
+      <Badge className={`${color} px-2 sm:px-3 py-1 text-xs font-semibold`}>
         {status === 'ACTIVE' ? 'Aktif' : 'Tidak Aktif'}
       </Badge>
     );
@@ -189,10 +191,10 @@ export default function ProfilePage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-[#FAFBFC]">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-gray-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Memuat profil...</p>
+          <div className="w-16 h-16 border-4 border-[#0055FF] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600 font-medium">Memuat profil...</p>
         </div>
       </div>
     );
@@ -200,10 +202,10 @@ export default function ProfilePage() {
 
   if (!profileData) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Card className="p-8 text-center max-w-md">
-          <p className="text-red-600 mb-4">Data profil tidak ditemukan</p>
-          <Button onClick={() => router.push('/member/dashboard')}>
+      <div className="min-h-screen flex items-center justify-center bg-[#FAFBFC]">
+        <Card className="p-8 text-center max-w-md shadow-lg border border-gray-200">
+          <p className="text-red-600 mb-4 font-medium">Data profil tidak ditemukan</p>
+          <Button onClick={() => router.push('/member/dashboard')} className="bg-[#0055FF] hover:bg-[#003DB3]">
             Kembali ke Dashboard
           </Button>
         </Card>
@@ -212,104 +214,104 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#FAFBFC]">
       <MemberNavigation />
 
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+      <div className="max-w-4xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8">
         {/* Header */}
-        <div className="mb-6">
+        <div className="mb-4 sm:mb-6">
           <Button
             variant="outline"
             onClick={() => router.push('/member/dashboard')}
-            className="mb-4 text-gray-600 hover:text-gray-900"
+            className="mb-3 sm:mb-4 text-gray-600 hover:text-gray-900 border-gray-200 text-sm"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Kembali
           </Button>
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
-            Profil Saya 👤
+          <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-1 sm:mb-2">
+            Profil Saya
           </h1>
-          <p className="text-sm sm:text-base text-gray-600">
+          <p className="text-xs sm:text-sm text-gray-600">
             Kelola informasi dan keamanan akun Anda
           </p>
         </div>
 
         {/* Profile Card */}
-        <Card className="p-6 sm:p-8 mb-6 shadow-md">
-          <div className="flex flex-col sm:flex-row sm:items-start gap-6 mb-6">
+        <Card className="p-4 sm:p-6 lg:p-8 mb-4 sm:mb-6 shadow-sm border border-gray-200">
+          <div className="flex flex-col sm:flex-row sm:items-start gap-4 sm:gap-6 mb-4 sm:mb-6">
             <div className="flex-shrink-0">
-              <div className="w-24 h-24 sm:w-32 sm:h-32 bg-gradient-to-br from-emerald-500 to-emerald-600 rounded-full flex items-center justify-center text-white text-4xl sm:text-5xl font-bold">
+              <div className="w-20 h-20 sm:w-24 sm:h-24 lg:w-28 lg:h-28 bg-gradient-to-br from-[#0055FF] to-[#003DB3] rounded-2xl flex items-center justify-center text-white text-3xl sm:text-4xl lg:text-5xl font-bold shadow-lg shadow-blue-500/20">
                 {profileData.name.charAt(0).toUpperCase()}
               </div>
             </div>
             <div className="flex-1">
-              <div className="flex flex-col sm:flex-row sm:items-center gap-3 mb-3">
-                <h2 className="text-2xl sm:text-3xl font-bold text-gray-900">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-3 mb-2 sm:mb-3">
+                <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900">
                   {profileData.name}
                 </h2>
                 {getStatusBadge(profileData.status)}
               </div>
-              <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 text-sm text-gray-600 mb-4">
+              <div className="flex flex-col sm:flex-row sm:items-center gap-1 sm:gap-2 lg:gap-4 text-xs sm:text-sm text-gray-600 mb-3 sm:mb-4">
                 <span className="font-semibold">No. Anggota: {profileData.nomorAnggota}</span>
-                <span className="hidden sm:inline">|</span>
+                <span className="hidden sm:inline text-gray-300">•</span>
                 <span>Unit: {profileData.unitKerja}</span>
               </div>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 sm:gap-3">
                 {getTierBadge(profileData.tier)}
-                <span className="text-sm text-gray-600">
+                <span className="text-xs sm:text-sm text-gray-600">
                   {profileData.points.toLocaleString()} points
                 </span>
               </div>
             </div>
           </div>
 
-          <div className="border-t pt-6 space-y-4">
-            <div className="flex items-start gap-3">
-              <Mail className="w-5 h-5 text-gray-400 mt-0.5" />
-              <div>
-                <p className="text-sm text-gray-500">Email</p>
-                <p className="text-gray-900">{profileData.email}</p>
+          <div className="border-t border-gray-100 pt-4 sm:pt-6 space-y-3 sm:space-y-4">
+            <div className="flex items-start gap-2 sm:gap-3">
+              <Mail className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 mt-0.5 flex-shrink-0" />
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] sm:text-xs text-gray-500 mb-0.5">Email</p>
+                <p className="text-sm sm:text-base text-gray-900 truncate">{profileData.email}</p>
               </div>
             </div>
-            <div className="flex items-start gap-3">
-              <Phone className="w-5 h-5 text-gray-400 mt-0.5" />
-              <div>
-                <p className="text-sm text-gray-500">Telepon</p>
-                <p className="text-gray-900">{profileData.phone || '-'}</p>
+            <div className="flex items-start gap-2 sm:gap-3">
+              <Phone className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 mt-0.5 flex-shrink-0" />
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] sm:text-xs text-gray-500 mb-0.5">Telepon</p>
+                <p className="text-sm sm:text-base text-gray-900">{profileData.phone || '-'}</p>
               </div>
             </div>
-            <div className="flex items-start gap-3">
-              <MapPin className="w-5 h-5 text-gray-400 mt-0.5" />
-              <div>
-                <p className="text-sm text-gray-500">Alamat</p>
-                <p className="text-gray-900">{profileData.address || '-'}</p>
+            <div className="flex items-start gap-2 sm:gap-3">
+              <MapPin className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 mt-0.5 flex-shrink-0" />
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] sm:text-xs text-gray-500 mb-0.5">Alamat</p>
+                <p className="text-sm sm:text-base text-gray-900">{profileData.address || '-'}</p>
               </div>
             </div>
-            <div className="flex items-start gap-3">
-              <User className="w-5 h-5 text-gray-400 mt-0.5" />
-              <div>
-                <p className="text-sm text-gray-500">Jenis Kelamin</p>
-                <p className="text-gray-900">{profileData.gender === 'MALE' ? 'Laki-laki' : 'Perempuan'}</p>
+            <div className="flex items-start gap-2 sm:gap-3">
+              <User className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 mt-0.5 flex-shrink-0" />
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] sm:text-xs text-gray-500 mb-0.5">Jenis Kelamin</p>
+                <p className="text-sm sm:text-base text-gray-900">{profileData.gender === 'MALE' ? 'Laki-laki' : 'Perempuan'}</p>
               </div>
             </div>
-            <div className="flex items-start gap-3">
-              <Calendar className="w-5 h-5 text-gray-400 mt-0.5" />
-              <div>
-                <p className="text-sm text-gray-500">Tanggal Bergabung</p>
-                <p className="text-gray-900">{formatDate(profileData.joinDate)}</p>
+            <div className="flex items-start gap-2 sm:gap-3">
+              <Calendar className="w-4 h-4 sm:w-5 sm:h-5 text-gray-400 mt-0.5 flex-shrink-0" />
+              <div className="min-w-0 flex-1">
+                <p className="text-[10px] sm:text-xs text-gray-500 mb-0.5">Tanggal Bergabung</p>
+                <p className="text-sm sm:text-base text-gray-900">{formatDate(profileData.joinDate)}</p>
               </div>
             </div>
           </div>
         </Card>
 
         {/* Edit Profile Form */}
-        <Card className="p-6 sm:p-8 mb-6 shadow-md">
-          <h3 className="text-xl font-semibold text-gray-900 mb-4">
+        <Card className="p-4 sm:p-6 lg:p-8 mb-4 sm:mb-6 shadow-sm border border-gray-200">
+          <h3 className="text-base sm:text-lg lg:text-xl font-semibold text-gray-900 mb-3 sm:mb-4">
             Edit Informasi Kontak
           </h3>
-          <form onSubmit={handleSaveProfile} className="space-y-4">
+          <form onSubmit={handleSaveProfile} className="space-y-3 sm:space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
                 Nomor Telepon
               </label>
               <input
@@ -317,13 +319,13 @@ export default function ProfilePage() {
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 disabled={!editing}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-emerald-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#0055FF] focus:border-transparent disabled:bg-gray-50 disabled:cursor-not-allowed transition-all"
                 placeholder="Contoh: 08123456789"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
+              <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
                 Alamat Lengkap
               </label>
               <textarea
@@ -331,17 +333,17 @@ export default function ProfilePage() {
                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                 disabled={!editing}
                 rows={3}
-                className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-emerald-500 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#0055FF] focus:border-transparent disabled:bg-gray-50 disabled:cursor-not-allowed transition-all resize-none"
                 placeholder="Masukkan alamat lengkap..."
               />
             </div>
 
-            <div className="flex gap-3 pt-2">
+            <div className="flex gap-2 sm:gap-3 pt-2">
               {!editing ? (
                 <Button
                   type="button"
                   onClick={() => setEditing(true)}
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                  className="bg-[#0055FF] hover:bg-[#003DB3] text-white text-sm"
                 >
                   Edit Profil
                 </Button>
@@ -350,7 +352,7 @@ export default function ProfilePage() {
                   <Button
                     type="submit"
                     disabled={saving}
-                    className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                    className="bg-[#0055FF] hover:bg-[#003DB3] text-white text-sm"
                   >
                     <Save className="w-4 h-4 mr-2" />
                     {saving ? 'Menyimpan...' : 'Simpan'}
@@ -365,6 +367,7 @@ export default function ProfilePage() {
                         address: profileData.address || '',
                       });
                     }}
+                    className="border-gray-200 text-gray-700 hover:bg-gray-50 text-sm"
                   >
                     Batal
                   </Button>
@@ -375,8 +378,8 @@ export default function ProfilePage() {
         </Card>
 
         {/* Change Password */}
-        <Card className="p-6 sm:p-8 shadow-md">
-          <h3 className="text-xl font-semibold text-gray-900 mb-4">
+        <Card className="p-4 sm:p-6 lg:p-8 shadow-sm border border-gray-200">
+          <h3 className="text-base sm:text-lg lg:text-xl font-semibold text-gray-900 mb-3 sm:mb-4">
             Keamanan Akun
           </h3>
           
@@ -384,14 +387,14 @@ export default function ProfilePage() {
             <Button
               onClick={() => setShowPasswordForm(true)}
               variant="outline"
-              className="border-red-600 text-red-600 hover:bg-red-50"
+              className="border-red-200 text-red-600 hover:bg-red-50 text-sm"
             >
               Ubah Password
             </Button>
           ) : (
-            <form onSubmit={handleChangePassword} className="space-y-4">
+            <form onSubmit={handleChangePassword} className="space-y-3 sm:space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
                   Password Lama
                 </label>
                 <input
@@ -399,13 +402,13 @@ export default function ProfilePage() {
                   required
                   value={passwordForm.currentPassword}
                   onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
                   placeholder="Masukkan password lama"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
                   Password Baru
                 </label>
                 <input
@@ -414,13 +417,13 @@ export default function ProfilePage() {
                   minLength={6}
                   value={passwordForm.newPassword}
                   onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
                   placeholder="Minimal 6 karakter"
                 />
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
                   Konfirmasi Password Baru
                 </label>
                 <input
@@ -429,16 +432,16 @@ export default function ProfilePage() {
                   minLength={6}
                   value={passwordForm.confirmPassword}
                   onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-red-500 focus:border-transparent"
+                  className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
                   placeholder="Ulangi password baru"
                 />
               </div>
 
-              <div className="flex gap-3 pt-2">
+              <div className="flex gap-2 sm:gap-3 pt-2">
                 <Button
                   type="submit"
                   disabled={saving}
-                  className="bg-red-600 hover:bg-red-700 text-white"
+                  className="bg-red-600 hover:bg-red-700 text-white text-sm"
                 >
                   {saving ? 'Mengubah...' : 'Ubah Password'}
                 </Button>
@@ -453,6 +456,7 @@ export default function ProfilePage() {
                       confirmPassword: '',
                     });
                   }}
+                  className="border-gray-200 text-gray-700 hover:bg-gray-50 text-sm"
                 >
                   Batal
                 </Button>

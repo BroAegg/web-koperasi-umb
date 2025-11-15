@@ -1,5 +1,4 @@
 
-import React from 'react';
 
 // Temporary minimal component for build fix
 interface SupplierCardProps {

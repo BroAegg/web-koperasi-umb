@@ -5,14 +5,14 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {
-    AlertCircle,
-    ArrowLeft,
-    CheckCircle,
-    Clock,
-    CreditCard,
-    DollarSign,
-    FileText,
-    Plus
+  AlertCircle,
+  ArrowLeft,
+  CheckCircle,
+  Clock,
+  CreditCard,
+  DollarSign,
+  FileText,
+  Plus
 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
@@ -131,17 +131,17 @@ export default function PinjamanPage() {
 
   const getStatusBadge = (status: string) => {
     const badges: Record<string, { color: string; label: string; icon: any }> = {
-      PENDING: { color: 'bg-yellow-500 text-white', label: 'Menunggu', icon: Clock },
-      APPROVED: { color: 'bg-green-500 text-white', label: 'Disetujui', icon: CheckCircle },
-      ACTIVE: { color: 'bg-blue-500 text-white', label: 'Aktif', icon: CheckCircle },
-      COMPLETED: { color: 'bg-gray-500 text-white', label: 'Lunas', icon: CheckCircle },
-      REJECTED: { color: 'bg-red-500 text-white', label: 'Ditolak', icon: AlertCircle },
+      PENDING: { color: 'bg-yellow-50 text-yellow-700 border border-yellow-200', label: 'Menunggu', icon: Clock },
+      APPROVED: { color: 'bg-green-50 text-green-700 border border-green-200', label: 'Disetujui', icon: CheckCircle },
+      ACTIVE: { color: 'bg-blue-50 text-blue-700 border border-blue-200', label: 'Aktif', icon: CheckCircle },
+      COMPLETED: { color: 'bg-gray-50 text-gray-700 border border-gray-200', label: 'Lunas', icon: CheckCircle },
+      REJECTED: { color: 'bg-red-50 text-red-700 border border-red-200', label: 'Ditolak', icon: AlertCircle },
     };
     const badge = badges[status] || badges.PENDING;
     const Icon = badge.icon;
     
     return (
-      <Badge className={`${badge.color} text-xs flex items-center gap-1`}>
+      <Badge className={`${badge.color} text-[10px] sm:text-xs flex items-center gap-1 font-semibold px-2 py-0.5`}>
         <Icon className="w-3 h-3" />
         {badge.label}
       </Badge>
@@ -150,10 +150,10 @@ export default function PinjamanPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+      <div className="min-h-screen flex items-center justify-center bg-[#FAFBFC]">
         <div className="text-center">
-          <div className="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Memuat data pinjaman...</p>
+          <div className="w-16 h-16 border-4 border-[#0055FF] border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-gray-600 font-medium">Memuat data pinjaman...</p>
         </div>
       </div>
     );
@@ -161,10 +161,10 @@ export default function PinjamanPage() {
 
   if (!loanData) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Card className="p-8 text-center max-w-md">
-          <p className="text-red-600 mb-4">Data pinjaman tidak ditemukan</p>
-          <Button onClick={() => router.push('/member/dashboard')}>
+      <div className="min-h-screen flex items-center justify-center bg-[#FAFBFC]">
+        <Card className="p-8 text-center max-w-md shadow-lg border border-gray-200">
+          <p className="text-red-600 mb-4 font-medium">Data pinjaman tidak ditemukan</p>
+          <Button onClick={() => router.push('/member/dashboard')} className="bg-[#0055FF] hover:bg-[#003DB3]">
             Kembali ke Dashboard
           </Button>
         </Card>
@@ -173,33 +173,33 @@ export default function PinjamanPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[#FAFBFC]">
       <MemberNavigation />
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+      <div className="max-w-7xl mx-auto px-3 sm:px-4 lg:px-8 py-4 sm:py-6 lg:py-8">
         {/* Header */}
-        <div className="mb-6">
+        <div className="mb-4 sm:mb-6">
           <Button
             variant="outline"
             onClick={() => router.push('/member/dashboard')}
-            className="mb-4 text-gray-600 hover:text-gray-900"
+            className="mb-3 sm:mb-4 text-gray-600 hover:text-gray-900 border-gray-200 text-sm"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Kembali
           </Button>
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-bold text-gray-900 mb-2">
-                Pinjaman Koperasi 💳
+              <h1 className="text-xl sm:text-2xl lg:text-3xl font-bold text-gray-900 mb-1 sm:mb-2">
+                Pinjaman Koperasi
               </h1>
-              <p className="text-sm sm:text-base text-gray-600">
+              <p className="text-xs sm:text-sm text-gray-600">
                 Kelola pinjaman dan ajukan pinjaman baru
               </p>
             </div>
             {loanData.canApplyNew && (
               <Button
                 onClick={() => setShowApplyForm(true)}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
+                className="bg-[#0055FF] hover:bg-[#003DB3] text-white text-sm w-full sm:w-auto"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Ajukan Pinjaman
@@ -209,27 +209,33 @@ export default function PinjamanPage() {
         </div>
 
         {/* Summary Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 sm:gap-6 mb-6 sm:mb-8">
-          <Card className="p-5 sm:p-6 bg-gradient-to-br from-blue-500 to-blue-600 text-white shadow-lg">
-            <CreditCard className="w-8 h-8 sm:w-10 sm:h-10 opacity-80 mb-3" />
-            <p className="text-blue-100 text-xs sm:text-sm mb-1">Total Pinjaman</p>
-            <h2 className="text-2xl sm:text-3xl font-bold">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 lg:gap-6 mb-4 sm:mb-6 lg:mb-8">
+          <Card className="p-4 sm:p-5 lg:p-6 bg-white border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300">
+            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-blue-50 flex items-center justify-center mb-3">
+              <CreditCard className="w-5 h-5 sm:w-6 sm:h-6 text-[#0055FF] stroke-[2px]" />
+            </div>
+            <p className="text-gray-500 text-[10px] sm:text-xs uppercase tracking-wide font-medium mb-2">Total Pinjaman</p>
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
               {formatCurrency(loanData.totalLoanAmount)}
             </h2>
           </Card>
 
-          <Card className="p-5 sm:p-6 bg-gradient-to-br from-orange-500 to-orange-600 text-white shadow-lg">
-            <DollarSign className="w-8 h-8 sm:w-10 sm:h-10 opacity-80 mb-3" />
-            <p className="text-orange-100 text-xs sm:text-sm mb-1">Sisa Pinjaman</p>
-            <h2 className="text-2xl sm:text-3xl font-bold">
+          <Card className="p-4 sm:p-5 lg:p-6 bg-white border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300">
+            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-orange-50 flex items-center justify-center mb-3">
+              <DollarSign className="w-5 h-5 sm:w-6 sm:h-6 text-orange-600 stroke-[2px]" />
+            </div>
+            <p className="text-gray-500 text-[10px] sm:text-xs uppercase tracking-wide font-medium mb-2">Sisa Pinjaman</p>
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
               {formatCurrency(loanData.totalRemaining)}
             </h2>
           </Card>
 
-          <Card className="p-5 sm:p-6 bg-gradient-to-br from-emerald-500 to-emerald-600 text-white shadow-lg">
-            <FileText className="w-8 h-8 sm:w-10 sm:h-10 opacity-80 mb-3" />
-            <p className="text-emerald-100 text-xs sm:text-sm mb-1">Pinjaman Aktif</p>
-            <h2 className="text-2xl sm:text-3xl font-bold">
+          <Card className="p-4 sm:p-5 lg:p-6 bg-white border border-gray-200 shadow-sm hover:shadow-md transition-all duration-300">
+            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-emerald-50 flex items-center justify-center mb-3">
+              <FileText className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-600 stroke-[2px]" />
+            </div>
+            <p className="text-gray-500 text-[10px] sm:text-xs uppercase tracking-wide font-medium mb-2">Pinjaman Aktif</p>
+            <h2 className="text-2xl sm:text-3xl font-bold text-gray-900 tracking-tight">
               {loanData.activeLoans.length}
             </h2>
           </Card>
@@ -237,22 +243,22 @@ export default function PinjamanPage() {
 
         {/* Apply Form Modal */}
         {showApplyForm && (
-          <Card className="p-6 mb-6 border-2 border-blue-500 shadow-xl">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-xl font-semibold text-gray-900">
+          <Card className="p-4 sm:p-5 lg:p-6 mb-4 sm:mb-6 border-2 border-[#0055FF] shadow-lg">
+            <div className="flex items-center justify-between mb-3 sm:mb-4">
+              <h3 className="text-base sm:text-lg lg:text-xl font-semibold text-gray-900">
                 Ajukan Pinjaman Baru
               </h3>
               <Button
                 variant="outline"
                 onClick={() => setShowApplyForm(false)}
-                className="text-gray-500 hover:text-gray-700"
+                className="text-gray-500 hover:text-gray-700 border-gray-200 w-8 h-8 p-0 rounded-lg"
               >
                 ✕
               </Button>
             </div>
-            <form onSubmit={handleApplyLoan} className="space-y-4">
+            <form onSubmit={handleApplyLoan} className="space-y-3 sm:space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
                   Jumlah Pinjaman (Rp)
                 </label>
                 <input
@@ -263,20 +269,20 @@ export default function PinjamanPage() {
                   step="100000"
                   value={formData.amount}
                   onChange={(e) => setFormData({ ...formData, amount: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#0055FF] focus:border-transparent transition-all"
                   placeholder="Contoh: 5000000"
                 />
-                <p className="text-xs text-gray-500 mt-1">Minimum Rp 500.000, maksimum Rp 50.000.000</p>
+                <p className="text-[10px] sm:text-xs text-gray-500 mt-1">Minimum Rp 500.000, maksimum Rp 50.000.000</p>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
                   Tenor (Bulan)
                 </label>
                 <select
                   value={formData.tenor}
                   onChange={(e) => setFormData({ ...formData, tenor: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#0055FF] focus:border-transparent transition-all"
                 >
                   <option value="6">6 Bulan</option>
                   <option value="12">12 Bulan</option>
@@ -287,7 +293,7 @@ export default function PinjamanPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
                   Tujuan Pinjaman
                 </label>
                 <textarea
@@ -296,17 +302,17 @@ export default function PinjamanPage() {
                   maxLength={500}
                   value={formData.purpose}
                   onChange={(e) => setFormData({ ...formData, purpose: e.target.value })}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#0055FF] focus:border-transparent resize-none transition-all"
                   rows={3}
                   placeholder="Jelaskan tujuan penggunaan dana pinjaman..."
                 />
               </div>
 
-              <div className="flex gap-3 pt-2">
+              <div className="flex gap-2 sm:gap-3 pt-2">
                 <Button
                   type="submit"
                   disabled={submitting}
-                  className="flex-1 bg-blue-600 hover:bg-blue-700 text-white"
+                  className="flex-1 bg-[#0055FF] hover:bg-[#003DB3] text-white text-sm"
                 >
                   {submitting ? 'Mengirim...' : 'Ajukan Pinjaman'}
                 </Button>
@@ -314,7 +320,7 @@ export default function PinjamanPage() {
                   type="button"
                   variant="outline"
                   onClick={() => setShowApplyForm(false)}
-                  className="flex-1"
+                  className="flex-1 border-gray-200 text-gray-700 hover:bg-gray-50 text-sm"
                 >
                   Batal
                 </Button>
@@ -325,59 +331,59 @@ export default function PinjamanPage() {
 
         {/* Active Loans */}
         {loanData.activeLoans.length > 0 && (
-          <div className="mb-8">
-            <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4">
+          <div className="mb-6 sm:mb-8">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">
               Pinjaman Aktif
             </h3>
-            <div className="space-y-4">
+            <div className="space-y-3 sm:space-y-4">
               {loanData.activeLoans.map((loan) => (
-                <Card key={loan.id} className="p-5 sm:p-6 shadow-md">
-                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4 mb-4">
+                <Card key={loan.id} className="p-4 sm:p-5 lg:p-6 shadow-sm border border-gray-200 hover:shadow-md transition-all duration-300">
+                  <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3 sm:gap-4 mb-3 sm:mb-4">
                     <div className="flex-1">
-                      <div className="flex items-center gap-3 mb-2">
-                        <h4 className="text-lg font-semibold text-gray-900">
+                      <div className="flex items-center gap-2 sm:gap-3 mb-2">
+                        <h4 className="text-base sm:text-lg font-bold text-gray-900">
                           {formatCurrency(loan.amount)}
                         </h4>
                         {getStatusBadge(loan.status)}
                       </div>
-                      <p className="text-sm text-gray-600 mb-1">
+                      <p className="text-xs sm:text-sm text-gray-600 mb-1">
                         <strong>Tujuan:</strong> {loan.purpose}
                       </p>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-xs sm:text-sm text-gray-600">
                         <strong>Tenor:</strong> {loan.tenor} bulan | 
                         <strong className="ml-2">Bunga:</strong> {loan.interestRate}%
                       </p>
                     </div>
-                    <div className="text-right">
-                      <p className="text-sm text-gray-500 mb-1">Sisa</p>
-                      <p className="text-xl font-bold text-orange-600">
+                    <div className="text-left sm:text-right">
+                      <p className="text-[10px] sm:text-xs text-gray-500 mb-1">Sisa</p>
+                      <p className="text-lg sm:text-xl font-bold text-orange-600">
                         {formatCurrency(loan.remaining)}
                       </p>
                     </div>
                   </div>
 
-                  <div className="border-t pt-4">
-                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-sm">
+                  <div className="border-t border-gray-100 pt-3 sm:pt-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4 text-xs sm:text-sm">
                       <div>
-                        <p className="text-gray-500 mb-1">Angsuran/Bulan</p>
+                        <p className="text-gray-500 mb-1 text-[10px] sm:text-xs">Angsuran/Bulan</p>
                         <p className="font-semibold text-gray-900">
                           {formatCurrency(loan.monthlyPayment)}
                         </p>
                       </div>
                       <div>
-                        <p className="text-gray-500 mb-1">Terbayar</p>
+                        <p className="text-gray-500 mb-1 text-[10px] sm:text-xs">Terbayar</p>
                         <p className="font-semibold text-emerald-600">
                           {loan.paidMonths}/{loan.tenor} bulan
                         </p>
                       </div>
                       <div>
-                        <p className="text-gray-500 mb-1">Mulai</p>
+                        <p className="text-gray-500 mb-1 text-[10px] sm:text-xs">Mulai</p>
                         <p className="font-semibold text-gray-900">
                           {formatDate(loan.startDate)}
                         </p>
                       </div>
                       <div>
-                        <p className="text-gray-500 mb-1">Jatuh Tempo</p>
+                        <p className="text-gray-500 mb-1 text-[10px] sm:text-xs">Jatuh Tempo</p>
                         <p className="font-semibold text-gray-900">
                           {formatDate(loan.endDate)}
                         </p>
@@ -386,14 +392,14 @@ export default function PinjamanPage() {
                   </div>
 
                   {/* Progress Bar */}
-                  <div className="mt-4">
-                    <div className="flex justify-between text-xs text-gray-500 mb-1">
+                  <div className="mt-3 sm:mt-4">
+                    <div className="flex justify-between text-[10px] sm:text-xs text-gray-500 mb-1.5">
                       <span>Progress Pembayaran</span>
-                      <span>{Math.round((loan.paidMonths / loan.tenor) * 100)}%</span>
+                      <span className="font-semibold">{Math.round((loan.paidMonths / loan.tenor) * 100)}%</span>
                     </div>
                     <div className="w-full bg-gray-200 rounded-full h-2">
                       <div
-                        className="bg-emerald-600 h-2 rounded-full transition-all"
+                        className="bg-emerald-600 h-2 rounded-full transition-all duration-500"
                         style={{ width: `${(loan.paidMonths / loan.tenor) * 100}%` }}
                       ></div>
                     </div>
@@ -407,23 +413,23 @@ export default function PinjamanPage() {
         {/* Completed Loans */}
         {loanData.completedLoans.length > 0 && (
           <div>
-            <h3 className="text-lg sm:text-xl font-semibold text-gray-900 mb-4">
+            <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-3 sm:mb-4">
               Riwayat Pinjaman Lunas
             </h3>
             <div className="space-y-3">
               {loanData.completedLoans.map((loan) => (
-                <Card key={loan.id} className="p-4 bg-gray-50 shadow-sm">
-                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
+                <Card key={loan.id} className="p-4 sm:p-5 bg-gray-50 shadow-sm border border-gray-200 hover:shadow-md transition-all duration-300">
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-3">
                     <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
-                        <span className="font-semibold text-gray-900">
+                      <div className="flex items-center gap-2 mb-1.5">
+                        <span className="font-bold text-sm sm:text-base text-gray-900">
                           {formatCurrency(loan.amount)}
                         </span>
                         {getStatusBadge(loan.status)}
                       </div>
-                      <p className="text-sm text-gray-600">{loan.purpose}</p>
+                      <p className="text-xs sm:text-sm text-gray-600">{loan.purpose}</p>
                     </div>
-                    <div className="text-sm text-gray-500">
+                    <div className="text-[10px] sm:text-xs text-gray-500">
                       {formatDate(loan.startDate)} - {formatDate(loan.endDate)}
                     </div>
                   </div>
@@ -435,13 +441,13 @@ export default function PinjamanPage() {
 
         {/* Empty State */}
         {loanData.activeLoans.length === 0 && loanData.completedLoans.length === 0 && (
-          <Card className="p-12 text-center">
-            <CreditCard className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-            <p className="text-gray-500 mb-4">Belum ada riwayat pinjaman</p>
+          <Card className="p-8 sm:p-12 text-center shadow-sm border border-gray-200">
+            <CreditCard className="w-12 h-12 sm:w-16 sm:h-16 text-gray-300 mx-auto mb-3 sm:mb-4" />
+            <p className="text-sm sm:text-base text-gray-500 mb-4">Belum ada riwayat pinjaman</p>
             {loanData.canApplyNew && (
               <Button
                 onClick={() => setShowApplyForm(true)}
-                className="bg-blue-600 hover:bg-blue-700 text-white"
+                className="bg-[#0055FF] hover:bg-[#003DB3] text-white rounded-xl h-10 sm:h-11 px-4 sm:px-5 text-sm sm:text-base font-semibold transition-all duration-300"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Ajukan Pinjaman Pertama
