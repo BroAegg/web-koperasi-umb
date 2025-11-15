@@ -319,7 +319,11 @@ export default function ProfilePage() {
                 value={formData.phone}
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 disabled={!editing}
-                className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#0055FF] focus:border-transparent disabled:bg-gray-50 disabled:cursor-not-allowed transition-all"
+                className={`w-full px-3 sm:px-4 py-2 text-sm sm:text-base border rounded-xl transition-all ${
+                  editing 
+                    ? 'border-gray-300 focus:ring-2 focus:ring-[#0055FF] focus:border-transparent bg-white' 
+                    : 'border-gray-200 bg-gray-100 text-gray-600 cursor-not-allowed'
+                }`}
                 placeholder="Contoh: 08123456789"
               />
             </div>
@@ -333,7 +337,11 @@ export default function ProfilePage() {
                 onChange={(e) => setFormData({ ...formData, address: e.target.value })}
                 disabled={!editing}
                 rows={3}
-                className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#0055FF] focus:border-transparent disabled:bg-gray-50 disabled:cursor-not-allowed transition-all resize-none"
+                className={`w-full px-3 sm:px-4 py-2 text-sm sm:text-base border rounded-xl resize-none transition-all ${
+                  editing 
+                    ? 'border-gray-300 focus:ring-2 focus:ring-[#0055FF] focus:border-transparent bg-white' 
+                    : 'border-gray-200 bg-gray-100 text-gray-600 cursor-not-allowed'
+                }`}
                 placeholder="Masukkan alamat lengkap..."
               />
             </div>
@@ -345,7 +353,9 @@ export default function ProfilePage() {
                   onClick={() => setEditing(true)}
                   className="bg-[#0055FF] hover:bg-[#003DB3] text-white rounded-xl h-10 sm:h-11 px-4 sm:px-5 text-sm font-semibold transition-all duration-300"
                 >
-                  <Save className="w-4 h-4 mr-2" />
+                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                  </svg>
                   Edit Profil
                 </Button>
               ) : (
