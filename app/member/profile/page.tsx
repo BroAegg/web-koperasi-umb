@@ -343,8 +343,9 @@ export default function ProfilePage() {
                 <Button
                   type="button"
                   onClick={() => setEditing(true)}
-                  className="bg-[#0055FF] hover:bg-[#003DB3] text-white text-sm"
+                  className="bg-[#0055FF] hover:bg-[#003DB3] text-white rounded-xl h-10 sm:h-11 px-4 sm:px-5 text-sm font-semibold transition-all duration-300"
                 >
+                  <Save className="w-4 h-4 mr-2" />
                   Edit Profil
                 </Button>
               ) : (
@@ -352,10 +353,10 @@ export default function ProfilePage() {
                   <Button
                     type="submit"
                     disabled={saving}
-                    className="bg-[#0055FF] hover:bg-[#003DB3] text-white text-sm"
+                    className="flex-1 bg-[#0055FF] hover:bg-[#003DB3] text-white rounded-xl h-10 sm:h-11 px-4 sm:px-5 text-sm font-semibold transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Save className="w-4 h-4 mr-2" />
-                    {saving ? 'Menyimpan...' : 'Simpan'}
+                    {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
                   </Button>
                   <Button
                     type="button"
@@ -367,7 +368,7 @@ export default function ProfilePage() {
                         address: profileData.address || '',
                       });
                     }}
-                    className="border-gray-200 text-gray-700 hover:bg-gray-50 text-sm"
+                    className="flex-1 border-2 border-gray-300 text-gray-700 hover:bg-gray-50 rounded-xl h-10 sm:h-11 px-4 sm:px-5 text-sm font-semibold transition-all duration-300"
                   >
                     Batal
                   </Button>
@@ -387,8 +388,11 @@ export default function ProfilePage() {
             <Button
               onClick={() => setShowPasswordForm(true)}
               variant="outline"
-              className="border-red-200 text-red-600 hover:bg-red-50 text-sm"
+              className="border-2 border-red-200 text-red-600 hover:bg-red-50 hover:border-red-300 rounded-xl h-10 sm:h-11 px-4 sm:px-5 text-sm font-semibold transition-all duration-300"
             >
+              <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+              </svg>
               Ubah Password
             </Button>
           ) : (
@@ -402,7 +406,7 @@ export default function ProfilePage() {
                   required
                   value={passwordForm.currentPassword}
                   onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
-                  className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
+                  className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#0055FF] focus:border-transparent transition-all"
                   placeholder="Masukkan password lama"
                 />
               </div>
@@ -417,7 +421,7 @@ export default function ProfilePage() {
                   minLength={6}
                   value={passwordForm.newPassword}
                   onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
-                  className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
+                  className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#0055FF] focus:border-transparent transition-all"
                   placeholder="Minimal 6 karakter"
                 />
               </div>
@@ -432,7 +436,7 @@ export default function ProfilePage() {
                   minLength={6}
                   value={passwordForm.confirmPassword}
                   onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
-                  className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-xl focus:ring-2 focus:ring-red-500 focus:border-transparent transition-all"
+                  className="w-full px-3 sm:px-4 py-2 text-sm sm:text-base border border-gray-300 rounded-xl focus:ring-2 focus:ring-[#0055FF] focus:border-transparent transition-all"
                   placeholder="Ulangi password baru"
                 />
               </div>
@@ -441,7 +445,7 @@ export default function ProfilePage() {
                 <Button
                   type="submit"
                   disabled={saving}
-                  className="bg-red-600 hover:bg-red-700 text-white text-sm"
+                  className="flex-1 bg-red-600 hover:bg-red-700 text-white rounded-xl h-10 sm:h-11 px-4 sm:px-5 text-sm font-semibold transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {saving ? 'Mengubah...' : 'Ubah Password'}
                 </Button>
@@ -456,7 +460,7 @@ export default function ProfilePage() {
                       confirmPassword: '',
                     });
                   }}
-                  className="border-gray-200 text-gray-700 hover:bg-gray-50 text-sm"
+                  className="flex-1 border-2 border-gray-300 text-gray-700 hover:bg-gray-50 rounded-xl h-10 sm:h-11 px-4 sm:px-5 text-sm font-semibold transition-all duration-300"
                 >
                   Batal
                 </Button>
