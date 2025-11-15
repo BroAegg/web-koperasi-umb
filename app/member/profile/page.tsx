@@ -309,6 +309,26 @@ export default function ProfilePage() {
           <h3 className="text-base sm:text-lg lg:text-xl font-semibold text-gray-900 mb-3 sm:mb-4">
             Edit Informasi Kontak
           </h3>
+          
+          {/* Edit Button - Outside Form */}
+          {!editing && (
+            <div className="mb-4">
+              <Button
+                type="button"
+                onClick={(e) => {
+                  e.preventDefault();
+                  setEditing(true);
+                }}
+                className="bg-[#0055FF] hover:bg-[#003DB3] text-white rounded-xl h-10 sm:h-11 px-4 sm:px-5 text-sm font-semibold transition-all duration-300"
+              >
+                <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                </svg>
+                Edit Profil
+              </Button>
+            </div>
+          )}
+
           <form onSubmit={handleSaveProfile} className="space-y-3 sm:space-y-4">
             <div>
               <label className="block text-xs sm:text-sm font-medium text-gray-700 mb-1.5 sm:mb-2">
@@ -346,45 +366,32 @@ export default function ProfilePage() {
               />
             </div>
 
-            <div className="flex gap-2 sm:gap-3 pt-2">
-              {!editing ? (
+            {editing && (
+              <div className="flex gap-2 sm:gap-3 pt-2">
+                <Button
+                  type="submit"
+                  disabled={saving}
+                  className="flex-1 bg-[#0055FF] hover:bg-[#003DB3] text-white rounded-xl h-10 sm:h-11 px-4 sm:px-5 text-sm font-semibold transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
+                </Button>
                 <Button
                   type="button"
-                  onClick={() => setEditing(true)}
-                  className="bg-[#0055FF] hover:bg-[#003DB3] text-white rounded-xl h-10 sm:h-11 px-4 sm:px-5 text-sm font-semibold transition-all duration-300"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setEditing(false);
+                    setFormData({
+                      phone: profileData.phone || '',
+                      address: profileData.address || '',
+                    });
+                  }}
+                  className="flex-1 bg-white border-2 border-[#0055FF] text-[#0055FF] hover:bg-[#F0F7FF] rounded-xl h-10 sm:h-11 px-4 sm:px-5 text-sm font-semibold transition-all duration-300"
                 >
-                  <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
-                  </svg>
-                  Edit Profil
+                  Batal
                 </Button>
-              ) : (
-                <>
-                  <Button
-                    type="submit"
-                    disabled={saving}
-                    className="flex-1 bg-[#0055FF] hover:bg-[#003DB3] text-white rounded-xl h-10 sm:h-11 px-4 sm:px-5 text-sm font-semibold transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <Save className="w-4 h-4 mr-2" />
-                    {saving ? 'Menyimpan...' : 'Simpan Perubahan'}
-                  </Button>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => {
-                      setEditing(false);
-                      setFormData({
-                        phone: profileData.phone || '',
-                        address: profileData.address || '',
-                      });
-                    }}
-                    className="flex-1 border-2 border-gray-300 text-gray-700 hover:bg-gray-50 rounded-xl h-10 sm:h-11 px-4 sm:px-5 text-sm font-semibold transition-all duration-300"
-                  >
-                    Batal
-                  </Button>
-                </>
-              )}
-            </div>
+              </div>
+            )}
           </form>
         </Card>
 
