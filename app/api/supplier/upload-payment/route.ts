@@ -69,16 +69,22 @@ export async function POST(request: NextRequest) {
     const paymentProofPath = paymentProof; // Store base64 directly for now
 
     // Create payment record
+    const now = new Date();
+    const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    
     const payment = await prisma.supplier_payments.create({
       data: {
         id: `PAY-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
         supplierId: supplier.id,
         amount: parseFloat(amount),
+        paymentMethod: 'TRANSFER',
+        paymentDate: now,
         paymentProof: paymentProofPath,
         status: 'PENDING',
-        periodStart: new Date(),
-        periodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days
-        updatedAt: new Date(),
+        periodStart: now,
+        periodEnd: nextMonth,
+        createdAt: now,
+        updatedAt: now,
       },
     });
 

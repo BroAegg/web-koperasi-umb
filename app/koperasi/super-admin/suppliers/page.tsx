@@ -1,85 +1,123 @@
 "use client";
 
-import { useState } from 'react';
-import { useSupplierData } from '@/hooks/useSupplierData';
-import { calculateSupplierStats } from '@/lib/supplier-helpers';
-import { Supplier, SupplierFilter } from '@/types/supplier';
-import { Plus, Loader2 } from 'lucide-react';
-
-// Modular Components
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import { Plus, Loader2, Search, Users, Clock, CheckCircle2, Building2 } from 'lucide-react';
+import { Input } from '@/components/ui/input';
+import { Button } from '@/components/ui/button';
+import { Card, CardContent } from '@/components/ui/card';
 import { 
-  PendingStatsCard, 
-  PaymentPendingStatsCard, 
-  ActiveStatsCard, 
-  TotalStatsCard 
-} from '@/components/supplier/SupplierStatsCard';
-import SupplierFilterBar from '@/components/supplier/SupplierFilterBar';
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
+import { toast } from 'sonner';
+
+// Components
 import SupplierCard from '@/components/supplier/SupplierCard';
-import RejectSupplierModal from '@/components/supplier/RejectSupplierModal';
-import EmptySupplierState from '@/components/supplier/EmptySupplierState';
+import { ApproveSupplierModal } from '@/components/supplier/ApproveSupplierModal';
+import { PaymentProofModal } from '@/components/supplier/PaymentProofModal';
+
+type FilterTab = 'ALL' | 'PENDING' | 'PAYMENT_PENDING' | 'ACTIVE';
 
 export default function SuperAdminSuppliersPage() {
-  const [filter, setFilter] = useState<SupplierFilter>('pending');
-  const [selectedSupplier, setSelectedSupplier] = useState<Supplier | null>(null);
-  const [showRejectModal, setShowRejectModal] = useState(false);
-  const [actionLoading, setActionLoading] = useState(false);
+  const router = useRouter();
+  const [suppliers, setSuppliers] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [simulateLoading, setSimulateLoading] = useState(false);
+  
+  // Filters
+  const [activeTab, setActiveTab] = useState<FilterTab>('ALL');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState<string | undefined>(undefined);
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState<string | undefined>(undefined);
+  
+  // Modals
+  const [showApproveModal, setShowApproveModal] = useState(false);
+  const [showPaymentProofModal, setShowPaymentProofModal] = useState(false);
+  const [selectedSupplier, setSelectedSupplier] = useState<any>(null);
 
-  // Use custom hook for all supplier data operations
-  const {
-    suppliers,
-    loading,
-    error,
-    filterSuppliers,
-    approveSupplier,
-    rejectSupplier,
-    verifyPayment
-  } = useSupplierData();
-
-  // Calculate stats using helper
-  const stats = calculateSupplierStats(suppliers);
-  const filteredSuppliers = filterSuppliers(filter);
-
-  // Action handlers
-  const handleApproveSupplier = async (supplierId: string) => {
-    if (!confirm('Approve supplier ini? Pastikan payment sudah diverifikasi.')) return;
-    
-    setActionLoading(true);
-    const result = await approveSupplier(supplierId);
-    alert(result.message);
-    setActionLoading(false);
-  };
-
-  const handleRejectSupplier = (supplierId: string) => {
-    const supplier = suppliers.find(s => s.id === supplierId);
-    if (!supplier) return;
-    
-    setSelectedSupplier(supplier);
-    setShowRejectModal(true);
-  };
-
-  const handleRejectSubmit = async (reason: string) => {
-    if (!selectedSupplier) return;
-    
-    setActionLoading(true);
-    const result = await rejectSupplier(selectedSupplier.id, reason);
-    alert(result.message);
-    setActionLoading(false);
-    
-    if (result.success) {
-      setShowRejectModal(false);
-      setSelectedSupplier(null);
+  // Fetch suppliers
+  const fetchSuppliers = async () => {
+    try {
+      setLoading(true);
+      const res = await fetch('/api/suppliers');
+      const data = await res.json();
+      
+      if (data.success) {
+        setSuppliers(data.data || []);
+      } else {
+        toast.error('Gagal memuat data supplier');
+      }
+    } catch (error) {
+      console.error('Error fetching suppliers:', error);
+      toast.error('Terjadi kesalahan saat memuat data');
+    } finally {
+      setLoading(false);
     }
   };
 
-  const handleVerifyPayment = async (supplierId: string, approve: boolean) => {
-    const action = approve ? 'approve' : 'reject';
-    if (!confirm(`${approve ? 'Approve' : 'Reject'} pembayaran ini?`)) return;
+  useEffect(() => {
+    fetchSuppliers();
+  }, []);
 
-    setActionLoading(true);
-    const result = await verifyPayment(supplierId, approve);
-    alert(result.message);
-    setActionLoading(false);
+  // Calculate stats
+  const stats = {
+    pendingCount: suppliers.filter(s => s.status === 'PENDING').length,
+    paymentPendingCount: suppliers.filter(s => s.paymentStatus === 'PAID_PENDING_APPROVAL').length,
+    activeCount: suppliers.filter(s => s.status === 'ACTIVE').length,
+    totalCount: suppliers.length,
+  };
+
+  // Filter suppliers
+  const filteredSuppliers = suppliers.filter(supplier => {
+    // Tab filter
+    if (activeTab === 'PENDING' && supplier.status !== 'PENDING') return false;
+    if (activeTab === 'PAYMENT_PENDING' && supplier.paymentStatus !== 'PAID_PENDING_APPROVAL') return false;
+    if (activeTab === 'ACTIVE' && supplier.status !== 'ACTIVE') return false;
+
+    // Search filter
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      const matchesSearch = 
+        supplier.businessName?.toLowerCase().includes(query) ||
+        supplier.code?.toLowerCase().includes(query) ||
+        supplier.email?.toLowerCase().includes(query) ||
+        supplier.ownerName?.toLowerCase().includes(query);
+      
+      if (!matchesSearch) return false;
+    }
+
+    // Category filter
+    if (categoryFilter && supplier.productCategory !== categoryFilter) return false;
+
+    // Payment method filter
+    if (paymentMethodFilter && supplier.preferredPaymentMethod !== paymentMethodFilter) return false;
+
+    return true;
+  });
+
+  // Action handlers
+  const handleApproveClick = (supplier: any) => {
+    setSelectedSupplier(supplier);
+    setShowApproveModal(true);
+  };
+
+  const handleViewPaymentProof = (supplier: any) => {
+    setSelectedSupplier(supplier);
+    setShowPaymentProofModal(true);
+  };
+
+  const handleInputCashPayment = (supplier: any) => {
+    // Navigate to cash payment page with pre-fill
+    router.push(`/koperasi/kasir/payments/cash?supplierId=${supplier.id}&supplierName=${encodeURIComponent(supplier.businessName)}`);
+  };
+
+  const handleViewDetails = (supplier: any) => {
+    // Navigate to supplier detail page (if exists)
+    router.push(`/koperasi/super-admin/suppliers/${supplier.id}`);
   };
 
   const handleSimulateSupplier = async () => {
@@ -93,117 +131,243 @@ export default function SuperAdminSuppliersPage() {
       const data = await res.json();
 
       if (data.success) {
-        alert(data.message);
-        // Refresh data
-        window.location.reload();
+        toast.success(data.message);
+        fetchSuppliers(); // Refresh
       } else {
-        alert('❌ ' + data.error);
+        toast.error(data.error || 'Gagal membuat supplier simulasi');
       }
     } catch (error) {
       console.error('Simulate error:', error);
-      alert('❌ Gagal membuat supplier simulasi');
+      toast.error('Terjadi kesalahan saat membuat supplier simulasi');
     } finally {
       setSimulateLoading(false);
     }
   };
+
+  // Get unique categories from suppliers
+  const categories = Array.from(new Set(suppliers.map(s => s.productCategory).filter(Boolean)));
 
   // Loading state
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto"></div>
-          <p className="mt-4 text-gray-600">Loading suppliers...</p>
-        </div>
-      </div>
-    );
-  }
-
-  // Error state
-  if (error) {
-    return (
-      <div className="p-6">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-800">
-          Error: {error}
+          <Loader2 className="h-12 w-12 animate-spin text-blue-600 mx-auto" />
+          <p className="mt-4 text-gray-600">Memuat data supplier...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="p-6 space-y-6">
+    <div className="min-h-screen bg-gray-50 p-6 space-y-6">
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Manajemen Supplier</h1>
-          <p className="text-gray-600 mt-2">Kelola persetujuan dan verifikasi pembayaran supplier</p>
+          <h1 className="text-3xl font-bold text-gray-900">Supplier Management</h1>
+          <p className="text-gray-600 mt-1">Manage supplier approvals and payment verification</p>
         </div>
-        <button
+        <Button
           onClick={handleSimulateSupplier}
           disabled={simulateLoading}
-          className="flex items-center gap-2 px-4 py-2 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg hover:from-purple-700 hover:to-pink-700 transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl"
+          variant="outline"
         >
           {simulateLoading ? (
             <>
-              <Loader2 className="w-4 h-4 animate-spin" />
+              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
               Membuat...
             </>
           ) : (
             <>
-              <Plus className="w-4 h-4" />
+              <Plus className="w-4 h-4 mr-2" />
               Simulasi Supplier
             </>
           )}
-        </button>
+        </Button>
       </div>
 
-      {/* Stats Cards - Using Modular Components */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <PendingStatsCard value={stats.pendingCount} />
-        <PaymentPendingStatsCard value={stats.paymentPendingCount} />
-        <ActiveStatsCard value={stats.activeCount} />
-        <TotalStatsCard value={stats.totalCount} />
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="border-l-4 border-l-amber-500">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-600 font-medium">Pending Approval</p>
+                <p className="text-3xl font-bold text-slate-900">{stats.pendingCount}</p>
+              </div>
+              <div className="p-3 bg-amber-100 rounded-lg">
+                <Clock className="w-6 h-6 text-amber-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-orange-500">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-600 font-medium">Payment Pending</p>
+                <p className="text-3xl font-bold text-slate-900">{stats.paymentPendingCount}</p>
+              </div>
+              <div className="p-3 bg-orange-100 rounded-lg">
+                <Loader2 className="w-6 h-6 text-orange-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-green-500">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-600 font-medium">Active Suppliers</p>
+                <p className="text-3xl font-bold text-slate-900">{stats.activeCount}</p>
+              </div>
+              <div className="p-3 bg-green-100 rounded-lg">
+                <CheckCircle2 className="w-6 h-6 text-green-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card className="border-l-4 border-l-blue-500">
+          <CardContent className="p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm text-slate-600 font-medium">Total Suppliers</p>
+                <p className="text-3xl font-bold text-slate-900">{stats.totalCount}</p>
+              </div>
+              <div className="p-3 bg-blue-100 rounded-lg">
+                <Building2 className="w-6 h-6 text-blue-600" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
 
-      {/* Filter Bar - Using Modular Component */}
-      <SupplierFilterBar
-        activeFilter={filter}
-        onFilterChange={setFilter}
-        pendingCount={stats.pendingCount}
-        paymentPendingCount={stats.paymentPendingCount}
-        activeCount={stats.activeCount}
-        totalCount={stats.totalCount}
-      />
+      {/* Filter Tabs */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-2">
+        <Button
+          onClick={() => setActiveTab('ALL')}
+          variant={activeTab === 'ALL' ? 'primary' : 'outline'}
+          className="whitespace-nowrap"
+        >
+          All ({stats.totalCount})
+        </Button>
+        <Button
+          onClick={() => setActiveTab('PENDING')}
+          variant={activeTab === 'PENDING' ? 'primary' : 'outline'}
+          className="whitespace-nowrap"
+        >
+          Pending ({stats.pendingCount})
+        </Button>
+        <Button
+          onClick={() => setActiveTab('PAYMENT_PENDING')}
+          variant={activeTab === 'PAYMENT_PENDING' ? 'primary' : 'outline'}
+          className="whitespace-nowrap"
+        >
+          Payment Pending ({stats.paymentPendingCount})
+        </Button>
+        <Button
+          onClick={() => setActiveTab('ACTIVE')}
+          variant={activeTab === 'ACTIVE' ? 'primary' : 'outline'}
+          className="whitespace-nowrap"
+        >
+          Active ({stats.activeCount})
+        </Button>
+      </div>
 
-      {/* Suppliers List - Using Modular Components */}
-      <div className="space-y-4">
+      {/* Search & Filters */}
+      <div className="bg-white border border-gray-200 rounded-xl p-4 shadow-sm">
+        <div className="flex flex-col md:flex-row gap-3">
+          <div className="flex-1 relative">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
+            <Input
+              placeholder="Search supplier (name, code, email)..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-10 border-gray-300"
+            />
+          </div>
+          
+          <Select value={categoryFilter || ""} onValueChange={(value) => setCategoryFilter(value === "all" ? undefined : value)}>
+            <SelectTrigger className="w-full md:w-[180px] border-gray-300">
+              <SelectValue placeholder="All Categories" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Categories</SelectItem>
+              {categories.map(cat => (
+                <SelectItem key={cat} value={cat as string}>{cat}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+
+          <Select value={paymentMethodFilter || ""} onValueChange={(value) => setPaymentMethodFilter(value === "all" ? undefined : value)}>
+            <SelectTrigger className="w-full md:w-[180px] border-gray-300">
+              <SelectValue placeholder="All Methods" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Methods</SelectItem>
+              <SelectItem value="CASH">Cash</SelectItem>
+              <SelectItem value="TRANSFER">Transfer</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* Suppliers List */}
+      <div className="space-y-3">
         {filteredSuppliers.length === 0 ? (
-          <EmptySupplierState />
+          <div className="bg-white border border-gray-200 rounded-xl p-12 text-center">
+            <div className="text-6xl mb-4">📦</div>
+            <h3 className="text-xl font-semibold text-gray-900 mb-2">
+              No suppliers found
+            </h3>
+            <p className="text-gray-600">
+              {searchQuery || categoryFilter || paymentMethodFilter 
+                ? 'No suppliers match your filters'
+                : 'No suppliers yet. Click "Simulasi Supplier" to add test data.'}
+            </p>
+          </div>
         ) : (
           filteredSuppliers.map((supplier) => (
             <SupplierCard
               key={supplier.id}
               supplier={supplier}
-              onApprove={handleApproveSupplier}
-              onReject={handleRejectSupplier}
-              onVerifyPayment={handleVerifyPayment}
-              actionLoading={actionLoading}
+              onApproveClick={handleApproveClick}
+              onViewPaymentProof={handleViewPaymentProof}
+              onInputCashPayment={handleInputCashPayment}
+              onViewDetails={handleViewDetails}
             />
           ))
         )}
       </div>
 
-      {/* Reject Modal - Using Modular Component */}
-      <RejectSupplierModal
-        isOpen={showRejectModal}
-        supplierName={selectedSupplier?.businessName || ''}
-        onClose={() => {
-          setShowRejectModal(false);
-          setSelectedSupplier(null);
-        }}
-        onSubmit={handleRejectSubmit}
-        isSubmitting={actionLoading}
-      />
+      {/* Modals */}
+      {selectedSupplier && showApproveModal && (
+        <ApproveSupplierModal
+          isOpen={showApproveModal}
+          onClose={() => {
+            setShowApproveModal(false);
+            setSelectedSupplier(null);
+          }}
+          supplier={selectedSupplier}
+          onSuccess={fetchSuppliers}
+        />
+      )}
+
+      {selectedSupplier && showPaymentProofModal && selectedSupplier.supplier_payments?.[0] && (
+        <PaymentProofModal
+          isOpen={showPaymentProofModal}
+          onClose={() => {
+            setShowPaymentProofModal(false);
+            setSelectedSupplier(null);
+          }}
+          payment={selectedSupplier.supplier_payments[0]}
+          supplier={selectedSupplier}
+          onSuccess={fetchSuppliers}
+        />
+      )}
     </div>
   );
 }

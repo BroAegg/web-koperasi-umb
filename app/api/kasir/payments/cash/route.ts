@@ -58,7 +58,12 @@ export async function POST(request: NextRequest) {
 
     // Create payment record
     const now = new Date();
-    const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, now.getDate());
+    const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1); // 1st of next month
+
+    // Get current user as verifier
+    const verifier = await prisma.users.findUnique({
+      where: { email: session.user.email },
+    });
 
     const payment = await prisma.supplier_payments.create({
       data: {
@@ -69,7 +74,9 @@ export async function POST(request: NextRequest) {
         paymentDate: now,
         periodStart: now,
         periodEnd: nextMonth,
-        status: 'PENDING', // Still needs admin verification
+        status: 'VERIFIED', // Auto-verified for cash payment by admin
+        verifiedBy: verifier?.id,
+        verifiedAt: now,
         note: `${note || ''} | Diinput oleh ${session.user.role}: ${session.user.name}`,
         paymentProof: null, // No proof for cash payment
         createdAt: now,
@@ -77,24 +84,31 @@ export async function POST(request: NextRequest) {
       },
     });
 
-    // Update supplier payment status
+    // Update supplier to ACTIVE immediately (cash payment is instant)
     await prisma.suppliers.update({
       where: { id: supplier.id },
       data: {
-        paymentStatus: 'PAID_PENDING_APPROVAL',
+        status: 'ACTIVE',
+        paymentStatus: 'PAID_APPROVED',
+        isActive: true,
+        isPaymentActive: true,
+        lastPaymentDate: now,
+        nextPaymentDue: nextMonth,
         updatedAt: now,
       },
     });
 
     return NextResponse.json({
       success: true,
-      message: 'Pembayaran cash berhasil disimpan. Menunggu verifikasi admin.',
+      message: 'Pembayaran cash berhasil! Supplier sekarang ACTIVE.',
       data: {
         paymentId: payment.id,
         supplierId: supplier.id,
         supplierName: supplier.businessName,
         amount: parseFloat(amount),
         paymentMethod: 'CASH',
+        status: 'ACTIVE',
+        nextPaymentDue: nextMonth,
         inputBy: session.user.name,
         inputByRole: session.user.role,
       },

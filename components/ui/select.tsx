@@ -77,9 +77,15 @@ export function SelectTrigger({
   )
 }
 
-export function SelectValue() {
+export function SelectValue({ placeholder }: { placeholder?: string }) {
   const context = React.useContext(SelectContext)
-  return <span>{context?.value || 'Select...'}</span>
+  
+  // Find the selected item's display text
+  if (!context?.value) {
+    return <span className="text-gray-500">{placeholder || 'Select...'}</span>
+  }
+  
+  return <span>{context.value}</span>
 }
 
 export function SelectContent({ children }: { children: React.ReactNode }) {

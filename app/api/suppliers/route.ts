@@ -130,39 +130,39 @@ export async function GET(request: NextRequest) {
 
     const suppliers = await prisma.suppliers.findMany({
       where,
-      select: {
-        id: true,
-        code: true,
-        businessName: true,
-        ownerName: true,
-        email: true,
-        phone: true,
-        address: true,
-        productCategory: true,
-        status: true,
-        paymentStatus: true,
-        isActive: true,
-        createdAt: true,
-        updatedAt: true,
+      include: {
+        supplier_payments: {
+          where: {
+            status: 'PENDING'
+          },
+          orderBy: {
+            paymentDate: 'desc'
+          },
+          take: 1
+        }
       },
       orderBy: { createdAt: 'desc' },
     });
 
-    // Map to match frontend Supplier type (name instead of businessName)
+    // Map to match frontend expectations
     const mappedSuppliers = suppliers.map(supplier => ({
       id: supplier.id,
       code: supplier.code,
-      name: supplier.businessName, // Map businessName to name for frontend
+      businessName: supplier.businessName,
       ownerName: supplier.ownerName,
       email: supplier.email,
       phone: supplier.phone,
       address: supplier.address,
       productCategory: supplier.productCategory,
+      preferredPaymentMethod: supplier.preferredPaymentMethod,
+      monthlyFee: supplier.monthlyFee,
       status: supplier.status,
       paymentStatus: supplier.paymentStatus,
       isActive: supplier.isActive,
+      rejectedReason: supplier.rejectedReason,
       createdAt: supplier.createdAt,
       updatedAt: supplier.updatedAt,
+      supplier_payments: supplier.supplier_payments
     }));
 
     return NextResponse.json({

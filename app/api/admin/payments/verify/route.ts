@@ -177,11 +177,11 @@ export async function PATCH(request: NextRequest) {
         },
       });
 
-      // Update supplier payment status
+      // Update supplier payment status - back to UNPAID so supplier can re-upload
       await prisma.suppliers.update({
         where: { id: payment.supplierId },
         data: {
-          paymentStatus: 'PAID_REJECTED',
+          paymentStatus: 'UNPAID',
         },
       });
 
