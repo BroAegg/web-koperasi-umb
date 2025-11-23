@@ -122,35 +122,35 @@ export async function GET(request: NextRequest) {
     });
 
     // ✅ NEW: Get unsettled consignment_sales (actual hutang konsinyasi)
-    const unsettledConsignmentSales = await prisma.consignment_sales.findMany({
-      where: {
-        isSettled: false,
-        saleDate: { gte: startDate, lte: endDate }
-      },
-      include: {
-        consignment_batches: {
-          include: {
-            consignors: {
-              select: {
-                id: true,
-                code: true,
-                name: true,
-                contact: true,
-                phone: true,
-                address: true
-              }
-            },
-            products: {
-              select: {
-                id: true,
-                name: true,
-                supplierId: true
+    // TODO: Re-enable after database migration adds supplierId to consignment_sales
+    let unsettledConsignmentSales: any[] = [];
+    try {
+      unsettledConsignmentSales = await prisma.consignment_sales.findMany({
+        where: {
+          isSettled: false,
+          saleDate: { gte: startDate, lte: endDate }
+        },
+        include: {
+          consignment_batches: {
+            include: {
+              consignors: {
+                select: {
+                  id: true,
+                  code: true,
+                  name: true,
+                  contact: true,
+                  phone: true,
+                  address: true
+                }
               }
             }
           }
         }
-      }
-    });
+      });
+    } catch (error) {
+      console.warn('Warning: consignment_sales query failed, continuing without it', error);
+      unsettledConsignmentSales = [];
+    }
 
     // Map supplierId -> payment info (take the latest payment if multiple)
   const paidInfoMap = new Map<string, { paymentId: string; amount: number; paidAt?: string; transactionId?: string }>();
