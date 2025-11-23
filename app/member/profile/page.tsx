@@ -5,13 +5,13 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card } from '@/components/ui/card';
 import {
-    ArrowLeft,
-    Calendar,
-    Mail,
-    MapPin,
-    Phone,
-    Save,
-    User
+  ArrowLeft,
+  Calendar,
+  Mail,
+  MapPin,
+  Phone,
+  Save,
+  User
 } from 'lucide-react';
 import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
