@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Building2, Mail, Phone, MapPin, Package, CheckCircle, XCircle, Eye, DollarSign, AlertCircle, FileText } from 'lucide-react';
+import { Building2, Mail, Phone, MapPin, Package, CheckCircle, XCircle, Eye, DollarSign, AlertCircle, FileText, CheckSquare, Square, MoreVertical } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 
@@ -11,6 +11,10 @@ interface SupplierCardProps {
   onViewPaymentProof?: (supplier: any) => void;
   onInputCashPayment?: (supplier: any) => void;
   onViewDetails?: (supplier: any) => void;
+  onEvaluate?: (supplier: any) => void;
+  isSelected?: boolean;
+  onToggleSelect?: (supplierId: string) => void;
+  showCheckbox?: boolean;
 }
 
 export default function SupplierCard({ 
@@ -18,7 +22,11 @@ export default function SupplierCard({
   onApproveClick,
   onViewPaymentProof,
   onInputCashPayment,
-  onViewDetails
+  onViewDetails,
+  onEvaluate,
+  isSelected = false,
+  onToggleSelect,
+  showCheckbox = false,
 }: SupplierCardProps) {
   
   // Helper function untuk payment method badge
@@ -50,6 +58,20 @@ export default function SupplierCard({
   const getStatusBadge = () => {
     const status = supplier.status;
     
+    if (status === 'PENDING_REVIEW') {
+      return (
+        <Badge className="bg-purple-50 text-purple-700 border-purple-200 font-medium">
+          📝 Pending Review
+        </Badge>
+      );
+    }
+    if (status === 'APPROVED_PENDING_PAYMENT') {
+      return (
+        <Badge className="bg-blue-50 text-blue-700 border-blue-200 font-medium">
+          💳 Waiting Payment
+        </Badge>
+      );
+    }
     if (status === 'PENDING') {
       return (
         <Badge className="bg-amber-50 text-amber-700 border-amber-200 font-medium">
@@ -128,19 +150,41 @@ export default function SupplierCard({
 
   // Check if has pending payment proof
   const hasPendingPaymentProof = supplier.supplier_payments?.some(
-    (p: any) => p.status === 'PENDING'
+    (p: any) => p.status === 'PENDING' && p.paymentProof
+  );
+  
+  // Get the latest payment with proof
+  const latestPaymentWithProof = supplier.supplier_payments?.find(
+    (p: any) => p.paymentProof
   );
 
   return (
-    <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 hover:shadow-md transition-all">
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+    <div className={`bg-white rounded-xl shadow-sm border p-4 sm:p-6 hover:shadow-md transition-all ${isSelected ? 'border-blue-500 bg-blue-50/30' : 'border-gray-200'}`}>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6">
         
         {/* LEFT COLUMN: Supplier Info (5 cols) */}
         <div className="lg:col-span-5 space-y-4">
-          <div className="flex items-start gap-4">
+          <div className="flex items-start gap-3 sm:gap-4">
+            {/* ✅ Checkbox */}
+            {showCheckbox && onToggleSelect && (
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onToggleSelect(supplier.id);
+                }}
+                className="mt-1 flex-shrink-0 hover:scale-110 transition-transform"
+              >
+                {isSelected ? (
+                  <CheckSquare className="w-5 h-5 text-blue-600" />
+                ) : (
+                  <Square className="w-5 h-5 text-gray-400 hover:text-gray-600" />
+                )}
+              </button>
+            )}
+            
             {/* Avatar/Logo */}
-            <div className="w-14 h-14 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
-              <Building2 className="w-7 h-7 text-blue-600" />
+            <div className="w-12 h-12 sm:w-14 sm:h-14 rounded-lg bg-blue-50 flex items-center justify-center flex-shrink-0">
+              <Building2 className="w-6 h-6 sm:w-7 sm:h-7 text-blue-600" />
             </div>
             
             {/* Business Name & Code */}
@@ -238,6 +282,35 @@ export default function SupplierCard({
         {/* RIGHT COLUMN: Action Buttons (3 cols) */}
         <div className="lg:col-span-3 flex flex-col gap-3">
           
+          {/* PENDING_REVIEW - Show Evaluate Button */}
+          {supplier.status === 'PENDING_REVIEW' && onEvaluate && (
+            <>
+              {/* Sample Products Info */}
+              <div className="bg-purple-50 border border-purple-200 p-3 rounded-lg">
+                <div className="flex items-center gap-2 text-purple-700 mb-2">
+                  <Package className="w-4 h-4" />
+                  <span className="text-sm font-semibold">
+                    Sample Products: {supplier.sample_products?.length || 0}
+                  </span>
+                </div>
+                {supplier.productAverageScore && (
+                  <div className="text-xs text-purple-600">
+                    Avg Score: {supplier.productAverageScore}/5.0
+                  </div>
+                )}
+              </div>
+
+              <Button
+                onClick={() => onEvaluate(supplier)}
+                className="w-full bg-purple-600 hover:bg-purple-700"
+                size="lg"
+              >
+                <Eye className="w-5 h-5 mr-2" />
+                Review & Evaluate
+              </Button>
+            </>
+          )}
+          
           {/* PENDING STATUS - Show Approve Button */}
           {supplier.status === 'PENDING' && onApproveClick && (
             <>
@@ -280,9 +353,9 @@ export default function SupplierCard({
           )}
 
           {/* PAID_PENDING - Show View Payment Proof */}
-          {supplier.paymentStatus === 'PAID_PENDING_APPROVAL' && hasPendingPaymentProof && onViewPaymentProof && (
+          {supplier.paymentStatus === 'PAID_PENDING_APPROVAL' && hasPendingPaymentProof && onViewPaymentProof && latestPaymentWithProof && (
             <Button
-              onClick={() => onViewPaymentProof(supplier)}
+              onClick={() => onViewPaymentProof(supplier, latestPaymentWithProof)}
               className="w-full bg-amber-600 hover:bg-amber-700"
               size="lg"
             >

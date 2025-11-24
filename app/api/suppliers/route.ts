@@ -139,6 +139,11 @@ export async function GET(request: NextRequest) {
             paymentDate: 'desc'
           },
           take: 1
+        },
+        sample_products: {
+          orderBy: {
+            displayOrder: 'asc'
+          }
         }
       },
       orderBy: { createdAt: 'desc' },
@@ -162,7 +167,18 @@ export async function GET(request: NextRequest) {
       rejectedReason: supplier.rejectedReason,
       createdAt: supplier.createdAt,
       updatedAt: supplier.updatedAt,
-      supplier_payments: supplier.supplier_payments
+      supplier_payments: supplier.supplier_payments,
+      sample_products: supplier.sample_products.map(p => ({
+        ...p,
+        images: JSON.parse(p.images || '[]')
+      })),
+      // Evaluation scores
+      productQualityScore: supplier.productQualityScore,
+      productPriceScore: supplier.productPriceScore,
+      productPackagingScore: supplier.productPackagingScore,
+      productAverageScore: supplier.productAverageScore,
+      evaluationNotes: supplier.evaluationNotes,
+      evaluatedAt: supplier.evaluatedAt
     }));
 
     return NextResponse.json({

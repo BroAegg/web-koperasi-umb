@@ -122,35 +122,20 @@ export async function GET(request: NextRequest) {
     });
 
     // ✅ NEW: Get unsettled consignment_sales (actual hutang konsinyasi)
-    // TODO: Re-enable after database migration adds supplierId to consignment_sales
-    let unsettledConsignmentSales: any[] = [];
-    try {
-      unsettledConsignmentSales = await prisma.consignment_sales.findMany({
-        where: {
-          isSettled: false,
-          saleDate: { gte: startDate, lte: endDate }
-        },
-        include: {
-          consignment_batches: {
-            include: {
-              consignors: {
-                select: {
-                  id: true,
-                  code: true,
-                  name: true,
-                  contact: true,
-                  phone: true,
-                  address: true
-                }
-              }
-            }
+    const unsettledConsignmentSales = await prisma.consignment_sales.findMany({
+      where: {
+        isSettled: false,
+        saleDate: { gte: startDate, lte: endDate }
+      },
+      include: {
+        consignment_batches: {
+          include: {
+            consignors: true,
+            products: true
           }
         }
-      });
-    } catch (error) {
-      console.warn('Warning: consignment_sales query failed, continuing without it', error);
-      unsettledConsignmentSales = [];
-    }
+      }
+    });
 
     // Map supplierId -> payment info (take the latest payment if multiple)
   const paidInfoMap = new Map<string, { paymentId: string; amount: number; paidAt?: string; transactionId?: string }>();
@@ -368,8 +353,17 @@ export async function GET(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error fetching period financial data:', error);
+    console.error('Error details:', {
+      message: error instanceof Error ? error.message : 'Unknown error',
+      stack: error instanceof Error ? error.stack : undefined,
+      error: error
+    });
     return NextResponse.json(
-      { success: false, error: 'Internal server error' },
+      { 
+        success: false, 
+        error: 'Internal server error',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      },
       { status: 500 }
     );
   }

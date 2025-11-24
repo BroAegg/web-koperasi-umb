@@ -82,7 +82,7 @@
 6. ✅ **Expected:** 
    - Payment status: VERIFIED
    - Supplier status: ACTIVE ✅
-
+   
 ### Step 6: Verify Supplier Access
 1. Login as supplier: `cash.test@example.com`
 2. Navigate to dashboard

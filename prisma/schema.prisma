@@ -467,6 +467,16 @@ model suppliers {
   maxActiveProducts      Int                      @default(10)
   currentActiveProducts  Int                      @default(0)
   
+  // Product Evaluation (NEW!)
+  productQualityScore    Int?                     @db.TinyInt  // 1-5
+  productPriceScore      Int?                     @db.TinyInt  // 1-5
+  productPackagingScore  Int?                     @db.TinyInt  // 1-5
+  productAverageScore    Decimal?                 @db.Decimal(3, 2)
+  evaluationNotes        String?                  @db.Text
+  evaluatedBy            String?
+  evaluatedAt            DateTime?
+  evaluator              users?                   @relation("SupplierEvaluator", fields: [evaluatedBy], references: [id])
+  
   // Relations
   consignment_payments   consignment_payments[]
   products               products[]
@@ -475,6 +485,30 @@ model suppliers {
   product_submissions    product_submissions[]
   stock_requests         stock_requests[]
   consignment_sales      consignment_sales[]
+  sample_products        supplier_sample_products[]
+}
+
+model supplier_sample_products {
+  id              String    @id @default(cuid())
+  supplierId      String
+  supplier        suppliers @relation(fields: [supplierId], references: [id], onDelete: Cascade)
+  
+  // Product Info
+  productName     String
+  productCategory String
+  price           Decimal   @db.Decimal(10, 2)
+  description     String    @db.Text
+  images          String    @db.Text // JSON array of image URLs
+  
+  // Display order
+  displayOrder    Int       @default(0)
+  
+  // Timestamps
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+  
+  @@index([supplierId])
+  @@map("supplier_sample_products")
 }
 
 model stock_requests {
@@ -566,6 +600,7 @@ model users {
   sessions             sessions[]
   product_submissions  product_submissions[]
   stock_requests       stock_requests[]
+  evaluated_suppliers  suppliers[]           @relation("SupplierEvaluator")
 }
 
 model sessions {
@@ -761,11 +796,16 @@ enum RestockStatus {
 }
 
 enum SupplierStatus {
+  PENDING_REVIEW              // Baru daftar + submit sample produk
+  APPROVED_PENDING_PAYMENT    // Lolos review, tunggu bayar fee
+  PAID_PENDING_APPROVAL       // Sudah bayar, tunggu verify payment
+  ACTIVE                      // Supplier aktif
+  REJECTED                    // Ditolak
+  SUSPENDED                   // Disuspend
+  
+  // Legacy status (deprecated, keep for backward compatibility)
   PENDING
   APPROVED
-  REJECTED
-  SUSPENDED
-  ACTIVE
 }
 
 enum TargetAudience {
