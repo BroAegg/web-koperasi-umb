@@ -19,6 +19,14 @@
 **📈 Performance**: Optimized for Lighthouse 90+ score  
 **💰 New:** Automated supplier payment calculations with 15% commission tracking
 
+## 🚀 Quick Deploy
+
+[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/new)
+
+For deployment guides, see:
+- **[DEPLOY_ALTERNATIVE.md](./DEPLOY_ALTERNATIVE.md)** - Railway, Render, Fly.io, and more
+- **[PRODUCTION_DEPLOYMENT_GUIDE.md](./PRODUCTION_DEPLOYMENT_GUIDE.md)** - VPS deployment guide
+
 ---
 
 ## 📚 **NEW! Production Documentation**

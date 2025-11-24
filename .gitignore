@@ -52,3 +52,7 @@ next-env.d.ts
 
 # Uploaded files (payment proofs, etc)
 /public/uploads/
+
+# Database backups (may contain sensitive data)
+/backups/*.sql
+!/backups/.gitkeep
