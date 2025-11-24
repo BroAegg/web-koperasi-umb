@@ -140,10 +140,10 @@ export default function SuperAdminSuppliersPage() {
   const filteredSuppliers = useMemo(() => {
     return suppliers.filter(supplier => {
       // Tab filter
-      if (activeTab === 'PENDING_REVIEW' && supplier.status !== 'PENDING_REVIEW') return false;
-      if (activeTab === 'PENDING' && supplier.status !== 'PENDING') return false;
-      if (activeTab === 'PAYMENT_PENDING' && supplier.paymentStatus !== 'PAID_PENDING_APPROVAL') return false;
-      if (activeTab === 'ACTIVE' && supplier.status !== 'ACTIVE') return false;
+      if (activeTab === 'PENDING_REVIEW' && supplier.status !== ('PENDING_REVIEW' as any)) return false;
+      if (activeTab === 'PENDING' && supplier.status !== ('PENDING' as any)) return false;
+      if (activeTab === 'PAYMENT_PENDING' && supplier.paymentStatus !== ('PAID_PENDING_APPROVAL' as any)) return false;
+      if (activeTab === 'ACTIVE' && supplier.status !== ('ACTIVE' as any)) return false;
 
       // Search filter (case-insensitive)
       if (searchQuery) {
