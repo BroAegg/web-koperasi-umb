@@ -47,7 +47,7 @@ async function main() {
       unitKerja: 'Fakultas Teknik',
       status: 'ACTIVE',
       isMemberKoperasi: true,
-      simpananPokok: 100000,
+      simpananPokok: 200000,
       simpananWajib: 250000,
       simpananSukarela: 500000,
       points: 1250,

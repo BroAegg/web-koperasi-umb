@@ -207,7 +207,7 @@ async function main() {
         address: `Jakarta ${i === 1 ? 'Pusat' : i === 2 ? 'Selatan' : i === 3 ? 'Utara' : i === 4 ? 'Barat' : 'Timur'}`,
         gender: i % 2 === 0 ? 'FEMALE' : 'MALE',
         unitKerja: i === 1 ? 'Keuangan' : i === 2 ? 'HRD' : i === 3 ? 'IT' : i === 4 ? 'Marketing' : 'Operasional',
-        simpananPokok: new Decimal(50000),
+        simpananPokok: new Decimal(200000),
         simpananWajib: new Decimal(200000 + i * 50000),
         simpananSukarela: new Decimal(150000 + i * 100000),
         status: 'ACTIVE',
