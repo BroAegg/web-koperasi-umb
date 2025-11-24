@@ -129,10 +129,10 @@ export default function SuperAdminSuppliersPage() {
 
   // ✅ OPTIMIZED: Calculate stats with useMemo (only recalculate when suppliers change)
   const stats = useMemo(() => ({
-    pendingReviewCount: suppliers.filter(s => s.status === 'PENDING_REVIEW').length,
-    pendingCount: suppliers.filter(s => s.status === 'PENDING').length,
-    paymentPendingCount: suppliers.filter(s => s.paymentStatus === 'PAID_PENDING_APPROVAL').length,
-    activeCount: suppliers.filter(s => s.status === 'ACTIVE').length,
+    pendingReviewCount: suppliers.filter(s => s.status === 'PENDING_REVIEW' as any).length,
+    pendingCount: suppliers.filter(s => s.status === 'PENDING' as any).length,
+    paymentPendingCount: suppliers.filter(s => s.paymentStatus === 'PAID_PENDING_APPROVAL' as any).length,
+    activeCount: suppliers.filter(s => s.status === 'ACTIVE' as any).length,
     totalCount: suppliers.length,
   }), [suppliers]);
 
