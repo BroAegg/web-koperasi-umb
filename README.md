@@ -23,7 +23,10 @@
 
 [![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/new)
 
-For deployment guides, see:
+**Want to make this repository public and deploy?**
+- **[MAKE_PUBLIC_GUIDE.md](./MAKE_PUBLIC_GUIDE.md)** - Complete guide to make repo public & deploy
+
+For deployment options, see:
 - **[DEPLOY_ALTERNATIVE.md](./DEPLOY_ALTERNATIVE.md)** - Railway, Render, Fly.io, and more
 - **[PRODUCTION_DEPLOYMENT_GUIDE.md](./PRODUCTION_DEPLOYMENT_GUIDE.md)** - VPS deployment guide
 
