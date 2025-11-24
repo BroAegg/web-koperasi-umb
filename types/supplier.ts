@@ -71,7 +71,7 @@ export type ModalState =
   | { type: 'cash-input'; supplier: Supplier };
 
 // Filter Types
-export type FilterTab = 'ALL' | 'PENDING' | 'PAYMENT_PENDING' | 'ACTIVE';
+export type FilterTab = 'ALL' | 'PENDING_REVIEW' | 'PENDING' | 'PAYMENT_PENDING' | 'ACTIVE';
 
 export interface SupplierFilters {
   tab: FilterTab;

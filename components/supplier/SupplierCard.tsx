@@ -355,7 +355,7 @@ export default function SupplierCard({
           {/* PAID_PENDING - Show View Payment Proof */}
           {supplier.paymentStatus === 'PAID_PENDING_APPROVAL' && hasPendingPaymentProof && onViewPaymentProof && latestPaymentWithProof && (
             <Button
-              onClick={() => onViewPaymentProof(supplier, latestPaymentWithProof)}
+              onClick={() => onViewPaymentProof(supplier)}
               className="w-full bg-amber-600 hover:bg-amber-700"
               size="lg"
             >
