@@ -60,9 +60,10 @@ async function main() {
 
   console.log('👥 Creating users...\n');
 
-  // Delete existing users first
+  // Delete existing users and suppliers first
+  await prisma.suppliers.deleteMany({});
   await prisma.users.deleteMany({});
-  console.log('🗑️  Cleared existing users\n');
+  console.log('🗑️  Cleared existing users and suppliers\n');
 
   // Create new users
   for (const userData of users) {
@@ -76,10 +77,44 @@ async function main() {
       },
     });
 
-    console.log(`✅ Created: ${user.email}`);
+    console.log(`✅ Created user: ${user.email}`);
     console.log(`   Role: ${user.role}`);
     console.log(`   Name: ${user.name}`);
     console.log(`   Password: password\n`);
+
+    // If user is SUPPLIER, also create entry in suppliers table
+    if (user.role === 'SUPPLIER') {
+      const supplierCode = `SUP-${Date.now()}-${user.email.toUpperCase().substring(0, 3)}`;
+      
+      const supplier = await prisma.suppliers.create({
+        data: {
+          id: user.id, // Use same ID as user for consistency
+          code: supplierCode,
+          businessName: user.name,
+          ownerName: user.name,
+          email: user.email,
+          password: hashedPassword,
+          phone: '081234567890',
+          address: 'Alamat Supplier Test',
+          productCategory: 'General',
+          description: 'Supplier test account',
+          status: 'APPROVED', // Set to APPROVED so can be used immediately
+          paymentStatus: 'PAID_APPROVED',
+          monthlyFee: 25000,
+          isPaymentActive: true,
+          isActive: true,
+          lastPaymentDate: new Date(),
+          nextPaymentDue: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000), // 30 days from now
+          approvedAt: new Date(),
+          createdAt: new Date(),
+          updatedAt: new Date(),
+        },
+      });
+
+      console.log(`   ✅ Created supplier entry: ${supplier.code}`);
+      console.log(`   Status: ${supplier.status}`);
+      console.log(`   Payment Active: ${supplier.isPaymentActive}\n`);
+    }
   }
 
   console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
@@ -112,7 +147,8 @@ async function main() {
   console.log('📧 supplier');
   console.log('   Password: password');
   console.log('   Role: SUPPLIER');
-  console.log('   Access: Supplier portal & consignment\n');
+  console.log('   Access: Supplier portal & consignment');
+  console.log('   Note: Also created in suppliers table with APPROVED status\n');
 
   console.log('📧 developer');
   console.log('   Password: password');
